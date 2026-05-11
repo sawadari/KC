@@ -1,19 +1,62 @@
 # KC
 
-KC は、Codex + GitHub の開発フローを配布可能な Knowledge Convergence guard にするためのツールです。
+KC は、AI エージェントが作った GitHub Pull Request を「merge してよい状態か」判定するためのガードです。
 
-Issue の目的、Codex の Plan、人間の承認、verification evidence、validation evidence、PR 差分を読み、merge してよい知識状態かを deterministic rule で判定します。
+Codex のようなエージェントはすばやく差分を作れます。そこで問題になるのは「コードを書けるか」ではなく、「何を頼んだのか、どこまで承認したのか、何で確認したのかを、merge 前にレビューできるか」です。KC はその流れを `PASS` / `WARN` / `HOLD` / `FAIL` に変換します。
 
-AI 出力は承認ではありません。AI assist は不足質問、Plan 草案、Evidence Bundle 草案、PR 説明を作れますが、gate の最終判定は常に機械的ルールだけで決まります。
+AI に実装を任せても、最終判断を AI の雰囲気に任せたくないチーム向けの、軽量な merge gate です。
 
-## 使い方
+[English README](README.md)
+
+## KC が解く問題
+
+KC は PR ごとに、次の問いを見える化します。
+
+- この PR はどの Issue / ユーザー課題を解いているのか
+- 実装前にどの Plan が承認されたのか
+- 変更ファイルは承認済み scope の中に収まっているか
+- verification / validation evidence はあるか
+- merge 判定は AI の文章ではなく、決定的なルールで出ているか
+
+KC は人間の代わりに承認しません。承認前に足りない文脈を見つけます。
+
+## まず試す
+
+公開済み CLI を確認します。
 
 ```bash
-npx @sawadari/kc init --workspace .
-npx @sawadari/kc check --workspace .
+npx -y @sawadari/kc --help
 ```
 
-GitHub Actions:
+既存 repo に KC テンプレートを追加します。
+
+```bash
+npx -y @sawadari/kc init --workspace .
+```
+
+これで `.kc` の example、GitHub templates、`AGENTS.md` のスターター、任意の Codex hook templates が配置されます。既存ファイルは `--force` を付けない限り上書きしません。
+
+実際の PR では、example を有効な artifact にコピーして中身を埋めます。
+
+```bash
+cp .kc/issue.example.yaml .kc/issue.yaml
+cp .kc/plan.example.yaml .kc/plan.yaml
+cp .kc/approval.example.yaml .kc/approval.yaml
+cp .kc/agent_envelope.example.yaml .kc/agent_envelope.yaml
+cp .kc/evidence_bundle.example.yaml .kc/evidence_bundle.yaml
+```
+
+そのうえで deterministic check を実行します。
+
+```bash
+npx -y @sawadari/kc check --workspace .
+```
+
+`kc check` は `HOLD` または `FAIL` のとき終了コード `1` を返すため、CI の gate として使えます。
+
+## GitHub Action に入れる
+
+`.github/workflows/kc-guard.yml` を作ります。
 
 ```yaml
 name: KC Guard
@@ -42,6 +85,36 @@ jobs:
           comment-on-linked-issue: false
 ```
 
+Pull Request 上では、Action が KC artifact を読み、PR の変更ファイルが承認済み scope / prohibited path に反していないか確認し、Evidence Bundle を生成します。設定すれば PR コメントも投稿します。
+
+Action outputs:
+
+- `decision`: `PASS`, `WARN`, `HOLD`, `FAIL`
+- `merge_ready`: `PASS` / `WARN` のとき `true`
+- `primary_reason`: 主な reason code
+- `findings_json`: findings の JSON
+- `evidence_bundle_path`: 生成された Evidence Bundle の path
+
+## 判定の意味
+
+| Decision | 意味 | CI |
+|---|---|---|
+| `PASS` | 必要な KC 文脈があり、blocking finding がない | 成功 |
+| `WARN` | merge は可能だが、reviewer が見るべき注意点がある | annotation 付きで成功 |
+| `HOLD` | 重要な情報不足、または承認 scope 外の変更がある | 失敗 |
+| `FAIL` | artifact または policy の状態が不正 | 失敗 |
+
+## 日々の使い方
+
+1. Issue に problem、expected outcome、acceptance criteria、non-goals を書く
+2. agent に Plan を作らせ、`.kc/plan.yaml` に残す
+3. 人間の承認を `.kc/approval.yaml` に残す
+4. agent に承認済み scope の中で実装させる
+5. verification / validation evidence を `.kc/evidence_bundle.yaml` に残す
+6. ローカルまたは GitHub Actions で `kc check` を実行する
+
+これにより、「何を頼んだか」「何を承認したか」「何が変わったか」「何で確認したか」がチャット履歴ではなく repo に残ります。
+
 ## CLI
 
 ```bash
@@ -52,29 +125,32 @@ kc assist --kind issue-packet --input issue.md --offline-template
 kc promote --workspace . --output-dir reports/promotion
 ```
 
-`kc check` は `HOLD` または `FAIL` のとき終了コード `1` を返します。`kc bundle` は Evidence Bundle を生成しますが、判定でプロセスを失敗させません。
+コマンド概要:
 
-AI assist は `OPENAI_API_KEY` または `--openai-api-key` がある場合だけ動きます。deterministic check には認証情報は不要です。`--offline-template` を使うと、API を呼ばずに parse 可能な draft template を出力できます。
+- `kc init`: テンプレートを配置する。既存ファイルは上書きしない
+- `kc check`: deterministic rules を実行し、`HOLD` / `FAIL` で失敗する
+- `kc bundle`: プロセスを失敗させずに Evidence Bundle を生成する
+- `kc assist`: candidate artifact を下書きする。AI 出力は最終判定を変えない
+- `kc promote`: DecisionLedger などの promotion candidate を人間 review 用に生成する
 
-## 読み取る artifact
+AI assist は任意です。`OPENAI_API_KEY` または `--openai-api-key` があるときだけ使います。deterministic check に API 認証情報は不要です。
 
-- `.kc/issue.yaml`
-- `.kc/plan.yaml`
-- `.kc/approval.yaml`
-- `.kc/agent_envelope.yaml`
-- `.kc/evidence_bundle.yaml`
-- `.kc/ruleset.yaml`
+## KC Artifacts
 
-`kc init` はテンプレートと GitHub 用テンプレートを配置します。既存ファイルは `--force` がない限り上書きしません。
+KC は対象 repo から次のファイルを読みます。
 
-## 判定
+- `.kc/issue.yaml`: problem、expected outcome、acceptance criteria、risk tier、non-goals
+- `.kc/plan.yaml`: 解釈した要求、実装 plan、allowed files、prohibited files
+- `.kc/approval.yaml`: 人間の承認と承認条件
+- `.kc/agent_envelope.yaml`: agent の識別子と実行境界
+- `.kc/evidence_bundle.yaml`: verification、validation、PR、audit evidence
+- `.kc/ruleset.yaml`: 実行する rules と severity override
 
-- `PASS`: merge-ready
-- `WARN`: 注意付きで merge 可能
-- `HOLD`: 解消または明示判断まで merge すべきでない
-- `FAIL`: artifact 不正または policy 違反
+`kc init` で作る example は、reviewer が PR 上で読めるように明示的な構造にしています。
 
-`.kc/ruleset.yaml` は実行される policy です。`ruleset.rules` で実行する KC-AE ルールを制限し、`ruleset.severity_overrides` で rule ID ごとの severity を上書きできます。
+## Ruleset
+
+`.kc/ruleset.yaml` は実行される policy です。`ruleset.rules` で実行する KC-AE rules を制限し、`ruleset.severity_overrides` で rule ID ごとの severity を上書きできます。
 
 ```yaml
 ruleset:
@@ -85,10 +161,14 @@ ruleset:
     KC-AE-007: warning
 ```
 
-## ライセンス
-
-Apache-2.0。
+現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness を扱います。
 
 ## 任意の Codex Hooks
 
-KC は `templates/hooks/` に任意の hook template を同梱しています。`UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `Stop` 向けの保守的なローカル補助であり、Codex hook 設定へ明示的にコピーまたは参照しない限り有効化されません。最終 gate は GitHub Actions です。
+KC は `templates/hooks/` に `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `Stop` 向けの任意 hook template を同梱しています。
+
+これらはローカル補助です。Codex hook 設定に明示的に組み込まない限り有効になりません。また、GitHub Action gate の代替ではありません。
+
+## License
+
+Apache-2.0。

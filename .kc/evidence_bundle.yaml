@@ -1,100 +1,64 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-REMAINING-001
-  issue_ref: github:sawadari/KC/issues/3-7
-  plan_ref: PLAN-KC-REMAINING-001
-  approval_ref: APR-KC-REMAINING-001
+  bundle_id: AEB-KC-README-001
+  issue_ref: github:sawadari/KC/issues/11
+  plan_ref: PLAN-KC-README-001
+  approval_ref: APR-KC-README-001
   pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
-      - .kc/**
+      - .kc/approval.yaml
+      - .kc/evidence_bundle.yaml
+      - .kc/issue.yaml
+      - .kc/plan.yaml
       - README.md
       - README.ja.md
-      - action.yml
-      - dist/action/index.js
-      - package-lock.json
-      - package.json
-      - reports/validation/**
-      - src/**
-      - templates/**
-      - tests/**
+      - reports/validation/VAL-KC-README-001.md
     out_of_scope_files: []
   plan_diff_trace:
+    - plan_item_id: P1
+      expected_files:
+        - README.md
+      actual_files:
+        - README.md
+      status: implemented
+    - plan_item_id: P2
+      expected_files:
+        - README.ja.md
+      actual_files:
+        - README.ja.md
+      status: implemented
     - plan_item_id: P3
       expected_files:
-        - templates/hooks/**
+        - .kc/**
+        - reports/validation/**
       actual_files:
-        - templates/hooks/**
+        - .kc/approval.yaml
+        - .kc/evidence_bundle.yaml
+        - .kc/issue.yaml
+        - .kc/plan.yaml
+        - reports/validation/VAL-KC-README-001.md
       status: implemented
-    - plan_item_id: P4
-      expected_files:
-        - src/core/assist.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-      actual_files:
-        - src/core/assist.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P5
-      expected_files:
-        - src/core/promote.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-      actual_files:
-        - src/core/promote.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P6
-      expected_files:
-        - src/action/index.ts
-        - src/core/pr-body.ts
-        - action.yml
-        - tests/core.test.mjs
-      actual_files:
-        - src/action/index.ts
-        - src/core/pr-body.ts
-        - action.yml
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P7
-      expected_files:
-        - package.json
-        - package-lock.json
-      actual_files:
-        - package.json
-        - package-lock.json
-      status: blocked_by_npm_auth_if_publish_fails
   verification_evidence:
-    - evidence_id: VE-REMAINING-1
+    - evidence_id: VE-README-1
+      type: typecheck
+      ref: npm.cmd run check
+      status: passed
+    - evidence_id: VE-README-2
       type: unit_test
-      ref: npm test
+      ref: npm.cmd test
       status: passed
-    - evidence_id: VE-REMAINING-2
-      type: npm_audit
-      ref: npm audit --audit-level=moderate
+    - evidence_id: VE-README-3
+      type: kc_self_check
+      ref: node lib/cli/index.js check --workspace . --changed-files <tmp>
       status: passed
-    - evidence_id: VE-REMAINING-3
-      type: package_dry_run
-      ref: npm run pack:dry
-      status: passed
-    - evidence_id: VE-REMAINING-4
-      type: npm_publish
-      ref: npm.cmd publish --access public
-      status: published_0_2_0
-    - evidence_id: VE-REMAINING-5
-      type: cli_entrypoint
-      ref: node lib/cli/index.js --help
-      status: passed_local_0_2_1_fix
   validation_evidence:
-    - evidence_id: VA-REMAINING-1
+    - evidence_id: VA-README-1
       type: validation_report
-      ref: reports/validation/VAL-KC-REMAINING-001.md
+      ref: reports/validation/VAL-KC-README-001.md
       status: passed
   findings: []
   decision:
     branch: execute
     primary_reason: none
-    required_actions:
-      - "Publish 0.2.1 after merging the npx --help fix, then verify npx @sawadari/kc --help from a clean workspace."
+    required_actions: []

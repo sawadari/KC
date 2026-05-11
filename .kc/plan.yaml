@@ -1,75 +1,51 @@
 agent_plan:
-  plan_id: PLAN-KC-REMAINING-001
-  issue_ref: github:sawadari/KC/issues/3-7
+  plan_id: PLAN-KC-README-001
+  issue_ref: github:sawadari/KC/issues/11
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Implement the remaining original-spec backlog issues that are locally actionable and record npm publication status."
+  interpreted_requirement: "Rewrite the README content so the project is clearer and more appealing to first-time users."
   scope:
     allowed_files:
       - .kc/**
       - README.md
       - README.ja.md
-      - action.yml
-      - dist/action/index.js
-      - package-lock.json
-      - package.json
       - reports/validation/**
-      - src/**
-      - templates/**
-      - tests/**
     prohibited_files:
       - .env
       - .npmrc
-      - node_modules/**
+      - package.json
+      - package-lock.json
+      - src/**
       - lib/**
-      - coverage/**
+      - dist/**
+      - node_modules/**
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not automate npm credential setup."
-    - "Do not claim local hooks are complete enforcement."
-    - "Do not auto-promote canonical files without human review."
+    - "Do not change CLI, Action, package, or runtime behavior."
+    - "Do not publish a new npm package."
+    - "Do not overstate AI approval or enforcement guarantees."
   plan_items:
-    - id: P3
-      action: "Add optional Codex hook templates and docs."
+    - id: P1
+      action: "Rewrite README.md around problem, quick start, Action usage, decisions, workflow, and details."
       expected_files:
-        - templates/hooks/**
-    - id: P4
-      action: "Add structured assist modes and guardrail tests."
-      expected_files:
-        - src/core/assist.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-    - id: P5
-      action: "Add promotion candidate generation."
-      expected_files:
-        - src/core/promote.ts
-        - src/cli/index.ts
-        - tests/core.test.mjs
-    - id: P6
-      action: "Add GitHub PR changed-file fetching and PR body validation."
-      expected_files:
-        - src/action/index.ts
-        - src/core/pr-body.ts
-        - action.yml
-        - tests/core.test.mjs
-    - id: P7
-      action: "Prepare and attempt npm publication for version 0.2.0."
-      expected_files:
-        - package.json
-        - package-lock.json
         - README.md
+    - id: P2
+      action: "Rewrite README.ja.md with the same user-facing structure in Japanese."
+      expected_files:
         - README.ja.md
+    - id: P3
+      action: "Update KC self-governance artifacts and validation report for Issue #11."
+      expected_files:
+        - .kc/**
+        - reports/validation/**
   verification_plan:
-    - "Run npm test."
-    - "Run npm audit --audit-level=moderate."
-    - "Run npm run pack:dry."
-    - "Run npm whoami and npm publish --access public when authenticated."
+    - "Run npm.cmd run check."
+    - "Run npm.cmd test."
+    - "Run KC self-check for the changed file set."
   validation_evidence_plan:
-    - "Run tests covering hook block behavior, structured assist templates, promotion candidates, and PR body validation."
-    - "Run KC self-check against the changed-file set."
+    - "Review the README content against the Issue #11 acceptance criteria."
   questions_for_human: []
   status: approved
-
