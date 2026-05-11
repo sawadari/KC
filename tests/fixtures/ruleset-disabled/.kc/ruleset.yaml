@@ -1,5 +1,5 @@
 ruleset:
-  id: kc-self-governance
+  id: ruleset-disabled
   version: 0.1.0
   rules:
     - KC-AE-001
@@ -8,10 +8,9 @@ ruleset:
     - KC-AE-004
     - KC-AE-005
     - KC-AE-006
-    - KC-AE-007
     - KC-AE-008
     - KC-AE-009
     - KC-AE-010
     - KC-AE-011
     - KC-AE-012
-  severity_overrides: {}
+

@@ -1,19 +1,19 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/1
-  problem_statement: "KC v0.1.0 was released before the repository contained its own KC governance artifacts."
-  expected_outcome: "KC can evaluate its own initial release with explicit Issue, Plan, Approval, Agent Envelope, Evidence Bundle, and Validation evidence artifacts."
+  issue_ref: github:sawadari/KC/issues/2
+  problem_statement: "`.kc/ruleset.yaml` is loaded but does not yet control which KC-AE rules run or how severities are interpreted."
+  expected_outcome: "KC treats the ruleset as executable deterministic policy for rule enablement and severity overrides."
   acceptance_criteria:
-    - "Add canonical `.kc` artifacts for the KC bootstrap release."
-    - "Add durable validation evidence for the bootstrap evaluation."
-    - "Run fixture checks and confirm PASS, WARN, HOLD, and FAIL behavior."
-    - "Run KC against the initial release changed-file set and reach PASS."
-    - "Keep deterministic gate results independent from optional AI assist."
+    - "`ruleset.rules` limits evaluation to the listed KC-AE rules."
+    - "`ruleset.severity_overrides` can override finding severity by rule ID."
+    - "Unknown rule IDs in ruleset configuration produce deterministic findings."
+    - "Tests cover disabled rule behavior, severity override behavior, and invalid rule IDs."
+    - "KC self-check still passes."
   validation_scenario:
-    statement: "The KC repository runs its own guard against the approved initial release scope and produces PASS while keeping verification and validation evidence separate."
+    statement: "A fixture disables or downgrades a normally blocking rule and KC produces the expected non-blocking decision without changing rule code."
   risk_tier: medium
   non_goals:
-    - "Publish to npm before npm authentication is configured."
-    - "Add Codex Hooks in this step."
-    - "Change KC rule semantics beyond documenting and evaluating the current release."
+    - "Remote policy fetching."
+    - "Organization-wide ruleset inheritance."
+    - "Changing the default KC-AE rule meanings."
   issue_state: ready_for_plan
 

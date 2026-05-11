@@ -103521,53 +103521,76 @@ function writeYamlFile(filePath, value) {
 var approvedValues = /* @__PURE__ */ new Set(["approved", "approved_with_conditions"]);
 var riskyTiers = /* @__PURE__ */ new Set(["medium", "high", "critical"]);
 var highRiskTiers = /* @__PURE__ */ new Set(["high", "critical"]);
+var knownRuleIds = [
+  "KC-AE-001",
+  "KC-AE-002",
+  "KC-AE-003",
+  "KC-AE-004",
+  "KC-AE-005",
+  "KC-AE-006",
+  "KC-AE-007",
+  "KC-AE-008",
+  "KC-AE-009",
+  "KC-AE-010",
+  "KC-AE-011",
+  "KC-AE-012"
+];
+var knownRuleIdSet = new Set(knownRuleIds);
 function evaluateRules(artifacts, changedFiles) {
-  const findings = [...artifacts.loadFindings];
+  const policy = resolveRulePolicy(artifacts.ruleset);
+  const findings = [...artifacts.loadFindings, ...policy.findings];
+  const add = (finding) => {
+    findings.push(applySeverityOverride(finding, policy));
+  };
   const issue2 = artifacts.issue;
   const plan = artifacts.plan;
   const approval = artifacts.approval;
   const envelope = artifacts.envelope;
   const evidence = artifacts.evidence;
-  if (!issue2) {
-    findings.push(error2("KC-AE-001", "missing_issue", ".kc/issue.yaml is required."));
-  } else {
-    requireField(findings, issue2, "problem_statement", "KC-AE-001", "missing_problem_statement");
-    requireField(findings, issue2, "expected_outcome", "KC-AE-001", "missing_expected_outcome");
-    requireNonEmptyArray(findings, issue2, "acceptance_criteria", "KC-AE-001", "missing_acceptance_criteria");
-    requireField(findings, issue2, "risk_tier", "KC-AE-001", "missing_risk_tier");
-    requireNonEmptyArray(findings, issue2, "non_goals", "KC-AE-001", "missing_non_goals");
+  if (isRuleEnabled(policy, "KC-AE-001")) {
+    if (!issue2) {
+      add(error2("KC-AE-001", "missing_issue", ".kc/issue.yaml is required."));
+    } else {
+      requireField(add, issue2, "problem_statement", "KC-AE-001", "missing_problem_statement");
+      requireField(add, issue2, "expected_outcome", "KC-AE-001", "missing_expected_outcome");
+      requireNonEmptyArray(add, issue2, "acceptance_criteria", "KC-AE-001", "missing_acceptance_criteria");
+      requireField(add, issue2, "risk_tier", "KC-AE-001", "missing_risk_tier");
+      requireNonEmptyArray(add, issue2, "non_goals", "KC-AE-001", "missing_non_goals");
+    }
   }
   const riskTier = stringValue(issue2?.risk_tier).toLowerCase();
-  if (issue2 && riskyTiers.has(riskTier)) {
+  if (isRuleEnabled(policy, "KC-AE-002") && issue2 && riskyTiers.has(riskTier)) {
     const validationScenario = issue2.validation_scenario;
     const validationStatus2 = stringValue(issue2.validation_status).toLowerCase();
     if (!hasValue(validationScenario) && validationStatus2 !== "pending") {
-      findings.push(error2("KC-AE-002", "missing_validation_scenario", "Medium/high/critical issues require validation_scenario or validation_status=pending."));
+      add(error2("KC-AE-002", "missing_validation_scenario", "Medium/high/critical issues require validation_scenario or validation_status=pending."));
     } else if (!hasValue(validationScenario) && validationStatus2 === "pending") {
-      findings.push(warn("KC-AE-002", "validation_pending", "Validation scenario is pending and must be resolved before treating validation as passed."));
+      add(warn("KC-AE-002", "validation_pending", "Validation scenario is pending and must be resolved before treating validation as passed."));
     }
   }
-  if (!plan) {
-    findings.push(error2("KC-AE-003", "missing_approved_plan", ".kc/plan.yaml is required for an agent-governed PR."));
+  if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
+    add(error2("KC-AE-003", "missing_approved_plan", ".kc/plan.yaml is required for an agent-governed PR."));
   }
-  if (!approval) {
-    findings.push(error2("KC-AE-004", "missing_plan_approval", ".kc/approval.yaml is required before implementation is merge ready."));
-  } else {
-    const decision = stringValue(approval.decision);
-    if (!approvedValues.has(decision)) {
-      findings.push(error2("KC-AE-004", "plan_not_approved", `Plan approval decision must be approved or approved_with_conditions, got ${decision || "empty"}.`));
+  if (isRuleEnabled(policy, "KC-AE-004")) {
+    if (!approval) {
+      add(error2("KC-AE-004", "missing_plan_approval", ".kc/approval.yaml is required before implementation is merge ready."));
+    } else {
+      const decision = stringValue(approval.decision);
+      if (!approvedValues.has(decision)) {
+        add(error2("KC-AE-004", "plan_not_approved", `Plan approval decision must be approved or approved_with_conditions, got ${decision || "empty"}.`));
+      }
     }
-  }
-  const planStatus = stringValue(plan?.status);
-  if (plan && planStatus && !approvedValues.has(planStatus)) {
-    findings.push(error2("KC-AE-004", "plan_status_not_approved", `Plan status must be approved or approved_with_conditions, got ${planStatus}.`));
+    const planStatus = stringValue(plan?.status);
+    if (plan && planStatus && !approvedValues.has(planStatus)) {
+      add(error2("KC-AE-004", "plan_status_not_approved", `Plan status must be approved or approved_with_conditions, got ${planStatus}.`));
+    }
   }
   const approvedScope = stringArray(approval?.approved_scope);
   const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
-  if (changedFiles.length > 0 && allowedFiles.length > 0) {
+  if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
     for (const file of changedFiles) {
       if (!matchesAny(file, allowedFiles)) {
-        findings.push(error2("KC-AE-005", "scope_violation", `${file} is outside approved plan scope.`, file));
+        add(error2("KC-AE-005", "scope_violation", `${file} is outside approved plan scope.`, file));
       }
     }
   }
@@ -103575,48 +103598,52 @@ function evaluateRules(artifacts, changedFiles) {
     ...stringArray(readPath(plan, ["scope", "prohibited_files"])),
     ...stringArray(readPath(envelope, ["authority_envelope", "prohibited_paths"]))
   ];
-  for (const file of changedFiles) {
-    if (matchesAny(file, prohibitedFiles)) {
-      findings.push(error2("KC-AE-006", "prohibited_file_changed", `${file} matches a prohibited path.`, file));
+  if (isRuleEnabled(policy, "KC-AE-006")) {
+    for (const file of changedFiles) {
+      if (matchesAny(file, prohibitedFiles)) {
+        add(error2("KC-AE-006", "prohibited_file_changed", `${file} matches a prohibited path.`, file));
+      }
     }
   }
   const implementationChanged = changedFiles.some((file) => !file.startsWith(".kc/") && !file.toLowerCase().endsWith(".md"));
   const verification = arrayRecords(evidence?.verification_evidence);
-  if (implementationChanged && verification.length === 0) {
-    findings.push(error2("KC-AE-007", "missing_verification_evidence", "Implementation changes require CI result or verification evidence."));
+  if (isRuleEnabled(policy, "KC-AE-007") && implementationChanged && verification.length === 0) {
+    add(error2("KC-AE-007", "missing_verification_evidence", "Implementation changes require CI result or verification evidence."));
   }
   const validation = arrayRecords(evidence?.validation_evidence);
   const validationStatus = stringValue(evidence?.validation_status).toLowerCase();
-  if (validationStatus === "passed" && validation.length === 0) {
-    findings.push(error2("KC-AE-008", "validation_inferred_from_verification", "validation_status=passed requires validation evidence and cannot be inferred from verification."));
+  if (isRuleEnabled(policy, "KC-AE-008") && validationStatus === "passed" && validation.length === 0) {
+    add(error2("KC-AE-008", "validation_inferred_from_verification", "validation_status=passed requires validation evidence and cannot be inferred from verification."));
   }
-  for (const condition of arrayRecords(approval?.conditions)) {
-    const evidenceRequired = stringValue(condition.evidence_required);
-    if (!evidenceRequired) {
-      continue;
-    }
-    if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation)) {
-      const id = stringValue(condition.id) || "condition";
-      findings.push(error2("KC-AE-009", "missing_condition_evidence", `${id} requires evidence type ${evidenceRequired}.`));
+  if (isRuleEnabled(policy, "KC-AE-009")) {
+    for (const condition of arrayRecords(approval?.conditions)) {
+      const evidenceRequired = stringValue(condition.evidence_required);
+      if (!evidenceRequired) {
+        continue;
+      }
+      if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation)) {
+        const id = stringValue(condition.id) || "condition";
+        add(error2("KC-AE-009", "missing_condition_evidence", `${id} requires evidence type ${evidenceRequired}.`));
+      }
     }
   }
   const agentId = stringValue(plan?.agent_id) || stringValue(readPath(plan, ["agent", "agent_id"])) || stringValue(envelope?.agent_id);
-  if (agentId) {
+  if (isRuleEnabled(policy, "KC-AE-010") && agentId) {
     const planRef = evidence?.plan_ref ?? plan?.plan_id;
     const diffRef = evidence?.diff_ref ?? evidence?.diff_summary;
     if (!hasValue(planRef) || !hasValue(diffRef)) {
-      findings.push(error2("KC-AE-010", "missing_agent_audit_refs", "Agent-governed work requires plan_ref and diff_ref or diff_summary in the evidence bundle."));
+      add(error2("KC-AE-010", "missing_agent_audit_refs", "Agent-governed work requires plan_ref and diff_ref or diff_summary in the evidence bundle."));
     }
   }
-  if (issue2 && highRiskTiers.has(riskTier)) {
+  if (isRuleEnabled(policy, "KC-AE-011") && issue2 && highRiskTiers.has(riskTier)) {
     const rollbackPath = evidence?.rollback_path ?? readPath(envelope, ["rollback_path"]) ?? evidence?.no_rollback_justification;
     if (!hasValue(rollbackPath)) {
-      findings.push(error2("KC-AE-011", "missing_rollback_path", "High/critical risk changes require rollback_path or no_rollback_justification."));
+      add(error2("KC-AE-011", "missing_rollback_path", "High/critical risk changes require rollback_path or no_rollback_justification."));
     }
   }
   const holdOrFail = findings.some((finding) => finding.severity === "error");
-  if (holdOrFail) {
-    findings.push({
+  if (isRuleEnabled(policy, "KC-AE-012") && holdOrFail) {
+    add({
       ruleId: "KC-AE-012",
       severity: "info",
       reasonCode: "merge_not_ready",
@@ -103625,14 +103652,63 @@ function evaluateRules(artifacts, changedFiles) {
   }
   return findings;
 }
-function requireField(findings, source, key, ruleId, reasonCode) {
+function resolveRulePolicy(ruleset) {
+  const findings = [];
+  const root = unwrapRuleset(ruleset);
+  const configuredRules = stringArray(root?.rules);
+  const enabledRules = configuredRules.length > 0 ? /* @__PURE__ */ new Set() : new Set(knownRuleIds);
+  for (const ruleId of configuredRules) {
+    if (knownRuleIdSet.has(ruleId)) {
+      enabledRules.add(ruleId);
+    } else {
+      findings.push(error2("KC-AE-000", "unknown_rule_id", `Unknown rule id in ruleset.rules: ${ruleId}.`));
+    }
+  }
+  const severityOverrides = /* @__PURE__ */ new Map();
+  const rawOverrides = root?.severity_overrides;
+  if (rawOverrides && typeof rawOverrides === "object" && !Array.isArray(rawOverrides)) {
+    for (const [ruleId, severity] of Object.entries(rawOverrides)) {
+      if (!knownRuleIdSet.has(ruleId)) {
+        findings.push(error2("KC-AE-000", "unknown_severity_override_rule", `Unknown rule id in ruleset.severity_overrides: ${ruleId}.`));
+        continue;
+      }
+      if (severity !== "info" && severity !== "warning" && severity !== "error") {
+        findings.push(error2("KC-AE-000", "invalid_severity_override", `Invalid severity override for ${ruleId}: ${String(severity)}.`));
+        continue;
+      }
+      severityOverrides.set(ruleId, severity);
+    }
+  }
+  return { enabledRules, severityOverrides, findings };
+}
+function unwrapRuleset(ruleset) {
+  if (!ruleset) {
+    return void 0;
+  }
+  const wrapped = ruleset.ruleset;
+  if (wrapped && typeof wrapped === "object" && !Array.isArray(wrapped)) {
+    return wrapped;
+  }
+  return ruleset;
+}
+function isRuleEnabled(policy, ruleId) {
+  return policy.enabledRules.has(ruleId);
+}
+function applySeverityOverride(finding, policy) {
+  const override = policy.severityOverrides.get(finding.ruleId);
+  if (!override) {
+    return finding;
+  }
+  return { ...finding, severity: override };
+}
+function requireField(add, source, key, ruleId, reasonCode) {
   if (!hasValue(source[key])) {
-    findings.push(error2(ruleId, reasonCode, `${key} is required.`));
+    add(error2(ruleId, reasonCode, `${key} is required.`));
   }
 }
-function requireNonEmptyArray(findings, source, key, ruleId, reasonCode) {
+function requireNonEmptyArray(add, source, key, ruleId, reasonCode) {
   if (stringArray(source[key]).length === 0) {
-    findings.push(error2(ruleId, reasonCode, `${key} must contain at least one item.`));
+    add(error2(ruleId, reasonCode, `${key} must contain at least one item.`));
   }
 }
 function conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation) {

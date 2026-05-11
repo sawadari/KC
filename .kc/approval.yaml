@@ -1,36 +1,27 @@
 plan_approval:
-  approval_id: APR-KC-BOOTSTRAP-001
-  target_plan_id: PLAN-KC-BOOTSTRAP-001
+  approval_id: APR-KC-RULESET-001
+  target_plan_id: PLAN-KC-RULESET-001
   decision: approved_with_conditions
   approver_role: owner
-  timestamp: "2026-05-11T21:40:00+09:00"
+  timestamp: "2026-05-11T22:05:00+09:00"
   approved_scope:
-    - .github/**
-    - .gitignore
     - .kc/**
-    - LICENSE
     - README.md
     - README.ja.md
-    - action.yml
     - dist/action/index.js
-    - package-lock.json
-    - package.json
     - reports/validation/**
-    - src/**
-    - templates/**
+    - src/core/**
+    - src/cli/**
+    - templates/.kc/ruleset.yaml
     - tests/**
-    - tsconfig.json
   conditions:
-    - id: COND-KC-1
-      statement: "All changed files must stay within the approved KC bootstrap scope."
+    - id: COND-RULESET-1
+      statement: "All changed files must stay within the approved Issue #2 scope."
       evidence_required: diff_scope_check
-    - id: COND-KC-2
-      statement: "The TypeScript build and automated tests must pass."
+    - id: COND-RULESET-2
+      statement: "Automated tests must cover rule enablement, severity overrides, and invalid rule IDs."
       evidence_required: unit_test
-    - id: COND-KC-3
-      statement: "GitHub CI for the initial release must pass."
-      evidence_required: github_actions
-    - id: COND-KC-4
-      statement: "Validation evidence must show PASS/WARN/HOLD/FAIL behavior and KC self-check behavior."
+    - id: COND-RULESET-3
+      statement: "Validation evidence must show the expected PASS/WARN/FAIL fixture outcomes."
       evidence_required: validation_report
 

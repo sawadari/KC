@@ -1,0 +1,7 @@
+plan_approval:
+  approval_id: APR-127
+  target_plan_id: PLAN-127
+  decision: approved
+  approved_scope:
+    - src/report/upload.ts
+

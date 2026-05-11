@@ -91,6 +91,17 @@ The first release implements KC-AE-001 through KC-AE-012:
 - high-risk rollback path
 - merge readiness
 
+`.kc/ruleset.yaml` is executable policy. `ruleset.rules` limits which KC-AE rules run, and `ruleset.severity_overrides` can override a finding severity by rule ID:
+
+```yaml
+ruleset:
+  rules:
+    - KC-AE-001
+    - KC-AE-007
+  severity_overrides:
+    KC-AE-007: warning
+```
+
 ## Release
 
 The GitHub Action is intended to be consumed as:

@@ -1,76 +1,74 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-BOOTSTRAP-001
-  issue_ref: github:sawadari/KC/issues/1
-  plan_ref: PLAN-KC-BOOTSTRAP-001
-  approval_ref: APR-KC-BOOTSTRAP-001
-  pr_ref: github:sawadari/KC/commit/a4e92e7d9f4732e562486548c834d793d72d920f
+  bundle_id: AEB-KC-RULESET-001
+  issue_ref: github:sawadari/KC/issues/2
+  plan_ref: PLAN-KC-RULESET-001
+  approval_ref: APR-KC-RULESET-001
+  pr_ref: github:sawadari/KC/issues/2
   agent_ref: codex
   diff_summary:
     changed_files:
-      - .github/**
-      - .gitignore
       - .kc/**
-      - LICENSE
       - README.md
       - README.ja.md
-      - action.yml
       - dist/action/index.js
-      - package-lock.json
-      - package.json
       - reports/validation/**
-      - src/**
-      - templates/**
+      - src/core/rules.ts
+      - src/cli/index.ts
+      - templates/.kc/ruleset.yaml
       - tests/**
-      - tsconfig.json
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - .kc/issue.yaml
-        - .kc/plan.yaml
-        - .kc/approval.yaml
-        - .kc/agent_envelope.yaml
-        - .kc/evidence_bundle.yaml
-        - .kc/ruleset.yaml
+        - src/core/rules.ts
       actual_files:
-        - .kc/issue.yaml
-        - .kc/plan.yaml
-        - .kc/approval.yaml
-        - .kc/agent_envelope.yaml
-        - .kc/evidence_bundle.yaml
-        - .kc/ruleset.yaml
+        - src/core/rules.ts
       status: implemented
     - plan_item_id: P2
       expected_files:
-        - reports/validation/VAL-KC-BOOTSTRAP-001.md
+        - src/cli/index.ts
       actual_files:
-        - reports/validation/VAL-KC-BOOTSTRAP-001.md
+        - src/cli/index.ts
       status: implemented
     - plan_item_id: P3
       expected_files:
         - tests/core.test.mjs
-        - tests/fixtures/**
+        - tests/fixtures/ruleset-disabled/**
+        - tests/fixtures/ruleset-override/**
+        - tests/fixtures/ruleset-invalid/**
       actual_files:
         - tests/core.test.mjs
-        - tests/fixtures/**
+        - tests/fixtures/ruleset-disabled/**
+        - tests/fixtures/ruleset-override/**
+        - tests/fixtures/ruleset-invalid/**
+      status: implemented
+    - plan_item_id: P4
+      expected_files:
+        - README.md
+        - README.ja.md
+        - templates/.kc/ruleset.yaml
+      actual_files:
+        - README.md
+        - README.ja.md
+        - templates/.kc/ruleset.yaml
       status: implemented
   verification_evidence:
-    - evidence_id: VE-KC-1
+    - evidence_id: VE-RULESET-1
       type: unit_test
       ref: npm test
       status: passed
-    - evidence_id: VE-KC-2
+    - evidence_id: VE-RULESET-2
       type: npm_audit
       ref: npm audit --audit-level=moderate
       status: passed
-    - evidence_id: VE-KC-3
-      type: github_actions
-      ref: github:sawadari/KC/actions/workflows/ci.yml
+    - evidence_id: VE-RULESET-3
+      type: package_dry_run
+      ref: npm run pack:dry
       status: passed
   validation_evidence:
-    - evidence_id: VA-KC-1
+    - evidence_id: VA-RULESET-1
       type: validation_report
-      ref: reports/validation/VAL-KC-BOOTSTRAP-001.md
+      ref: reports/validation/VAL-KC-RULESET-001.md
       status: passed
   findings: []
   decision:

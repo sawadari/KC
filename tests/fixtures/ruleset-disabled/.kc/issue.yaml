@@ -1,0 +1,12 @@
+issue_packet:
+  issue_ref: github:org/repo/issues/127
+  problem_statement: "Evaluate ruleset rule enablement."
+  expected_outcome: "Disabled rules do not run."
+  acceptance_criteria:
+    - "KC-AE-007 can be omitted from ruleset.rules."
+  validation_scenario:
+    statement: "A missing verification case passes when KC-AE-007 is intentionally disabled."
+  risk_tier: low
+  non_goals:
+    - "Change rule semantics."
+
