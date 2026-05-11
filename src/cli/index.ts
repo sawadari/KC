@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     const changedFiles = await readChangedFiles(args);
     const result = await runCheck({
       workspace,
-      rulesetPath: value(args, "ruleset"),
+      rulesetPath: value(args, "ruleset") || ".kc/ruleset.yaml",
       changedFiles,
       prRef: value(args, "pr-ref")
     });

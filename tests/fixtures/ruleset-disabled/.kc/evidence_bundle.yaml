@@ -1,0 +1,9 @@
+approval_evidence_bundle:
+  bundle_id: AEB-127
+  issue_ref: github:org/repo/issues/127
+  plan_ref: PLAN-127
+  approval_ref: APR-127
+  diff_summary:
+    changed_files:
+      - src/report/upload.ts
+

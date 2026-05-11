@@ -60,6 +60,43 @@ describe("KC rule engine", () => {
     assert.equal(result.mergeReady, false);
     assert.equal(result.primaryReason, "validation_inferred_from_verification");
   });
+
+  it("honors ruleset rule enablement", async () => {
+    const workspace = path.join(fixtures, "ruleset-disabled");
+    const result = await runCheck({
+      workspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: readChangedFiles(workspace)
+    });
+
+    assert.equal(result.decision, "PASS");
+    assert.equal(result.findings.some((finding) => finding.ruleId === "KC-AE-007"), false);
+  });
+
+  it("honors ruleset severity overrides", async () => {
+    const workspace = path.join(fixtures, "ruleset-override");
+    const result = await runCheck({
+      workspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: readChangedFiles(workspace)
+    });
+
+    assert.equal(result.decision, "WARN");
+    assert.equal(result.primaryReason, "missing_verification_evidence");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-007" && finding.severity === "warning"));
+  });
+
+  it("fails deterministically for unknown ruleset rule ids", async () => {
+    const workspace = path.join(fixtures, "ruleset-invalid");
+    const result = await runCheck({
+      workspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: readChangedFiles(workspace)
+    });
+
+    assert.equal(result.decision, "FAIL");
+    assert.equal(result.primaryReason, "unknown_rule_id");
+  });
 });
 
 describe("KC CLI", () => {
@@ -114,4 +151,3 @@ describe("workspace init and action build", () => {
 function readChangedFiles(workspace) {
   return fs.readFileSync(path.join(workspace, "changed-files.txt"), "utf8").split(/\r?\n/).filter(Boolean);
 }
-

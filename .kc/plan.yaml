@@ -1,28 +1,22 @@
 agent_plan:
-  plan_id: PLAN-KC-BOOTSTRAP-001
-  issue_ref: github:sawadari/KC/issues/1
+  plan_id: PLAN-KC-RULESET-001
+  issue_ref: github:sawadari/KC/issues/2
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Make the KC repository self-governed by adding KC artifacts and validation evidence for the v0.1.0 initial release."
+  interpreted_requirement: "Make `.kc/ruleset.yaml` executable by applying configured rule enablement and severity overrides during deterministic KC evaluation."
   scope:
     allowed_files:
-      - .github/**
-      - .gitignore
       - .kc/**
-      - LICENSE
       - README.md
       - README.ja.md
-      - action.yml
       - dist/action/index.js
-      - package-lock.json
-      - package.json
       - reports/validation/**
-      - src/**
-      - templates/**
+      - src/core/**
+      - src/cli/**
+      - templates/.kc/ruleset.yaml
       - tests/**
-      - tsconfig.json
     prohibited_files:
       - .env
       - .npmrc
@@ -32,35 +26,38 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not publish to npm without npm authentication."
-    - "Do not add Codex Hooks in this step."
-    - "Do not change the deterministic rule semantics during this self-evaluation pass."
+    - "Do not add remote ruleset fetching."
+    - "Do not add organization-level inheritance."
+    - "Do not change the default KC-AE rule definitions."
   plan_items:
     - id: P1
-      action: "Record the bootstrap Issue, Plan, Approval, Agent Envelope, Evidence Bundle, and ruleset artifacts."
+      action: "Resolve ruleset configuration into enabled rule IDs, severity overrides, and configuration findings."
       expected_files:
-        - .kc/issue.yaml
-        - .kc/plan.yaml
-        - .kc/approval.yaml
-        - .kc/agent_envelope.yaml
-        - .kc/evidence_bundle.yaml
-        - .kc/ruleset.yaml
+        - src/core/rules.ts
     - id: P2
-      action: "Record durable validation evidence for fixture behavior and self-check behavior."
+      action: "Make CLI checks load `.kc/ruleset.yaml` by default."
       expected_files:
-        - reports/validation/VAL-KC-BOOTSTRAP-001.md
+        - src/cli/index.ts
     - id: P3
-      action: "Run verification and validation commands without changing rule semantics."
+      action: "Add fixtures and tests for disabled rules, severity overrides, and invalid rule IDs."
       expected_files:
         - tests/core.test.mjs
-        - tests/fixtures/**
+        - tests/fixtures/ruleset-disabled/**
+        - tests/fixtures/ruleset-override/**
+        - tests/fixtures/ruleset-invalid/**
+    - id: P4
+      action: "Document executable ruleset behavior and update templates."
+      expected_files:
+        - README.md
+        - README.ja.md
+        - templates/.kc/ruleset.yaml
   verification_plan:
     - "Run npm test."
     - "Run npm audit --audit-level=moderate."
-    - "Confirm GitHub Actions CI for the initial release succeeded."
+    - "Run npm run pack:dry."
   validation_evidence_plan:
-    - "Run kc check against PASS, WARN, HOLD, and FAIL fixtures."
-    - "Run kc check against the KC repository initial release changed-file set and confirm PASS."
+    - "Run ruleset-disabled, ruleset-override, and ruleset-invalid fixtures."
+    - "Run KC self-check against the changed-file set and confirm PASS."
   questions_for_human: []
   status: approved
 

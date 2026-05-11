@@ -1,0 +1,12 @@
+issue_packet:
+  issue_ref: github:org/repo/issues/128
+  problem_statement: "Evaluate ruleset severity overrides."
+  expected_outcome: "A selected finding can be downgraded to warning."
+  acceptance_criteria:
+    - "KC-AE-007 can be downgraded to warning."
+  validation_scenario:
+    statement: "A missing verification case returns WARN when KC-AE-007 is downgraded."
+  risk_tier: low
+  non_goals:
+    - "Change default severity."
+

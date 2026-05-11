@@ -1,5 +1,5 @@
 ruleset:
-  id: kc-self-governance
+  id: ruleset-override
   version: 0.1.0
   rules:
     - KC-AE-001
@@ -14,4 +14,6 @@ ruleset:
     - KC-AE-010
     - KC-AE-011
     - KC-AE-012
-  severity_overrides: {}
+  severity_overrides:
+    KC-AE-007: warning
+

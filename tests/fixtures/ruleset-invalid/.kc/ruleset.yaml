@@ -1,0 +1,6 @@
+ruleset:
+  id: ruleset-invalid
+  version: 0.1.0
+  rules:
+    - KC-AE-999
+
