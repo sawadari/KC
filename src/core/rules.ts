@@ -20,12 +20,16 @@ const knownRuleIds = [
   "KC-AE-013",
   "KC-AE-014",
   "KC-AE-015",
-  "KC-AE-016"
+  "KC-AE-016",
+  "KC-AE-017",
+  "KC-AE-018",
+  "KC-AE-019",
+  "KC-AE-020"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
 
-export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]): Finding[] {
+export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[], options: { mode?: "pr" | "current" } = {}): Finding[] {
   const policy = resolveRulePolicy(artifacts.ruleset);
   const findings: Finding[] = [...artifacts.loadFindings, ...policy.findings];
   const add = (finding: Finding): void => {
@@ -37,6 +41,7 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   const approval = artifacts.approval;
   const envelope = artifacts.envelope;
   const evidence = artifacts.evidence;
+  const current = artifacts.current;
 
   if (isRuleEnabled(policy, "KC-AE-001")) {
     if (!issue) {
@@ -140,6 +145,46 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
         add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
+      }
+    }
+  }
+
+  if (options.mode === "current") {
+    if (isRuleEnabled(policy, "KC-AE-017") && !current) {
+      add(error("KC-AE-017", "missing_current_state", ".kc/current.yaml is required for current-mode lifecycle checks."));
+    }
+
+    const lifecycleState = stringValue(current?.lifecycle_state ?? evidence?.lifecycle_state).toLowerCase();
+    const finalStatus = stringValue(current?.final_status ?? evidence?.final_status).toLowerCase();
+    const completed = isCompletedLifecycle(lifecycleState, finalStatus, current);
+
+    if (completed && isRuleEnabled(policy, "KC-AE-017")) {
+      const issueState = stringValue(issue?.issue_state).toLowerCase();
+      if (["draft", "ready_for_plan", "plan_requested", "pending_plan_approval"].includes(issueState)) {
+        add(error("KC-AE-017", "lifecycle_state_stale", `Completed work must not keep issue_state=${issueState}.`));
+      }
+    }
+
+    if (completed && isRuleEnabled(policy, "KC-AE-018")) {
+      const prRef = stringValue(current?.pr_ref ?? evidence?.pr_ref);
+      if (!prRef || prRef === "pending") {
+        add(error("KC-AE-018", "pending_pr_ref_after_completion", "Completed work requires a final pr_ref, not pending."));
+      }
+    }
+
+    if (completed && isRuleEnabled(policy, "KC-AE-019")) {
+      const requiredActions = arrayRecords(readPath(evidence, ["decision", "required_actions"])).length > 0
+        ? arrayRecords(readPath(evidence, ["decision", "required_actions"]))
+        : stringArray(readPath(evidence, ["decision", "required_actions"]));
+      if (requiredActions.length > 0) {
+        add(error("KC-AE-019", "required_actions_after_completion", "Completed work must not keep decision.required_actions."));
+      }
+    }
+
+    if (completed && isRuleEnabled(policy, "KC-AE-020")) {
+      const finalBundleRef = stringValue(current?.final_evidence_bundle_ref ?? evidence?.final_evidence_bundle_ref ?? evidence?.archive_ref);
+      if (!finalBundleRef) {
+        add(error("KC-AE-020", "missing_finalized_bundle_archive", "Finalized work requires final_evidence_bundle_ref or archive_ref."));
       }
     }
   }
@@ -296,6 +341,13 @@ function hasExceptionBasis(issue: Record<string, unknown>, approval: Record<stri
     || hasValue(approval?.exception_basis)
     || hasValue(evidence?.exception_basis)
     || hasValue(evidence?.validation_exception_basis);
+}
+
+function isCompletedLifecycle(lifecycleState: string, finalStatus: string, current: Record<string, unknown> | undefined): boolean {
+  if (["completed", "finalized", "archived"].includes(finalStatus) || ["completed", "finalized", "archived"].includes(lifecycleState)) {
+    return true;
+  }
+  return current?.active_work === false && Boolean(finalStatus || lifecycleState);
 }
 
 function placeholderFindings(artifacts: Record<string, Record<string, unknown> | undefined>): Finding[] {

@@ -154,6 +154,7 @@ Action outputs:
 4. agent に承認済み scope の中で実装させる
 5. verification / validation evidence を `.kc/evidence_bundle.yaml` に残す
 6. ローカルまたは GitHub Actions で `kc check` を実行する
+7. merge や release 完了後に `kc finalize` を実行し、証跡を閉じて `.kc/current.yaml` を inactive にする
 
 これにより、「何を頼んだか」「何を承認したか」「何が変わったか」「何で確認したか」がチャット履歴ではなく repo に残ります。
 
@@ -169,6 +170,9 @@ kc issue-record --issue-ref URL --problem text --expected-outcome text --accepta
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
+kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version
+kc close-work --workspace . --archive
+kc check --workspace . --mode current
 kc promote --workspace . --output-dir reports/promotion
 ```
 
@@ -183,6 +187,9 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc issue-check`: planning 前に issue artifact を検査する
 - `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
 - `kc approval-record`: 番号式の人間判断を `.kc/approval.yaml` に記録する
+- `kc finalize`: merge / release 後に PR 時点の evidence を final 状態にする
+- `kc close-work`: active な `.kc` artifact を archive し、現在作業を inactive にする
+- `kc check --mode current`: main 上の stale な lifecycle 状態を検出する
 - `kc promote`: DecisionLedger などの promotion candidate を人間 review 用に生成する
 
 AI assist は任意です。`OPENAI_API_KEY` または `--openai-api-key` があるときだけ使います。deterministic check に API 認証情報は不要です。
@@ -196,10 +203,38 @@ KC は対象 repo から次のファイルを読みます。
 - `.kc/approval.yaml`: 人間の承認 evidence と承認条件
 - `.kc/agent_envelope.yaml`: agent の識別子と実行境界
 - `.kc/evidence_bundle.yaml`: verification、validation、PR、audit evidence
+- `.kc/current.yaml`: 現在作業が active か finalized かを表す lifecycle 状態
 - `.kc/ruleset.yaml`: 実行する rules と severity override
 - `.kc/config.yaml`: GitHub Action の適用範囲設定
 
 `kc init` で作る example は明示的かつ pending 状態です。active artifact に common placeholder が残っている場合、KC は merge-ready にしません。
+
+## Artifact Lifecycle
+
+KC では、active な PR artifact と finalized evidence を分けて扱います。
+
+- active artifact は、Codex と reviewer に「いま何が承認されているか」を伝える
+- finalized artifact は、PR や release 完了後に「何が完了したか」を説明する
+
+merge や release が完了したら `kc finalize` を使います。
+
+```bash
+kc finalize --workspace . \
+  --issue-ref https://github.com/OWNER/REPO/issues/123 \
+  --pr-ref https://github.com/OWNER/REPO/pull/456 \
+  --release-ref https://github.com/OWNER/REPO/releases/tag/v1.2.3 \
+  --npm-ref @scope/package@1.2.3
+```
+
+このコマンドは `.kc/evidence_bundle.yaml` を final 状態に更新し、`.kc/current.yaml` を書き、final bundle を `.kc/archive/` に保存します。
+
+main や release branch 上で stale な状態を見つけたい場合は current mode を使います。
+
+```bash
+kc check --workspace . --mode current
+```
+
+active artifact を `.kc/archive/<work-id>/` に退避し、`.kc/current.yaml` に `active_work: false` を明示したい場合は `kc close-work --archive` を使います。
 
 ## Enforcement Scope
 
@@ -232,7 +267,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence、placeholder 検出、risk-aware validation pending、plan item trace を扱います。
+現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence、placeholder 検出、risk-aware validation pending、plan item trace、current mode の lifecycle stale-state 検出を扱います。
 
 ## 任意の Codex Hooks
 

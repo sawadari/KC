@@ -1,0 +1,13 @@
+kc_current:
+  lifecycle_state: draft
+  active_work: false
+  work_id: ""
+  issue_ref: ""
+  plan_ref: ""
+  approval_ref: ""
+  pr_ref: ""
+  release_ref: ""
+  npm_ref: ""
+  final_status: ""
+  final_evidence_bundle_ref: ""
+  next_action: none

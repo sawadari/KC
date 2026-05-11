@@ -1,28 +1,33 @@
 plan_approval:
-  approval_id: APR-KC-RELEASE-0.4.0
-  target_plan_id: PLAN-KC-RELEASE-0.4.0
+  approval_id: APR-KC-LIFECYCLE-001
+  target_plan_id: PLAN-KC-LIFECYCLE-001
   decision: approved
   approver_role: owner
   timestamp: 2026-05-12T00:00:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/29#issuecomment-4425619920
-    summary: "Approved release preparation for KC v0.4.0 from the Codex thread."
+    ref: https://github.com/sawadari/KC/issues/31#issuecomment-4425789140
+    summary: "Approved implementation of the KC artifact lifecycle batch from the Codex thread."
     choice: "1"
   approved_scope:
     - .kc/**
+    - README.md
+    - README.ja.md
+    - dist/action/index.js
     - package.json
     - package-lock.json
-    - dist/action/index.js
     - reports/validation/**
+    - src/**
+    - templates/**
+    - tests/**
   conditions:
-    - id: COND-RELEASE-1
-      statement: "Do not publish npm or move v0 until the release PR is merged."
+    - id: COND-LIFECYCLE-1
+      statement: "Do not publish npm or move Action tags in this implementation PR."
       evidence_required: deterministic_check
-    - id: COND-RELEASE-2
-      statement: "Run tests, bundle freshness check, and dry pack before opening the PR."
+    - id: COND-LIFECYCLE-2
+      statement: "Run typecheck, tests, dry pack, bundle freshness check, and KC self-check."
       evidence_required: test_run
-    - id: COND-RELEASE-3
-      statement: "Record release validation evidence."
+    - id: COND-LIFECYCLE-3
+      statement: "Record lifecycle validation evidence."
       evidence_required: validation_report
