@@ -29,5 +29,4 @@ agent_plan:
     - "Unit test confirms HTTP 503 retries up to three times."
   validation_evidence_plan:
     - "Use VAL-123 to simulate 503 in a production-like export job."
-  status: approved
-
+  status: pending_approval

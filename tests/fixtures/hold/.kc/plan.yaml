@@ -1,6 +1,6 @@
 agent_plan:
   plan_id: PLAN-125
-  issue_ref: github:org/repo/issues/125
+  issue_ref: github:sawadari/KC-fixture/issues/125
   agent:
     agent_id: codex-cli
   scope:

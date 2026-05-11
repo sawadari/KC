@@ -57,6 +57,8 @@ cp .kc/agent_envelope.example.yaml .kc/agent_envelope.yaml
 cp .kc/evidence_bundle.example.yaml .kc/evidence_bundle.yaml
 ```
 
+example は意図的に merge-ready ではありません。placeholder を実値に置き換え、実際の human approval evidence と verification / validation evidence を入れてから `PASS` を期待してください。
+
 そのうえで deterministic check を実行します。
 
 ```bash
@@ -88,7 +90,7 @@ npx -y @sawadari/kc approval-record \
   --choice 1 \
   --actor sawadari \
   --source github_issue_comment \
-  --ref https://github.com/org/repo/issues/123#issuecomment-approval \
+  --ref https://github.com/OWNER/REPO/issues/123#issuecomment-123456 \
   --summary "Approved the plan after reviewing scope and risks."
 ```
 
@@ -162,6 +164,9 @@ kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
 kc assist --kind issue-packet --input issue.md --offline-template
+kc issue-brief --input issue.md
+kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text
+kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
 kc promote --workspace . --output-dir reports/promotion
@@ -173,6 +178,9 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc check`: deterministic rules を実行し、`HOLD` / `FAIL` で失敗する
 - `kc bundle`: プロセスを失敗させずに Evidence Bundle を生成する
 - `kc assist`: candidate artifact を下書きする。AI 出力は最終判定を変えない
+- `kc issue-brief`: issue の元メモを人間が埋める brief にする
+- `kc issue-record`: 明示された issue 項目から `.kc/issue.yaml` を作る
+- `kc issue-check`: planning 前に issue artifact を検査する
 - `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
 - `kc approval-record`: 番号式の人間判断を `.kc/approval.yaml` に記録する
 - `kc promote`: DecisionLedger などの promotion candidate を人間 review 用に生成する
@@ -189,8 +197,27 @@ KC は対象 repo から次のファイルを読みます。
 - `.kc/agent_envelope.yaml`: agent の識別子と実行境界
 - `.kc/evidence_bundle.yaml`: verification、validation、PR、audit evidence
 - `.kc/ruleset.yaml`: 実行する rules と severity override
+- `.kc/config.yaml`: GitHub Action の適用範囲設定
 
-`kc init` で作る example は、reviewer が PR 上で読めるように明示的な構造にしています。
+`kc init` で作る example は明示的かつ pending 状態です。active artifact に common placeholder が残っている場合、KC は merge-ready にしません。
+
+## Enforcement Scope
+
+デフォルトでは、GitHub Action は全 PR に KC PR section を要求します。段階導入したい場合は `.kc/config.yaml` を追加します。
+
+```yaml
+kc:
+  enforcement:
+    mode: opt_in
+    require_when:
+      labels:
+        - codex
+      changed_paths:
+        - src/**
+      pr_body_marker: "KC: required"
+```
+
+mode は `strict`, `opt_in`, `disabled` を指定できます。
 
 ## Ruleset
 
@@ -205,7 +232,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence を扱います。
+現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence、placeholder 検出、risk-aware validation pending、plan item trace を扱います。
 
 ## 任意の Codex Hooks
 

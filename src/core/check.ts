@@ -3,7 +3,7 @@ import { decide, primaryReason } from "./decision.js";
 import { detectChangedFiles } from "./git.js";
 import { loadArtifacts, writeYamlFile } from "./artifacts.js";
 import { evaluateRules } from "./rules.js";
-import { uniquePaths } from "./path-match.js";
+import { matchesAny, uniquePaths } from "./path-match.js";
 import type { CheckOptions, CheckResult } from "./types.js";
 
 export async function runCheck(options: CheckOptions): Promise<CheckResult> {
@@ -60,6 +60,7 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
       changed_files: input.changedFiles,
       out_of_scope_files: input.findings.filter((finding) => finding.ruleId === "KC-AE-005").map((finding) => finding.path).filter(Boolean)
     },
+    plan_diff_trace: buildPlanDiffTrace(plan, input.changedFiles),
     verification_evidence: evidence.verification_evidence ?? [],
     validation_evidence: evidence.validation_evidence ?? [],
     findings: input.findings.map((finding) => ({
@@ -79,8 +80,61 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
   };
 }
 
+function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFiles: string[]): Record<string, unknown>[] {
+  const planItems = arrayRecords(plan?.plan_items).map((item) => ({
+    id: stringValue(item.id) || "plan_item",
+    expectedFiles: stringArray(item.expected_files)
+  })).filter((item) => item.expectedFiles.length > 0);
+  if (planItems.length === 0) {
+    return [];
+  }
+
+  const mapped = new Set<string>();
+  const trace = planItems.map((item) => {
+    const actualFiles = changedFiles.filter((file) => matchesExpected(file, item.expectedFiles));
+    for (const file of actualFiles) {
+      mapped.add(file);
+    }
+    return {
+      plan_item_id: item.id,
+      expected_files: item.expectedFiles,
+      actual_files: actualFiles,
+      status: actualFiles.length > 0 ? "implemented" : "not_touched"
+    };
+  });
+
+  for (const file of changedFiles.filter((changedFile) => !mapped.has(changedFile))) {
+    trace.push({
+      plan_item_id: "unmapped",
+      expected_files: [],
+      actual_files: [file],
+      status: "unmapped_change"
+    });
+  }
+
+  return trace;
+}
+
+function matchesExpected(file: string, expectedFiles: string[]): boolean {
+  return matchesAny(file, expectedFiles);
+}
+
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function arrayRecords(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item));
 }
 
 function readPath(source: unknown, pathParts: string[]): unknown {

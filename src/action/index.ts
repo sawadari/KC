@@ -3,8 +3,11 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { DefaultArtifactClient } from "@actions/artifact";
 import { runAssist, defaultModel } from "../core/assist.js";
+import { loadArtifacts } from "../core/artifacts.js";
 import { runCheck } from "../core/check.js";
-import { linkedIssueNumbers, validatePullRequestBody } from "../core/pr-body.js";
+import { linkedIssueNumbers, shouldValidatePullRequestBody, validatePullRequestBody } from "../core/pr-body.js";
+
+const kcGuardCommentMarker = "<!-- kc-guard-comment -->";
 
 async function main(): Promise<void> {
   const workspace = core.getInput("workspace") || ".";
@@ -18,7 +21,14 @@ async function main(): Promise<void> {
   const token = process.env.GITHUB_TOKEN;
   const octokit = token ? github.getOctokit(token) : undefined;
   const changedFiles = octokit && pullRequest ? await fetchPullRequestFiles(octokit, pullRequest.number) : undefined;
-  const prBodyFindings = pullRequest ? validatePullRequestBody(pullRequest.body ?? "") : [];
+  const config = loadArtifacts(workspace, ruleset).config;
+  const labels = pullRequest?.labels?.map((label: { name?: string }) => label.name).filter((label: string | undefined): label is string => Boolean(label)) ?? [];
+  const prBodyFindings = pullRequest && shouldValidatePullRequestBody({
+    body: pullRequest.body ?? "",
+    labels,
+    changedFiles,
+    config
+  }) ? validatePullRequestBody(pullRequest.body ?? "") : [];
 
   const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings });
 
@@ -117,6 +127,7 @@ async function commentOnPullRequest(result: Awaited<ReturnType<typeof runCheck>>
 
   const octokit = github.getOctokit(token);
   const body = [
+    kcGuardCommentMarker,
     `## KC Guard: ${result.decision}`,
     "",
     `- merge_ready: ${result.mergeReady}`,
@@ -127,6 +138,23 @@ async function commentOnPullRequest(result: Awaited<ReturnType<typeof runCheck>>
     ...result.findings.map((finding) => `- [${finding.severity}] ${finding.ruleId} ${finding.reasonCode}: ${finding.message}`),
     aiCandidate ? `\n### AI Candidate\n\n${aiCandidate}` : ""
   ].join("\n");
+
+  const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    issue_number: pullRequest.number,
+    per_page: 100
+  });
+  const existing = comments.find((comment) => comment.body?.includes(kcGuardCommentMarker));
+  if (existing) {
+    await octokit.rest.issues.updateComment({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      comment_id: existing.id,
+      body
+    });
+    return;
+  }
 
   await octokit.rest.issues.createComment({
     owner: github.context.repo.owner,

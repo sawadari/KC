@@ -32,5 +32,13 @@ The script emits JSON:
 }
 ```
 
-Hook payloads can differ across Codex environments. Treat these files as conservative templates and keep GitHub Actions as the final gate.
+## Boundary
+
+Hook payloads can differ across Codex environments. Bash or script-based edits may not expose every target path in a way the hook can inspect reliably, so these hooks are early local feedback rather than a complete enforcement layer.
+
+Use the layers this way:
+
+- Hooks: stop obvious local mistakes early.
+- GitHub Action: run the deterministic merge gate on the PR.
+- Humans: approve scope, validation meaning, and risk acceptance.
 

@@ -1,19 +1,24 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/15
-  problem_statement: "The human approval evidence rule and numbered Codex approval flow are merged on main, but npm and the GitHub Action v0 tag still distribute v0.2.1."
-  expected_outcome: "Publish v0.3.0 so npx @sawadari/kc and uses: sawadari/KC@v0 include the human approval flow."
+  issue_ref: github:sawadari/KC/issues/17-27
+  problem_statement: "KC v0.3.0 has several hardening follow-ups from external evaluation: release evidence cleanup, Action bundle regression checks, safe templates, stricter validation policy, PR comment upsert, configurable enforcement, plan-item trace, issue intake CLI, AI draft-only guardrails, hook boundary docs, and evidence-aware promotion."
+  expected_outcome: "KC becomes safer to adopt and harder to misuse while preserving deterministic merge decisions and human approval boundaries."
   acceptance_criteria:
-    - "Bump package metadata from 0.2.1 to 0.3.0."
-    - "Build dist/action/index.js from the current source."
-    - "Run TypeScript check, unit tests, npm pack dry run, and KC self-check."
-    - "Merge the release PR through GitHub."
-    - "Publish @sawadari/kc@0.3.0 with public access."
-    - "Create GitHub release v0.3.0 and move major tag v0 to the same commit."
+    - "Finalize v0.3.0 release publication evidence records."
+    - "Add CI checks that the bundled GitHub Action artifact is present and current."
+    - "Make example artifacts non-merge-ready by default and block active placeholder values."
+    - "Make validation pending enforcement risk-aware for high and critical issues."
+    - "Update PR comments instead of creating duplicates."
+    - "Support configurable PR body enforcement scope."
+    - "Generate and check plan-item-level trace."
+    - "Add issue-oriented CLI intake commands."
+    - "Tighten AI assist draft-only guardrails."
+    - "Document Codex hook limitations and final gate boundaries."
+    - "Make promotion candidates use Evidence Bundle context."
   validation_scenario:
-    statement: "After release, users can install @sawadari/kc@0.3.0 and the v0 action points at the commit containing KC-AE-013 and approval-brief commands."
+    statement: "Run typecheck, tests, dry pack, bundle freshness check, and KC self-check; verify GitHub CI on the PR."
   risk_tier: medium
   non_goals:
-    - "No new product behavior beyond distributing the already merged human approval flow."
-    - "No changes to npm account security or GitHub repository settings."
-    - "No secrets or local token files committed."
+    - "Do not publish a new npm release or move the v0 tag in this implementation PR."
+    - "Do not add cryptographic identity verification."
+    - "Do not replace GitHub required reviewers."
   issue_state: ready_for_plan

@@ -8,7 +8,8 @@ const artifactFiles = {
   plan: ".kc/plan.yaml",
   approval: ".kc/approval.yaml",
   envelope: ".kc/agent_envelope.yaml",
-  evidence: ".kc/evidence_bundle.yaml"
+  evidence: ".kc/evidence_bundle.yaml",
+  config: ".kc/config.yaml"
 } as const;
 
 export function readYamlFile(filePath: string): Record<string, unknown> | undefined {
@@ -44,6 +45,8 @@ export function loadArtifacts(workspace: string, rulesetPath?: string): LoadedAr
           loaded.envelope = unwrapped;
         } else if (key === "evidence") {
           loaded.evidence = unwrapped;
+        } else if (key === "config") {
+          loaded.config = unwrapped;
         }
       }
     } catch (error) {

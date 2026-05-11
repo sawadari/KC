@@ -1,5 +1,5 @@
 issue_packet:
-  issue_ref: github:org/repo/issues/125
+  issue_ref: github:sawadari/KC-fixture/issues/125
   problem_statement: "Retry export upload on transient 503."
   expected_outcome: "Manual reruns are reduced."
   acceptance_criteria:

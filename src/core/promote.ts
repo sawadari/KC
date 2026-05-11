@@ -25,7 +25,11 @@ export function runPromote(options: PromoteOptions): PromoteResult {
     bundleRef: stringValue(artifacts.evidence?.bundle_id),
     prRef: stringValue(artifacts.evidence?.pr_ref),
     requirement: stringValue(artifacts.plan?.interpreted_requirement) || stringValue(artifacts.issue?.expected_outcome),
-    validation: stringify(artifacts.evidence?.validation_evidence)
+    validation: stringify(artifacts.evidence?.validation_evidence),
+    planTrace: stringify(artifacts.evidence?.plan_diff_trace),
+    approvalConditions: stringify(artifacts.approval?.conditions),
+    findings: stringify(artifacts.evidence?.findings),
+    humanDecision: stringify(artifacts.approval?.human_approval)
   };
 
   const outputs: Record<string, string> = {
@@ -59,6 +63,7 @@ function decisionLedger(context: PromotionContext): string {
     "",
     `- decision: execute_candidate`,
     `- rationale: ${context.requirement || "TBD"}`,
+    `- human_decision_context: ${context.humanDecision || "TBD"}`,
     "- human_review_required: true"
   ].join("\n");
 }
@@ -89,7 +94,11 @@ function validationScenarios(context: PromotionContext): string {
     "",
     "## Candidate Validation Evidence",
     "",
-    context.validation || "No validation evidence captured."
+    context.validation || "No validation evidence captured.",
+    "",
+    "## Approval Conditions",
+    "",
+    context.approvalConditions || "No approval conditions captured."
   ].join("\n");
 }
 
@@ -106,7 +115,8 @@ function agentsCandidate(context: PromotionContext): string {
     "",
     "- Keep Issue -> Plan -> Approval -> Implementation ordering.",
     "- Keep verification and validation evidence separate.",
-    "- Do not treat AI-generated candidates as approval."
+    "- Do not treat AI-generated candidates as approval.",
+    "- Review plan item trace and findings before promoting evidence into canonical project memory."
   ].join("\n");
 }
 
@@ -122,7 +132,15 @@ function testOracle(context: PromotionContext): string {
     "## Candidate Oracle",
     "",
     `- Requirement under test: ${context.requirement || "TBD"}`,
-    "- Expected evidence: deterministic KC check plus human-reviewed validation evidence."
+    "- Expected evidence: deterministic KC check plus human-reviewed validation evidence.",
+    "",
+    "## Plan Item Trace",
+    "",
+    context.planTrace || "No plan item trace captured.",
+    "",
+    "## Findings History",
+    "",
+    context.findings || "No findings captured."
   ].join("\n");
 }
 
@@ -134,6 +152,10 @@ interface PromotionContext {
   prRef: string;
   requirement: string;
   validation: string;
+  planTrace: string;
+  approvalConditions: string;
+  findings: string;
+  humanDecision: string;
 }
 
 function refs(context: PromotionContext): string {
