@@ -5,6 +5,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -28,6 +31,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/tunnel/lib/tunnel.js
 var require_tunnel = __commonJS({
@@ -23935,7 +23939,7 @@ var require_ms = __commonJS({
 // node_modules/debug/src/common.js
 var require_common = __commonJS({
   "node_modules/debug/src/common.js"(exports2, module2) {
-    function setup(env) {
+    function setup(env2) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
       createDebug.coerce = coerce;
@@ -23944,8 +23948,8 @@ var require_common = __commonJS({
       createDebug.enabled = enabled2;
       createDebug.humanize = require_ms();
       createDebug.destroy = destroy2;
-      Object.keys(env).forEach((key) => {
-        createDebug[key] = env[key];
+      Object.keys(env2).forEach((key) => {
+        createDebug[key] = env2[key];
       });
       createDebug.names = [];
       createDebug.skips = [];
@@ -24279,51 +24283,159 @@ var require_browser = __commonJS({
   }
 });
 
-// ../../../../node_modules/supports-color/index.js
-var require_supports_color = __commonJS({
-  "../../../../node_modules/supports-color/index.js"(exports2, module2) {
-    "use strict";
-    var argv = process.argv;
-    var terminator = argv.indexOf("--");
-    var hasFlag = function(flag) {
-      flag = "--" + flag;
-      var pos = argv.indexOf(flag);
-      return pos !== -1 && (terminator !== -1 ? pos < terminator : true);
+// node_modules/supports-color/index.js
+var supports_color_exports = {};
+__export(supports_color_exports, {
+  createSupportsColor: () => createSupportsColor,
+  default: () => supports_color_default
+});
+function hasFlag(flag, argv = globalThis.Deno ? globalThis.Deno.args : import_node_process2.default.argv) {
+  const prefix2 = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+  const position = argv.indexOf(prefix2 + flag);
+  const terminatorPosition = argv.indexOf("--");
+  return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+}
+function envForceColor() {
+  if (!("FORCE_COLOR" in env)) {
+    return;
+  }
+  if (env.FORCE_COLOR === "true") {
+    return 1;
+  }
+  if (env.FORCE_COLOR === "false") {
+    return 0;
+  }
+  if (env.FORCE_COLOR.length === 0) {
+    return 1;
+  }
+  const level = Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+  if (![0, 1, 2, 3].includes(level)) {
+    return;
+  }
+  return level;
+}
+function translateLevel(level) {
+  if (level === 0) {
+    return false;
+  }
+  return {
+    level,
+    hasBasic: true,
+    has256: level >= 2,
+    has16m: level >= 3
+  };
+}
+function _supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+  const noFlagForceColor = envForceColor();
+  if (noFlagForceColor !== void 0) {
+    flagForceColor = noFlagForceColor;
+  }
+  const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+  if (forceColor === 0) {
+    return 0;
+  }
+  if (sniffFlags) {
+    if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+      return 3;
+    }
+    if (hasFlag("color=256")) {
+      return 2;
+    }
+  }
+  if ("TF_BUILD" in env && "AGENT_NAME" in env) {
+    return 1;
+  }
+  if (haveStream && !streamIsTTY && forceColor === void 0) {
+    return 0;
+  }
+  const min = forceColor || 0;
+  if (env.TERM === "dumb") {
+    return min;
+  }
+  if (import_node_process2.default.platform === "win32") {
+    const osRelease = import_node_os2.default.release().split(".");
+    if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+      return Number(osRelease[2]) >= 14931 ? 3 : 2;
+    }
+    return 1;
+  }
+  if ("CI" in env) {
+    if (["GITHUB_ACTIONS", "GITEA_ACTIONS", "CIRCLECI"].some((key) => key in env)) {
+      return 3;
+    }
+    if (["TRAVIS", "APPVEYOR", "GITLAB_CI", "BUILDKITE", "DRONE"].some((sign) => sign in env) || env.CI_NAME === "codeship") {
+      return 1;
+    }
+    return min;
+  }
+  if ("TEAMCITY_VERSION" in env) {
+    return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+  }
+  if (env.COLORTERM === "truecolor") {
+    return 3;
+  }
+  if (env.TERM === "xterm-kitty") {
+    return 3;
+  }
+  if (env.TERM === "xterm-ghostty") {
+    return 3;
+  }
+  if (env.TERM === "wezterm") {
+    return 3;
+  }
+  if ("TERM_PROGRAM" in env) {
+    const version3 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+    switch (env.TERM_PROGRAM) {
+      case "iTerm.app": {
+        return version3 >= 3 ? 3 : 2;
+      }
+      case "Apple_Terminal": {
+        return 2;
+      }
+    }
+  }
+  if (/-256(color)?$/i.test(env.TERM)) {
+    return 2;
+  }
+  if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+    return 1;
+  }
+  if ("COLORTERM" in env) {
+    return 1;
+  }
+  return min;
+}
+function createSupportsColor(stream4, options = {}) {
+  const level = _supportsColor(stream4, {
+    streamIsTTY: stream4 && stream4.isTTY,
+    ...options
+  });
+  return translateLevel(level);
+}
+var import_node_process2, import_node_os2, import_node_tty, env, flagForceColor, supportsColor, supports_color_default;
+var init_supports_color = __esm({
+  "node_modules/supports-color/index.js"() {
+    import_node_process2 = __toESM(require("node:process"), 1);
+    import_node_os2 = __toESM(require("node:os"), 1);
+    import_node_tty = __toESM(require("node:tty"), 1);
+    ({ env } = import_node_process2.default);
+    if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+      flagForceColor = 0;
+    } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+      flagForceColor = 1;
+    }
+    supportsColor = {
+      stdout: createSupportsColor({ isTTY: import_node_tty.default.isatty(1) }),
+      stderr: createSupportsColor({ isTTY: import_node_tty.default.isatty(2) })
     };
-    module2.exports = (function() {
-      if ("FORCE_COLOR" in process.env) {
-        return true;
-      }
-      if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false")) {
-        return false;
-      }
-      if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
-        return true;
-      }
-      if (process.stdout && !process.stdout.isTTY) {
-        return false;
-      }
-      if (process.platform === "win32") {
-        return true;
-      }
-      if ("COLORTERM" in process.env) {
-        return true;
-      }
-      if (process.env.TERM === "dumb") {
-        return false;
-      }
-      if (/^screen|^xterm|^vt100|color|ansi|cygwin|linux/i.test(process.env.TERM)) {
-        return true;
-      }
-      return false;
-    })();
+    supports_color_default = supportsColor;
   }
 });
 
 // node_modules/debug/src/node.js
 var require_node = __commonJS({
   "node_modules/debug/src/node.js"(exports2, module2) {
-    var tty = require("tty");
+    var tty2 = require("tty");
     var util3 = require("util");
     exports2.init = init;
     exports2.log = log2;
@@ -24338,8 +24450,8 @@ var require_node = __commonJS({
     );
     exports2.colors = [6, 2, 3, 4, 5, 1];
     try {
-      const supportsColor = require_supports_color();
-      if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+      const supportsColor2 = (init_supports_color(), __toCommonJS(supports_color_exports));
+      if (supportsColor2 && (supportsColor2.stderr || supportsColor2).level >= 2) {
         exports2.colors = [
           20,
           21,
@@ -24441,7 +24553,7 @@ var require_node = __commonJS({
       return obj;
     }, {});
     function useColors() {
-      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty2.isatty(process.stderr.fd);
     }
     function formatArgs(args) {
       const { namespace: name, useColors: useColors2 } = this;
@@ -33441,7 +33553,7 @@ var require_utils2 = __commonJS({
 var require_end_of_stream = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports2, module2) {
     "use strict";
-    var process4 = require_process();
+    var process5 = require_process();
     var { AbortError: AbortError3, codes } = require_errors2();
     var { ERR_INVALID_ARG_TYPE, ERR_STREAM_PREMATURE_CLOSE } = codes;
     var { kEmptyObject, once } = require_util10();
@@ -33577,17 +33689,17 @@ var require_end_of_stream = __commonJS({
       }
       stream4.on("close", onclose);
       if (closed) {
-        process4.nextTick(onclose);
+        process5.nextTick(onclose);
       } else if (wState !== null && wState !== void 0 && wState.errorEmitted || rState !== null && rState !== void 0 && rState.errorEmitted) {
         if (!willEmitClose) {
-          process4.nextTick(onclosed);
+          process5.nextTick(onclosed);
         }
       } else if (!readable && (!willEmitClose || isReadable(stream4)) && (writableFinished || isWritable(stream4) === false)) {
-        process4.nextTick(onclosed);
+        process5.nextTick(onclosed);
       } else if (!writable && (!willEmitClose || isWritable(stream4)) && (readableFinished || isReadable(stream4) === false)) {
-        process4.nextTick(onclosed);
+        process5.nextTick(onclosed);
       } else if (rState && stream4.req && stream4.aborted) {
-        process4.nextTick(onclosed);
+        process5.nextTick(onclosed);
       }
       const cleanup = () => {
         callback = nop;
@@ -33615,7 +33727,7 @@ var require_end_of_stream = __commonJS({
           );
         };
         if (options.signal.aborted) {
-          process4.nextTick(abort);
+          process5.nextTick(abort);
         } else {
           addAbortListener = addAbortListener || require_util10().addAbortListener;
           const disposable = addAbortListener(options.signal, abort);
@@ -33642,7 +33754,7 @@ var require_end_of_stream = __commonJS({
           );
         };
         if (options.signal.aborted) {
-          process4.nextTick(abort);
+          process5.nextTick(abort);
         } else {
           addAbortListener = addAbortListener || require_util10().addAbortListener;
           const disposable = addAbortListener(options.signal, abort);
@@ -33655,7 +33767,7 @@ var require_end_of_stream = __commonJS({
       }
       const resolverFn = (...args) => {
         if (!isAborted) {
-          process4.nextTick(() => callback.apply(stream4, args));
+          process5.nextTick(() => callback.apply(stream4, args));
         }
       };
       PromisePrototypeThen(stream4[kIsClosedPromise].promise, resolverFn, resolverFn);
@@ -33693,7 +33805,7 @@ var require_end_of_stream = __commonJS({
 var require_destroy2 = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/destroy.js"(exports2, module2) {
     "use strict";
-    var process4 = require_process();
+    var process5 = require_process();
     var {
       aggregateTwoErrors,
       codes: { ERR_MULTIPLE_CALLBACK },
@@ -33760,9 +33872,9 @@ var require_destroy2 = __commonJS({
           cb(err2);
         }
         if (err2) {
-          process4.nextTick(emitErrorCloseNT, self2, err2);
+          process5.nextTick(emitErrorCloseNT, self2, err2);
         } else {
-          process4.nextTick(emitCloseNT, self2);
+          process5.nextTick(emitCloseNT, self2);
         }
       }
       try {
@@ -33847,7 +33959,7 @@ var require_destroy2 = __commonJS({
           r.errored = err;
         }
         if (sync) {
-          process4.nextTick(emitErrorNT, stream4, err);
+          process5.nextTick(emitErrorNT, stream4, err);
         } else {
           emitErrorNT(stream4, err);
         }
@@ -33869,7 +33981,7 @@ var require_destroy2 = __commonJS({
       if (stream4.listenerCount(kConstruct) > 1) {
         return;
       }
-      process4.nextTick(constructNT, stream4);
+      process5.nextTick(constructNT, stream4);
     }
     function constructNT(stream4) {
       let called = false;
@@ -33893,15 +34005,15 @@ var require_destroy2 = __commonJS({
         } else if (err) {
           errorOrDestroy(stream4, err, true);
         } else {
-          process4.nextTick(emitConstructNT, stream4);
+          process5.nextTick(emitConstructNT, stream4);
         }
       }
       try {
         stream4._construct((err) => {
-          process4.nextTick(onConstruct, err);
+          process5.nextTick(onConstruct, err);
         });
       } catch (err) {
-        process4.nextTick(onConstruct, err);
+        process5.nextTick(onConstruct, err);
       }
     }
     function emitConstructNT(stream4) {
@@ -33915,7 +34027,7 @@ var require_destroy2 = __commonJS({
     }
     function emitErrorCloseLegacy(stream4, err) {
       stream4.emit("error", err);
-      process4.nextTick(emitCloseLegacy, stream4);
+      process5.nextTick(emitCloseLegacy, stream4);
     }
     function destroyer(stream4, err) {
       if (!stream4 || isDestroyed(stream4)) {
@@ -33936,9 +34048,9 @@ var require_destroy2 = __commonJS({
       } else if (typeof stream4.close === "function") {
         stream4.close();
       } else if (err) {
-        process4.nextTick(emitErrorCloseLegacy, stream4, err);
+        process5.nextTick(emitErrorCloseLegacy, stream4, err);
       } else {
-        process4.nextTick(emitCloseLegacy, stream4);
+        process5.nextTick(emitCloseLegacy, stream4);
       }
       if (!stream4.destroyed) {
         stream4[kIsDestroyed] = true;
@@ -34580,7 +34692,7 @@ var require_string_decoder2 = __commonJS({
 var require_from = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/from.js"(exports2, module2) {
     "use strict";
-    var process4 = require_process();
+    var process5 = require_process();
     var { PromisePrototypeThen, SymbolAsyncIterator, SymbolIterator } = require_primordials();
     var { Buffer: Buffer3 } = require("buffer");
     var { ERR_INVALID_ARG_TYPE, ERR_STREAM_NULL_VALUES } = require_errors2().codes;
@@ -34622,9 +34734,9 @@ var require_from = __commonJS({
       readable._destroy = function(error3, cb) {
         PromisePrototypeThen(
           close(error3),
-          () => process4.nextTick(cb, error3),
+          () => process5.nextTick(cb, error3),
           // nextTick is here in case cb throws
-          (e) => process4.nextTick(cb, e || error3)
+          (e) => process5.nextTick(cb, e || error3)
         );
       };
       async function close(error3) {
@@ -34675,7 +34787,7 @@ var require_from = __commonJS({
 var require_readable3 = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/readable.js"(exports2, module2) {
     "use strict";
-    var process4 = require_process();
+    var process5 = require_process();
     var {
       ArrayPrototypeIndexOf,
       NumberIsInteger,
@@ -35060,7 +35172,7 @@ var require_readable3 = __commonJS({
       if (!state3.emittedReadable) {
         debug2("emitReadable", state3.flowing);
         state3.emittedReadable = true;
-        process4.nextTick(emitReadable_, stream4);
+        process5.nextTick(emitReadable_, stream4);
       }
     }
     function emitReadable_(stream4) {
@@ -35076,7 +35188,7 @@ var require_readable3 = __commonJS({
     function maybeReadMore(stream4, state3) {
       if (!state3.readingMore && state3.constructed) {
         state3.readingMore = true;
-        process4.nextTick(maybeReadMore_, stream4, state3);
+        process5.nextTick(maybeReadMore_, stream4, state3);
       }
     }
     function maybeReadMore_(stream4, state3) {
@@ -35103,9 +35215,9 @@ var require_readable3 = __commonJS({
       }
       state3.pipes.push(dest);
       debug2("pipe count=%d opts=%j", state3.pipes.length, pipeOpts);
-      const doEnd = (!pipeOpts || pipeOpts.end !== false) && dest !== process4.stdout && dest !== process4.stderr;
+      const doEnd = (!pipeOpts || pipeOpts.end !== false) && dest !== process5.stdout && dest !== process5.stderr;
       const endFn = doEnd ? onend : unpipe;
-      if (state3.endEmitted) process4.nextTick(endFn);
+      if (state3.endEmitted) process5.nextTick(endFn);
       else src.once("end", endFn);
       dest.on("unpipe", onunpipe);
       function onunpipe(readable, unpipeInfo) {
@@ -35255,7 +35367,7 @@ var require_readable3 = __commonJS({
           if (state3.length) {
             emitReadable(this);
           } else if (!state3.reading) {
-            process4.nextTick(nReadingNextTick, this);
+            process5.nextTick(nReadingNextTick, this);
           }
         }
       }
@@ -35265,7 +35377,7 @@ var require_readable3 = __commonJS({
     Readable5.prototype.removeListener = function(ev, fn) {
       const res = Stream.prototype.removeListener.call(this, ev, fn);
       if (ev === "readable") {
-        process4.nextTick(updateReadableListening, this);
+        process5.nextTick(updateReadableListening, this);
       }
       return res;
     };
@@ -35273,7 +35385,7 @@ var require_readable3 = __commonJS({
     Readable5.prototype.removeAllListeners = function(ev) {
       const res = Stream.prototype.removeAllListeners.apply(this, arguments);
       if (ev === "readable" || ev === void 0) {
-        process4.nextTick(updateReadableListening, this);
+        process5.nextTick(updateReadableListening, this);
       }
       return res;
     };
@@ -35305,7 +35417,7 @@ var require_readable3 = __commonJS({
     function resume(stream4, state3) {
       if (!state3.resumeScheduled) {
         state3.resumeScheduled = true;
-        process4.nextTick(resume_, stream4, state3);
+        process5.nextTick(resume_, stream4, state3);
       }
     }
     function resume_(stream4, state3) {
@@ -35582,7 +35694,7 @@ var require_readable3 = __commonJS({
       debug2("endReadable", state3.endEmitted);
       if (!state3.endEmitted) {
         state3.ended = true;
-        process4.nextTick(endReadableNT, state3, stream4);
+        process5.nextTick(endReadableNT, state3, stream4);
       }
     }
     function endReadableNT(state3, stream4) {
@@ -35591,7 +35703,7 @@ var require_readable3 = __commonJS({
         state3.endEmitted = true;
         stream4.emit("end");
         if (stream4.writable && stream4.allowHalfOpen === false) {
-          process4.nextTick(endWritableNT, stream4);
+          process5.nextTick(endWritableNT, stream4);
         } else if (state3.autoDestroy) {
           const wState = stream4._writableState;
           const autoDestroy = !wState || wState.autoDestroy && // We don't expect the writable to ever 'finish'
@@ -35641,7 +35753,7 @@ var require_readable3 = __commonJS({
 var require_writable = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/writable.js"(exports2, module2) {
     "use strict";
-    var process4 = require_process();
+    var process5 = require_process();
     var {
       ArrayPrototypeSlice,
       Error: Error2,
@@ -35794,7 +35906,7 @@ var require_writable = __commonJS({
         err = new ERR_STREAM_DESTROYED("write");
       }
       if (err) {
-        process4.nextTick(cb, err);
+        process5.nextTick(cb, err);
         errorOrDestroy(stream4, err, true);
         return err;
       }
@@ -35884,7 +35996,7 @@ var require_writable = __commonJS({
           stream4._readableState.errored = er;
         }
         if (sync) {
-          process4.nextTick(onwriteError, stream4, state3, er, cb);
+          process5.nextTick(onwriteError, stream4, state3, er, cb);
         } else {
           onwriteError(stream4, state3, er, cb);
         }
@@ -35902,7 +36014,7 @@ var require_writable = __commonJS({
               stream: stream4,
               state: state3
             };
-            process4.nextTick(afterWriteTick, state3.afterWriteTickInfo);
+            process5.nextTick(afterWriteTick, state3.afterWriteTickInfo);
           }
         } else {
           afterWrite(stream4, state3, 1, cb);
@@ -36039,7 +36151,7 @@ var require_writable = __commonJS({
       }
       if (typeof cb === "function") {
         if (err || state3.finished) {
-          process4.nextTick(cb, err);
+          process5.nextTick(cb, err);
         } else {
           state3[kOnFinished].push(cb);
         }
@@ -36068,7 +36180,7 @@ var require_writable = __commonJS({
           state3.prefinished = true;
           stream4.emit("prefinish");
           state3.pendingcb++;
-          process4.nextTick(finish, stream4, state3);
+          process5.nextTick(finish, stream4, state3);
         }
       }
       state3.sync = true;
@@ -36097,7 +36209,7 @@ var require_writable = __commonJS({
         if (state3.pendingcb === 0) {
           if (sync) {
             state3.pendingcb++;
-            process4.nextTick(
+            process5.nextTick(
               (stream5, state4) => {
                 if (needFinish(state4)) {
                   finish(stream5, state4);
@@ -36232,7 +36344,7 @@ var require_writable = __commonJS({
     Writable.prototype.destroy = function(err, cb) {
       const state3 = this._writableState;
       if (!state3.destroyed && (state3.bufferedIndex < state3.buffered.length || state3[kOnFinished].length)) {
-        process4.nextTick(errorBuffer, state3);
+        process5.nextTick(errorBuffer, state3);
       }
       destroy2.call(this, err, cb);
       return this;
@@ -36261,7 +36373,7 @@ var require_writable = __commonJS({
 // node_modules/readable-stream/lib/internal/streams/duplexify.js
 var require_duplexify = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/duplexify.js"(exports2, module2) {
-    var process4 = require_process();
+    var process5 = require_process();
     var bufferModule = require("buffer");
     var {
       isReadable,
@@ -36374,9 +36486,9 @@ var require_duplexify = __commonJS({
               final(async () => {
                 try {
                   await promise;
-                  process4.nextTick(cb, null);
+                  process5.nextTick(cb, null);
                 } catch (err) {
-                  process4.nextTick(cb, err);
+                  process5.nextTick(cb, err);
                 }
               });
             },
@@ -36455,7 +36567,7 @@ var require_duplexify = __commonJS({
             const _promise = promise;
             promise = null;
             const { chunk, done, cb } = await _promise;
-            process4.nextTick(cb);
+            process5.nextTick(cb);
             if (done) return;
             if (signal.aborted)
               throw new AbortError3(void 0, {
@@ -36846,7 +36958,7 @@ var require_passthrough2 = __commonJS({
 // node_modules/readable-stream/lib/internal/streams/pipeline.js
 var require_pipeline = __commonJS({
   "node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports2, module2) {
-    var process4 = require_process();
+    var process5 = require_process();
     var { ArrayIsArray, Promise: Promise2, SymbolAsyncIterator, SymbolDispose } = require_primordials();
     var eos = require_end_of_stream();
     var { once } = require_util10();
@@ -37048,7 +37160,7 @@ var require_pipeline = __commonJS({
           if (!error3) {
             lastStreamCleanup.forEach((fn) => fn());
           }
-          process4.nextTick(callback, error3, value);
+          process5.nextTick(callback, error3, value);
         }
       }
       let ret;
@@ -37127,11 +37239,11 @@ var require_pipeline = __commonJS({
                   if (end) {
                     pt.end();
                   }
-                  process4.nextTick(finish);
+                  process5.nextTick(finish);
                 },
                 (err) => {
                   pt.destroy(err);
-                  process4.nextTick(finish, err);
+                  process5.nextTick(finish, err);
                 }
               );
             } else if (isIterable(ret, true)) {
@@ -37212,7 +37324,7 @@ var require_pipeline = __commonJS({
         }
       }
       if (signal !== null && signal !== void 0 && signal.aborted || outerSignal !== null && outerSignal !== void 0 && outerSignal.aborted) {
-        process4.nextTick(abort);
+        process5.nextTick(abort);
       }
       return ret;
     }
@@ -37233,7 +37345,7 @@ var require_pipeline = __commonJS({
         };
         var endFn = endFn2;
         if (isReadableFinished(src)) {
-          process4.nextTick(endFn2);
+          process5.nextTick(endFn2);
         } else {
           src.once("end", endFn2);
         }
@@ -44567,7 +44679,7 @@ var require_commonjs6 = __commonJS({
         const dirs = /* @__PURE__ */ new Set();
         const queue = [entry];
         let processing = 0;
-        const process4 = () => {
+        const process5 = () => {
           let paused = false;
           while (!paused) {
             const dir = queue.shift();
@@ -44608,9 +44720,9 @@ var require_commonjs6 = __commonJS({
                 }
               }
               if (paused && !results.flowing) {
-                results.once("drain", process4);
+                results.once("drain", process5);
               } else if (!sync) {
-                process4();
+                process5();
               }
             };
             let sync = true;
@@ -44618,7 +44730,7 @@ var require_commonjs6 = __commonJS({
             sync = false;
           }
         };
-        process4();
+        process5();
         return results;
       }
       streamSync(entry = this.cwd, opts = {}) {
@@ -44636,7 +44748,7 @@ var require_commonjs6 = __commonJS({
         }
         const queue = [entry];
         let processing = 0;
-        const process4 = () => {
+        const process5 = () => {
           let paused = false;
           while (!paused) {
             const dir = queue.shift();
@@ -44670,9 +44782,9 @@ var require_commonjs6 = __commonJS({
             }
           }
           if (paused && !results.flowing)
-            results.once("drain", process4);
+            results.once("drain", process5);
         };
-        process4();
+        process5();
         return results;
       }
       chdir(path7 = this.cwd) {
@@ -47639,22 +47751,22 @@ var require_zip_archive_output_stream = __commonJS({
     };
     ZipArchiveOutputStream.prototype._smartStream = function(ae, callback) {
       var deflate = ae.getMethod() === constants3.METHOD_DEFLATED;
-      var process4 = deflate ? new DeflateCRC32Stream(this.options.zlib) : new CRC32Stream();
+      var process5 = deflate ? new DeflateCRC32Stream(this.options.zlib) : new CRC32Stream();
       var error3 = null;
       function handleStuff() {
-        var digest = process4.digest().readUInt32BE(0);
+        var digest = process5.digest().readUInt32BE(0);
         ae.setCrc(digest);
-        ae.setSize(process4.size());
-        ae.setCompressedSize(process4.size(true));
+        ae.setSize(process5.size());
+        ae.setCompressedSize(process5.size(true));
         this._afterAppend(ae);
         callback(error3, ae);
       }
-      process4.once("end", handleStuff.bind(this));
-      process4.once("error", function(err) {
+      process5.once("end", handleStuff.bind(this));
+      process5.once("error", function(err) {
         error3 = err;
       });
-      process4.pipe(this, { end: false });
-      return process4;
+      process5.pipe(this, { end: false });
+      return process5;
     };
     ZipArchiveOutputStream.prototype._writeCentralDirectoryEnd = function() {
       var records = this._entries.length;
@@ -70290,15 +70402,15 @@ function redirectPolicy2(options = {}) {
 }
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/util/userAgentPlatform.js
-var import_node_os2 = __toESM(require("node:os"), 1);
-var import_node_process2 = __toESM(require("node:process"), 1);
+var import_node_os3 = __toESM(require("node:os"), 1);
+var import_node_process3 = __toESM(require("node:process"), 1);
 function getHeaderName2() {
   return "User-Agent";
 }
 async function setPlatformSpecificData2(map) {
-  if (import_node_process2.default && import_node_process2.default.versions) {
-    const osInfo = `${import_node_os2.default.type()} ${import_node_os2.default.release()}; ${import_node_os2.default.arch()}`;
-    const versions = import_node_process2.default.versions;
+  if (import_node_process3.default && import_node_process3.default.versions) {
+    const osInfo = `${import_node_os3.default.type()} ${import_node_os3.default.release()}; ${import_node_os3.default.arch()}`;
+    const versions = import_node_process3.default.versions;
     if (versions.bun) {
       map.set("Bun", `${versions.bun} (${osInfo})`);
     } else if (versions.deno) {

@@ -16,6 +16,8 @@ plan_approval:
     - README.md
     - README.ja.md
     - dist/action/index.js
+    - package.json
+    - package-lock.json
     - reports/validation/**
     - src/**
     - templates/**

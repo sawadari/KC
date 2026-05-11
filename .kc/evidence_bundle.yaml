@@ -16,6 +16,8 @@ approval_evidence_bundle:
       - README.ja.md
       - README.md
       - dist/action/index.js
+      - package-lock.json
+      - package.json
       - reports/validation/VAL-KC-HARDENING-001.md
       - reports/validation/VAL-KC-RELEASE-0.3.0.md
       - src/action/index.ts
@@ -43,11 +45,15 @@ approval_evidence_bundle:
         - .github/**
         - reports/validation/**
         - dist/action/index.js
+        - package.json
+        - package-lock.json
       actual_files:
         - .github/workflows/ci.yml
         - reports/validation/VAL-KC-HARDENING-001.md
         - reports/validation/VAL-KC-RELEASE-0.3.0.md
         - dist/action/index.js
+        - package.json
+        - package-lock.json
       status: implemented
     - plan_item_id: P2
       expected_files:
@@ -141,7 +147,7 @@ approval_evidence_bundle:
       status: passed
     - evidence_id: VE-HARDENING-4
       type: deterministic_check
-      ref: "No npm publish or v0 tag movement was performed in this implementation batch."
+      ref: "No npm publish or v0 tag movement was performed. supports-color was added as an explicit dependency to make the Action bundle deterministic across Windows and Linux."
       status: passed
     - evidence_id: VE-HARDENING-5
       type: package_dry_run

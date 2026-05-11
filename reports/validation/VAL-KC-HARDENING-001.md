@@ -16,6 +16,7 @@ Validate KC hardening issues #17 through #27.
 - `npm.cmd run pack:dry`: passed
 - `npm.cmd run build`: passed; `dist/action/index.js` is updated in this PR and CI will enforce no stale bundle after checkout
 - KC self-check: passed
+- Bundle determinism fix: `supports-color` is now an explicit dependency because local esbuild previously resolved it from an ancestor `node_modules`, while GitHub Actions left it external.
 
 ## Issue Coverage
 

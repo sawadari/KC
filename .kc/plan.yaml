@@ -13,6 +13,8 @@ agent_plan:
       - README.md
       - README.ja.md
       - dist/action/index.js
+      - package.json
+      - package-lock.json
       - reports/validation/**
       - src/**
       - templates/**
@@ -37,11 +39,15 @@ agent_plan:
         - .github/**
         - reports/validation/**
         - dist/action/index.js
+        - package.json
+        - package-lock.json
       actual_files:
         - .github/workflows/ci.yml
         - reports/validation/VAL-KC-RELEASE-0.3.0.md
         - reports/validation/VAL-KC-HARDENING-001.md
         - dist/action/index.js
+        - package.json
+        - package-lock.json
       status: implemented
     - id: P2
       action: "Add placeholder detection, safe examples, and risk-aware validation pending enforcement."
