@@ -1,0 +1,36 @@
+plan_approval:
+  approval_id: APR-KC-BOOTSTRAP-001
+  target_plan_id: PLAN-KC-BOOTSTRAP-001
+  decision: approved_with_conditions
+  approver_role: owner
+  timestamp: "2026-05-11T21:40:00+09:00"
+  approved_scope:
+    - .github/**
+    - .gitignore
+    - .kc/**
+    - LICENSE
+    - README.md
+    - README.ja.md
+    - action.yml
+    - dist/action/index.js
+    - package-lock.json
+    - package.json
+    - reports/validation/**
+    - src/**
+    - templates/**
+    - tests/**
+    - tsconfig.json
+  conditions:
+    - id: COND-KC-1
+      statement: "All changed files must stay within the approved KC bootstrap scope."
+      evidence_required: diff_scope_check
+    - id: COND-KC-2
+      statement: "The TypeScript build and automated tests must pass."
+      evidence_required: unit_test
+    - id: COND-KC-3
+      statement: "GitHub CI for the initial release must pass."
+      evidence_required: github_actions
+    - id: COND-KC-4
+      statement: "Validation evidence must show PASS/WARN/HOLD/FAIL behavior and KC self-check behavior."
+      evidence_required: validation_report
+

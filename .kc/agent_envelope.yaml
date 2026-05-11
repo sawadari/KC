@@ -1,0 +1,58 @@
+agent_execution_envelope:
+  agent_id: codex
+  role_class: execution_agent
+  owner_role: developer
+  capability_scope:
+    - edit_code
+    - run_tests
+    - create_issue
+    - create_release_artifact
+    - create_commit
+    - push_branch
+  authority_envelope:
+    allowed_repositories:
+      - sawadari/KC
+    allowed_paths:
+      - .github/**
+      - .kc/**
+      - dist/action/index.js
+      - reports/validation/**
+      - src/**
+      - templates/**
+      - tests/**
+      - README.md
+      - README.ja.md
+      - action.yml
+      - package.json
+      - package-lock.json
+      - tsconfig.json
+      - LICENSE
+    prohibited_paths:
+      - .env
+      - .npmrc
+      - node_modules/**
+      - lib/**
+      - coverage/**
+      - "**/*secret*"
+      - "**/*token*"
+    allowed_commands:
+      - npm test
+      - npm audit --audit-level=moderate
+      - npm run pack:dry
+      - node lib/cli/index.js check
+      - gh issue create
+      - gh run list
+  audit_obligation:
+    required_refs:
+      - issue_ref
+      - plan_ref
+      - approval_ref
+      - diff_ref
+      - test_run_ref
+      - validation_report_ref
+  human_review_gate:
+    required: true
+    reviewer_role: owner
+  rollback_path:
+    strategy: revert_commit_or_followup_pr
+

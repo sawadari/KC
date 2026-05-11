@@ -1,0 +1,19 @@
+issue_packet:
+  issue_ref: github:sawadari/KC/issues/1
+  problem_statement: "KC v0.1.0 was released before the repository contained its own KC governance artifacts."
+  expected_outcome: "KC can evaluate its own initial release with explicit Issue, Plan, Approval, Agent Envelope, Evidence Bundle, and Validation evidence artifacts."
+  acceptance_criteria:
+    - "Add canonical `.kc` artifacts for the KC bootstrap release."
+    - "Add durable validation evidence for the bootstrap evaluation."
+    - "Run fixture checks and confirm PASS, WARN, HOLD, and FAIL behavior."
+    - "Run KC against the initial release changed-file set and reach PASS."
+    - "Keep deterministic gate results independent from optional AI assist."
+  validation_scenario:
+    statement: "The KC repository runs its own guard against the approved initial release scope and produces PASS while keeping verification and validation evidence separate."
+  risk_tier: medium
+  non_goals:
+    - "Publish to npm before npm authentication is configured."
+    - "Add Codex Hooks in this step."
+    - "Change KC rule semantics beyond documenting and evaluating the current release."
+  issue_state: ready_for_plan
+

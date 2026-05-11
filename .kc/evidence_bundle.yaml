@@ -1,0 +1,80 @@
+approval_evidence_bundle:
+  bundle_id: AEB-KC-BOOTSTRAP-001
+  issue_ref: github:sawadari/KC/issues/1
+  plan_ref: PLAN-KC-BOOTSTRAP-001
+  approval_ref: APR-KC-BOOTSTRAP-001
+  pr_ref: github:sawadari/KC/commit/a4e92e7d9f4732e562486548c834d793d72d920f
+  agent_ref: codex
+  diff_summary:
+    changed_files:
+      - .github/**
+      - .gitignore
+      - .kc/**
+      - LICENSE
+      - README.md
+      - README.ja.md
+      - action.yml
+      - dist/action/index.js
+      - package-lock.json
+      - package.json
+      - reports/validation/**
+      - src/**
+      - templates/**
+      - tests/**
+      - tsconfig.json
+    out_of_scope_files: []
+  plan_diff_trace:
+    - plan_item_id: P1
+      expected_files:
+        - .kc/issue.yaml
+        - .kc/plan.yaml
+        - .kc/approval.yaml
+        - .kc/agent_envelope.yaml
+        - .kc/evidence_bundle.yaml
+        - .kc/ruleset.yaml
+      actual_files:
+        - .kc/issue.yaml
+        - .kc/plan.yaml
+        - .kc/approval.yaml
+        - .kc/agent_envelope.yaml
+        - .kc/evidence_bundle.yaml
+        - .kc/ruleset.yaml
+      status: implemented
+    - plan_item_id: P2
+      expected_files:
+        - reports/validation/VAL-KC-BOOTSTRAP-001.md
+      actual_files:
+        - reports/validation/VAL-KC-BOOTSTRAP-001.md
+      status: implemented
+    - plan_item_id: P3
+      expected_files:
+        - tests/core.test.mjs
+        - tests/fixtures/**
+      actual_files:
+        - tests/core.test.mjs
+        - tests/fixtures/**
+      status: implemented
+  verification_evidence:
+    - evidence_id: VE-KC-1
+      type: unit_test
+      ref: npm test
+      status: passed
+    - evidence_id: VE-KC-2
+      type: npm_audit
+      ref: npm audit --audit-level=moderate
+      status: passed
+    - evidence_id: VE-KC-3
+      type: github_actions
+      ref: github:sawadari/KC/actions/runs/25670022466
+      status: passed
+  validation_evidence:
+    - evidence_id: VA-KC-1
+      type: validation_report
+      ref: reports/validation/VAL-KC-BOOTSTRAP-001.md
+      status: passed
+  findings: []
+  decision:
+    branch: execute
+    primary_reason: none
+    required_actions: []
+
