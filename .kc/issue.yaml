@@ -1,24 +1,18 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/17-27
-  problem_statement: "KC v0.3.0 has several hardening follow-ups from external evaluation: release evidence cleanup, Action bundle regression checks, safe templates, stricter validation policy, PR comment upsert, configurable enforcement, plan-item trace, issue intake CLI, AI draft-only guardrails, hook boundary docs, and evidence-aware promotion."
-  expected_outcome: "KC becomes safer to adopt and harder to misuse while preserving deterministic merge decisions and human approval boundaries."
+  issue_ref: github:sawadari/KC/issues/29
+  problem_statement: "KC main contains guard hardening that is not yet available through npm latest or the v0 GitHub Action tag."
+  expected_outcome: "Publish KC v0.4.0 so npm users and GitHub Action users receive the hardened implementation."
   acceptance_criteria:
-    - "Finalize v0.3.0 release publication evidence records."
-    - "Add CI checks that the bundled GitHub Action artifact is present and current."
-    - "Make example artifacts non-merge-ready by default and block active placeholder values."
-    - "Make validation pending enforcement risk-aware for high and critical issues."
-    - "Update PR comments instead of creating duplicates."
-    - "Support configurable PR body enforcement scope."
-    - "Generate and check plan-item-level trace."
-    - "Add issue-oriented CLI intake commands."
-    - "Tighten AI assist draft-only guardrails."
-    - "Document Codex hook limitations and final gate boundaries."
-    - "Make promotion candidates use Evidence Bundle context."
+    - "Bump package metadata to 0.4.0."
+    - "Verify tests, bundle freshness, non-empty Action bundle, and npm pack dry-run."
+    - "Open a release PR linked to Issue #29."
+    - "After merge, publish @sawadari/kc@0.4.0 with public access."
+    - "After merge, move v0 and create v0.4.0 on the release commit."
   validation_scenario:
-    statement: "Run typecheck, tests, dry pack, bundle freshness check, and KC self-check; verify GitHub CI on the PR."
+    statement: "Run npm.cmd test, verify dist/action/index.js is non-empty, rebuild with no dist diff, and run npm.cmd run pack:dry."
   risk_tier: medium
   non_goals:
-    - "Do not publish a new npm release or move the v0 tag in this implementation PR."
-    - "Do not add cryptographic identity verification."
-    - "Do not replace GitHub required reviewers."
+    - "Do not publish npm from the release preparation branch."
+    - "Do not move the v0 tag before the release PR is merged."
+    - "Do not change guard behavior in this release preparation PR."
   issue_state: ready_for_plan

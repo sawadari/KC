@@ -1,34 +1,28 @@
 plan_approval:
-  approval_id: APR-KC-HARDENING-001
-  target_plan_id: PLAN-KC-HARDENING-001
+  approval_id: APR-KC-RELEASE-0.4.0
+  target_plan_id: PLAN-KC-RELEASE-0.4.0
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T00:03:00+09:00
+  timestamp: 2026-05-12T00:00:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/19#issuecomment-4422055887
-    summary: "Approved implementation of KC hardening issues #17 through #27 from the Codex thread."
+    ref: https://github.com/sawadari/KC/issues/29#issuecomment-4425619920
+    summary: "Approved release preparation for KC v0.4.0 from the Codex thread."
     choice: "1"
   approved_scope:
-    - .github/**
     - .kc/**
-    - README.md
-    - README.ja.md
-    - dist/action/index.js
     - package.json
     - package-lock.json
+    - dist/action/index.js
     - reports/validation/**
-    - src/**
-    - templates/**
-    - tests/**
   conditions:
-    - id: COND-HARDENING-1
-      statement: "Do not publish a new npm package or move v0 in this implementation PR."
+    - id: COND-RELEASE-1
+      statement: "Do not publish npm or move v0 until the release PR is merged."
       evidence_required: deterministic_check
-    - id: COND-HARDENING-2
-      statement: "Run typecheck, tests, dry pack, and KC self-check."
+    - id: COND-RELEASE-2
+      statement: "Run tests, bundle freshness check, and dry pack before opening the PR."
       evidence_required: test_run
-    - id: COND-HARDENING-3
-      statement: "Record validation evidence for the hardening batch."
+    - id: COND-RELEASE-3
+      statement: "Record release validation evidence."
       evidence_required: validation_report
