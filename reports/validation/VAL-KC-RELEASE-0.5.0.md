@@ -16,10 +16,14 @@ Validate KC v0.5.0 release preparation after the GitHub Action runtime fix.
 
 ## Post-Release Checks
 
-- Pending: npm latest should be `0.5.0`
-- Pending: `v0.5.0` and `v0` should point to the release commit
-- Pending: sample PR should pass both `sawadari/KC@v0` and `sawadari/KC@main`
+- `npm.cmd view @sawadari/kc version`: passed, latest is `0.5.0`.
+- `v0.5.0` tag: passed, points to release commit `840ba77`.
+- `v0` tag: passed, moved to release commit `840ba77`.
+- GitHub Release `v0.5.0`: published.
+- Sample repository PR: `sawadari/KC@v0` passed in https://github.com/sawadari/kc-validation-sample/actions/runs/25703317728/job/75468016983.
+- Sample repository comparison run: `sawadari/KC@main` passed in https://github.com/sawadari/kc-validation-sample/actions/runs/25703214371.
+- Residual finding: invoking KC twice in the same workflow run can conflict on the evidence artifact name. Tracked as https://github.com/sawadari/KC/issues/42.
 
 ## Judgment
 
-Local release checks passed. Publishing, tag movement, and sample repository validation remain post-merge tasks.
+KC v0.5.0 is valid for the normal single-action GitHub Action path and npm CLI distribution. The v0.4 GitHub Action runtime failure is fixed by the v0.5.0 `v0` tag movement. Multiple KC invocations in one workflow run remain a follow-up issue because artifact names are not yet unique per invocation.
