@@ -41,6 +41,7 @@ jobs:
         with:
           ai-assist: false
           comment-on-pr: true
+          comment-on-linked-issue: false
 ```
 
 ## CLI
@@ -49,12 +50,13 @@ jobs:
 kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
-kc assist --kind issue-questions --input issue.md
+kc assist --kind issue-packet --input issue.md --offline-template
+kc promote --workspace . --output-dir reports/promotion
 ```
 
 `kc check` exits with code `1` for `HOLD` and `FAIL`. `kc bundle` writes the generated Evidence Bundle but does not fail the process.
 
-AI assist uses `OPENAI_API_KEY` or `--openai-api-key`. It is optional; deterministic checks do not require credentials.
+AI assist uses `OPENAI_API_KEY` or `--openai-api-key`. It is optional; deterministic checks do not require credentials. Use `--offline-template` to emit a parseable draft template without calling the API.
 
 ## Artifacts
 
@@ -115,6 +117,10 @@ The CLI is intended to be consumed as:
 ```bash
 npx @sawadari/kc check --workspace .
 ```
+
+## Optional Codex Hooks
+
+KC ships optional hook templates under `templates/hooks/`. They are conservative local enforcement aids for `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, and `Stop`; they are not activated unless you copy or reference them from your Codex hook configuration. GitHub Actions remains the final gate.
 
 ## License
 

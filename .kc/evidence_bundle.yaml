@@ -1,77 +1,96 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-RULESET-001
-  issue_ref: github:sawadari/KC/issues/2
-  plan_ref: PLAN-KC-RULESET-001
-  approval_ref: APR-KC-RULESET-001
-  pr_ref: github:sawadari/KC/issues/2
+  bundle_id: AEB-KC-REMAINING-001
+  issue_ref: github:sawadari/KC/issues/3-7
+  plan_ref: PLAN-KC-REMAINING-001
+  approval_ref: APR-KC-REMAINING-001
+  pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
       - .kc/**
       - README.md
       - README.ja.md
+      - action.yml
       - dist/action/index.js
+      - package-lock.json
+      - package.json
       - reports/validation/**
-      - src/core/rules.ts
-      - src/cli/index.ts
-      - templates/.kc/ruleset.yaml
+      - src/**
+      - templates/**
       - tests/**
     out_of_scope_files: []
   plan_diff_trace:
-    - plan_item_id: P1
-      expected_files:
-        - src/core/rules.ts
-      actual_files:
-        - src/core/rules.ts
-      status: implemented
-    - plan_item_id: P2
-      expected_files:
-        - src/cli/index.ts
-      actual_files:
-        - src/cli/index.ts
-      status: implemented
     - plan_item_id: P3
       expected_files:
-        - tests/core.test.mjs
-        - tests/fixtures/ruleset-disabled/**
-        - tests/fixtures/ruleset-override/**
-        - tests/fixtures/ruleset-invalid/**
+        - templates/hooks/**
       actual_files:
-        - tests/core.test.mjs
-        - tests/fixtures/ruleset-disabled/**
-        - tests/fixtures/ruleset-override/**
-        - tests/fixtures/ruleset-invalid/**
+        - templates/hooks/**
       status: implemented
     - plan_item_id: P4
       expected_files:
-        - README.md
-        - README.ja.md
-        - templates/.kc/ruleset.yaml
+        - src/core/assist.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
       actual_files:
-        - README.md
-        - README.ja.md
-        - templates/.kc/ruleset.yaml
+        - src/core/assist.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
       status: implemented
+    - plan_item_id: P5
+      expected_files:
+        - src/core/promote.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
+      actual_files:
+        - src/core/promote.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
+      status: implemented
+    - plan_item_id: P6
+      expected_files:
+        - src/action/index.ts
+        - src/core/pr-body.ts
+        - action.yml
+        - tests/core.test.mjs
+      actual_files:
+        - src/action/index.ts
+        - src/core/pr-body.ts
+        - action.yml
+        - tests/core.test.mjs
+      status: implemented
+    - plan_item_id: P7
+      expected_files:
+        - package.json
+        - package-lock.json
+      actual_files:
+        - package.json
+        - package-lock.json
+      status: blocked_by_npm_auth_if_publish_fails
   verification_evidence:
-    - evidence_id: VE-RULESET-1
+    - evidence_id: VE-REMAINING-1
       type: unit_test
       ref: npm test
       status: passed
-    - evidence_id: VE-RULESET-2
+    - evidence_id: VE-REMAINING-2
       type: npm_audit
       ref: npm audit --audit-level=moderate
       status: passed
-    - evidence_id: VE-RULESET-3
+    - evidence_id: VE-REMAINING-3
       type: package_dry_run
       ref: npm run pack:dry
       status: passed
+    - evidence_id: VE-REMAINING-4
+      type: npm_publish
+      ref: npm whoami
+      status: blocked_auth_required
   validation_evidence:
-    - evidence_id: VA-RULESET-1
+    - evidence_id: VA-REMAINING-1
       type: validation_report
-      ref: reports/validation/VAL-KC-RULESET-001.md
+      ref: reports/validation/VAL-KC-REMAINING-001.md
       status: passed
   findings: []
   decision:
     branch: execute
     primary_reason: none
-    required_actions: []
+    required_actions:
+      - "Issue #7 remains blocked until npm authentication is configured."

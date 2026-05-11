@@ -39,6 +39,7 @@ jobs:
         with:
           ai-assist: false
           comment-on-pr: true
+          comment-on-linked-issue: false
 ```
 
 ## CLI
@@ -47,12 +48,13 @@ jobs:
 kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
-kc assist --kind issue-questions --input issue.md
+kc assist --kind issue-packet --input issue.md --offline-template
+kc promote --workspace . --output-dir reports/promotion
 ```
 
 `kc check` は `HOLD` または `FAIL` のとき終了コード `1` を返します。`kc bundle` は Evidence Bundle を生成しますが、判定でプロセスを失敗させません。
 
-AI assist は `OPENAI_API_KEY` または `--openai-api-key` がある場合だけ動きます。deterministic check には認証情報は不要です。
+AI assist は `OPENAI_API_KEY` または `--openai-api-key` がある場合だけ動きます。deterministic check には認証情報は不要です。`--offline-template` を使うと、API を呼ばずに parse 可能な draft template を出力できます。
 
 ## 読み取る artifact
 
@@ -86,3 +88,7 @@ ruleset:
 ## ライセンス
 
 Apache-2.0。
+
+## 任意の Codex Hooks
+
+KC は `templates/hooks/` に任意の hook template を同梱しています。`UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `Stop` 向けの保守的なローカル補助であり、Codex hook 設定へ明示的にコピーまたは参照しない限り有効化されません。最終 gate は GitHub Actions です。

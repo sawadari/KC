@@ -10,7 +10,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
   const workspace = path.resolve(options.workspace);
   const changedFiles = uniquePaths(options.changedFiles && options.changedFiles.length > 0 ? options.changedFiles : detectChangedFiles(workspace));
   const artifacts = loadArtifacts(workspace, options.rulesetPath);
-  const findings = evaluateRules(artifacts, changedFiles);
+  const findings = [...evaluateRules(artifacts, changedFiles), ...(options.additionalFindings ?? [])];
   const decision = decide(findings);
   const reason = primaryReason(findings);
   const evidenceBundle = buildEvidenceBundle({
@@ -93,4 +93,3 @@ function readPath(source: unknown, pathParts: string[]): unknown {
   }
   return cursor;
 }
-

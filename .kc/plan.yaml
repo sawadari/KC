@@ -1,21 +1,23 @@
 agent_plan:
-  plan_id: PLAN-KC-RULESET-001
-  issue_ref: github:sawadari/KC/issues/2
+  plan_id: PLAN-KC-REMAINING-001
+  issue_ref: github:sawadari/KC/issues/3-7
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Make `.kc/ruleset.yaml` executable by applying configured rule enablement and severity overrides during deterministic KC evaluation."
+  interpreted_requirement: "Implement the remaining original-spec backlog issues that are locally actionable and record npm publication status."
   scope:
     allowed_files:
       - .kc/**
       - README.md
       - README.ja.md
+      - action.yml
       - dist/action/index.js
+      - package-lock.json
+      - package.json
       - reports/validation/**
-      - src/core/**
-      - src/cli/**
-      - templates/.kc/ruleset.yaml
+      - src/**
+      - templates/**
       - tests/**
     prohibited_files:
       - .env
@@ -26,38 +28,48 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not add remote ruleset fetching."
-    - "Do not add organization-level inheritance."
-    - "Do not change the default KC-AE rule definitions."
+    - "Do not automate npm credential setup."
+    - "Do not claim local hooks are complete enforcement."
+    - "Do not auto-promote canonical files without human review."
   plan_items:
-    - id: P1
-      action: "Resolve ruleset configuration into enabled rule IDs, severity overrides, and configuration findings."
-      expected_files:
-        - src/core/rules.ts
-    - id: P2
-      action: "Make CLI checks load `.kc/ruleset.yaml` by default."
-      expected_files:
-        - src/cli/index.ts
     - id: P3
-      action: "Add fixtures and tests for disabled rules, severity overrides, and invalid rule IDs."
+      action: "Add optional Codex hook templates and docs."
       expected_files:
-        - tests/core.test.mjs
-        - tests/fixtures/ruleset-disabled/**
-        - tests/fixtures/ruleset-override/**
-        - tests/fixtures/ruleset-invalid/**
+        - templates/hooks/**
     - id: P4
-      action: "Document executable ruleset behavior and update templates."
+      action: "Add structured assist modes and guardrail tests."
       expected_files:
+        - src/core/assist.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
+    - id: P5
+      action: "Add promotion candidate generation."
+      expected_files:
+        - src/core/promote.ts
+        - src/cli/index.ts
+        - tests/core.test.mjs
+    - id: P6
+      action: "Add GitHub PR changed-file fetching and PR body validation."
+      expected_files:
+        - src/action/index.ts
+        - src/core/pr-body.ts
+        - action.yml
+        - tests/core.test.mjs
+    - id: P7
+      action: "Prepare and attempt npm publication for version 0.2.0."
+      expected_files:
+        - package.json
+        - package-lock.json
         - README.md
         - README.ja.md
-        - templates/.kc/ruleset.yaml
   verification_plan:
     - "Run npm test."
     - "Run npm audit --audit-level=moderate."
     - "Run npm run pack:dry."
+    - "Run npm whoami and npm publish --access public when authenticated."
   validation_evidence_plan:
-    - "Run ruleset-disabled, ruleset-override, and ruleset-invalid fixtures."
-    - "Run KC self-check against the changed-file set and confirm PASS."
+    - "Run tests covering hook block behavior, structured assist templates, promotion candidates, and PR body validation."
+    - "Run KC self-check against the changed-file set."
   questions_for_human: []
   status: approved
 

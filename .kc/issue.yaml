@@ -1,19 +1,21 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/2
-  problem_statement: "`.kc/ruleset.yaml` is loaded but does not yet control which KC-AE rules run or how severities are interpreted."
-  expected_outcome: "KC treats the ruleset as executable deterministic policy for rule enablement and severity overrides."
+  issue_ref: github:sawadari/KC/issues/3-7
+  problem_statement: "Remaining original-spec backlog items are open: Codex hook templates, structured AI assist artifacts, DecisionLedger/canonical promotion candidates, deeper GitHub PR integration, and npm publication."
+  expected_outcome: "KC advances all remaining MVP backlog items that can be implemented locally, and records npm publication as completed or blocked by authentication."
   acceptance_criteria:
-    - "`ruleset.rules` limits evaluation to the listed KC-AE rules."
-    - "`ruleset.severity_overrides` can override finding severity by rule ID."
-    - "Unknown rule IDs in ruleset configuration produce deterministic findings."
-    - "Tests cover disabled rule behavior, severity override behavior, and invalid rule IDs."
-    - "KC self-check still passes."
+    - "Ship optional Codex hook templates for UserPromptSubmit, PreToolUse, PermissionRequest, and Stop."
+    - "Add structured AI assist artifact modes with parseable draft templates and prompt guardrails."
+    - "Add promotion candidate generation for DecisionLedger, requirements, validation scenarios, AGENTS, and test oracle notes."
+    - "Deepen GitHub Action PR integration by fetching PR changed files and validating required PR body sections."
+    - "Attempt npm publication and record the result."
+    - "Run KC self-check and repository verification."
   validation_scenario:
-    statement: "A fixture disables or downgrades a normally blocking rule and KC produces the expected non-blocking decision without changing rule code."
+    statement: "A sample hook blocks an out-of-scope edit, structured assist emits parseable draft YAML, promotion candidates include source refs, PR body validation detects missing KC sections, and repository checks pass."
   risk_tier: medium
   non_goals:
-    - "Remote policy fetching."
-    - "Organization-wide ruleset inheritance."
-    - "Changing the default KC-AE rule meanings."
+    - "Enterprise ALM integration."
+    - "Automatic human approval."
+    - "Claiming Codex Hooks provide complete control."
+    - "Automating npm credential setup."
   issue_state: ready_for_plan
 

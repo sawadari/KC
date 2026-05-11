@@ -1,27 +1,29 @@
 plan_approval:
-  approval_id: APR-KC-RULESET-001
-  target_plan_id: PLAN-KC-RULESET-001
+  approval_id: APR-KC-REMAINING-001
+  target_plan_id: PLAN-KC-REMAINING-001
   decision: approved_with_conditions
   approver_role: owner
-  timestamp: "2026-05-11T22:05:00+09:00"
+  timestamp: "2026-05-11T22:25:00+09:00"
   approved_scope:
     - .kc/**
     - README.md
     - README.ja.md
+    - action.yml
     - dist/action/index.js
+    - package-lock.json
+    - package.json
     - reports/validation/**
-    - src/core/**
-    - src/cli/**
-    - templates/.kc/ruleset.yaml
+    - src/**
+    - templates/**
     - tests/**
   conditions:
-    - id: COND-RULESET-1
-      statement: "All changed files must stay within the approved Issue #2 scope."
+    - id: COND-REMAINING-1
+      statement: "All changed files must stay within the approved remaining-backlog scope."
       evidence_required: diff_scope_check
-    - id: COND-RULESET-2
-      statement: "Automated tests must cover rule enablement, severity overrides, and invalid rule IDs."
+    - id: COND-REMAINING-2
+      statement: "Automated tests must cover hook, assist, promotion, and PR integration behavior."
       evidence_required: unit_test
-    - id: COND-RULESET-3
-      statement: "Validation evidence must show the expected PASS/WARN/FAIL fixture outcomes."
+    - id: COND-REMAINING-3
+      statement: "Validation evidence must record KC self-check and npm publication status."
       evidence_required: validation_report
 

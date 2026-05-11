@@ -1,0 +1,7 @@
+{
+  "UserPromptSubmit": "node templates/hooks/kc-codex-hook.mjs UserPromptSubmit",
+  "PreToolUse": "node templates/hooks/kc-codex-hook.mjs PreToolUse",
+  "PermissionRequest": "node templates/hooks/kc-codex-hook.mjs PermissionRequest",
+  "Stop": "node templates/hooks/kc-codex-hook.mjs Stop"
+}
+

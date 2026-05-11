@@ -14,6 +14,7 @@ export interface CheckOptions {
   workspace: string;
   rulesetPath?: string;
   changedFiles?: string[];
+  additionalFindings?: Finding[];
   prRef?: string;
 }
 
@@ -36,4 +37,3 @@ export interface LoadedArtifacts {
   ruleset?: Record<string, unknown>;
   loadFindings: Finding[];
 }
-
