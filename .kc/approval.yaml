@@ -1,30 +1,27 @@
 plan_approval:
-  approval_id: APR-KC-ACTION-RUNTIME-001
-  target_plan_id: PLAN-KC-ACTION-RUNTIME-001
+  approval_id: APR-KC-RELEASE-0.5.0
+  target_plan_id: PLAN-KC-RELEASE-0.5.0
   decision: approved
   approver_role: owner
   timestamp: 2026-05-12T00:00:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/38#issuecomment-4425889747
-    summary: "Approved scoped fix for GitHub Action ESM/CJS runtime failure found during validation."
+    ref: https://github.com/sawadari/KC/issues/40#issuecomment-4425911995
+    summary: "Approved KC v0.5.0 release preparation and validation."
     choice: "1"
   approved_scope:
-    - .github/**
     - .kc/**
-    - dist/action/**
     - package.json
     - package-lock.json
     - reports/validation/**
-    - tests/**
   conditions:
-    - id: COND-ACTION-RUNTIME-1
-      statement: "Run local release checks and sample repository GitHub Action validation."
+    - id: COND-RELEASE-0.5.0-1
+      statement: "Run local release checks and KC self-check."
       evidence_required: test_run
-    - id: COND-ACTION-RUNTIME-2
-      statement: "Do not publish npm or move v0 in this implementation PR."
-      evidence_required: deterministic_check
-    - id: COND-ACTION-RUNTIME-3
-      statement: "Record action runtime validation evidence."
+    - id: COND-RELEASE-0.5.0-2
+      statement: "Record release validation evidence."
       evidence_required: validation_report
+    - id: COND-RELEASE-0.5.0-3
+      statement: "Do not publish or move tags until after the release PR is merged."
+      evidence_required: deterministic_check

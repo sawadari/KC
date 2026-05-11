@@ -1,20 +1,17 @@
 agent_plan:
-  plan_id: PLAN-KC-ACTION-RUNTIME-001
-  issue_ref: github:sawadari/KC/issues/38
+  plan_id: PLAN-KC-RELEASE-0.5.0
+  issue_ref: github:sawadari/KC/issues/40
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Fix the KC GitHub Action runtime failure caused by CommonJS bundle execution under a root ESM package."
+  interpreted_requirement: "Prepare and validate the KC v0.5.0 release with the Action runtime fix."
   scope:
     allowed_files:
-      - .github/**
       - .kc/**
-      - dist/action/**
       - package.json
       - package-lock.json
       - reports/validation/**
-      - tests/**
     prohibited_files:
       - .env
       - .npmrc
@@ -25,51 +22,46 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not change rule engine behavior."
-    - "Do not publish to npm before a release PR."
-    - "Do not move GitHub Action tags before a release PR."
+    - "Do not change source behavior in the release PR."
+    - "Do not commit local editor configuration."
   plan_items:
     - id: P1
-      action: "Mark dist/action/index.js as CommonJS for GitHub Actions runtime."
+      action: "Bump package metadata for v0.5.0."
       expected_files:
-        - dist/action/**
         - package.json
+        - package-lock.json
       actual_files:
-        - dist/action/package.json
         - package.json
+        - package-lock.json
       status: implemented
     - id: P2
-      action: "Add CI and test coverage for Action runtime package metadata."
+      action: "Record release validation evidence."
       expected_files:
-        - .github/**
-        - tests/**
+        - reports/validation/**
       actual_files:
-        - .github/workflows/ci.yml
-        - tests/core.test.mjs
+        - reports/validation/VAL-KC-RELEASE-0.5.0.md
       status: implemented
     - id: P3
-      action: "Record validation and KC self-governance evidence."
+      action: "Update KC self-governance artifacts for the release PR."
       expected_files:
         - .kc/**
-        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-ACTION-RUNTIME-001.md
       status: implemented
   verification_plan:
     - "Run npm.cmd run check."
     - "Run npm.cmd test."
     - "Run npm.cmd run pack:dry."
-    - "Run npm.cmd run build and verify dist/action/index.js and dist/action/package.json have no diff afterward."
+    - "Run npm.cmd run build and verify dist/action artifacts have no diff."
     - "Run KC self-check."
   validation_evidence_plan:
-    - "Record reports/validation/VAL-KC-ACTION-RUNTIME-001.md."
-    - "Use GitHub Actions CI on the KC PR."
-    - "Use sample repository PR checks for sawadari/KC@main."
+    - "Record reports/validation/VAL-KC-RELEASE-0.5.0.md."
+    - "Use GitHub Actions CI on the release PR."
+    - "After release, verify sample repository PR checks for KC@v0 and KC@main."
   questions_for_human:
-    - "Do you approve PLAN-KC-ACTION-RUNTIME-001 for implementation?"
+    - "Do you approve PLAN-KC-RELEASE-0.5.0?"
   status: approved

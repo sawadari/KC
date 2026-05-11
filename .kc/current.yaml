@@ -1,13 +1,13 @@
 kc_current:
   lifecycle_state: executing
   active_work: true
-  work_id: KC-ACTION-RUNTIME-001
-  issue_ref: github:sawadari/KC/issues/38
-  plan_ref: PLAN-KC-ACTION-RUNTIME-001
-  approval_ref: APR-KC-ACTION-RUNTIME-001
+  work_id: KC-RELEASE-0.5.0
+  issue_ref: github:sawadari/KC/issues/40
+  plan_ref: PLAN-KC-RELEASE-0.5.0
+  approval_ref: APR-KC-RELEASE-0.5.0
   pr_ref: pending
   release_ref: ""
   npm_ref: ""
   final_status: ""
   final_evidence_bundle_ref: ""
-  next_action: validate_action_runtime
+  next_action: release_v0_5_0
