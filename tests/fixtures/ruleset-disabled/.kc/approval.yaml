@@ -2,6 +2,11 @@ plan_approval:
   approval_id: APR-127
   target_plan_id: PLAN-127
   decision: approved
+  human_approval:
+    actor: sawadari
+    source: github_issue_comment
+    ref: https://github.com/org/repo/issues/127#issuecomment-approval
+    summary: "Approved fixture plan."
   approved_scope:
     - src/report/upload.ts
 

@@ -103660,7 +103660,8 @@ var knownRuleIds = [
   "KC-AE-009",
   "KC-AE-010",
   "KC-AE-011",
-  "KC-AE-012"
+  "KC-AE-012",
+  "KC-AE-013"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
 function evaluateRules(artifacts, changedFiles) {
@@ -103712,6 +103713,15 @@ function evaluateRules(artifacts, changedFiles) {
       add(error2("KC-AE-004", "plan_status_not_approved", `Plan status must be approved or approved_with_conditions, got ${planStatus}.`));
     }
   }
+  if (isRuleEnabled(policy, "KC-AE-013") && approval && approvedValues.has(stringValue(approval.decision))) {
+    const humanApproval = recordValue(approval.human_approval);
+    const actor = stringValue(humanApproval?.actor);
+    const source = stringValue(humanApproval?.source);
+    const ref = stringValue(humanApproval?.ref);
+    if (!actor || !source || !ref) {
+      add(error2("KC-AE-013", "missing_human_approval_evidence", "Approved plans require human_approval.actor, human_approval.source, and human_approval.ref."));
+    }
+  }
   const approvedScope = stringArray(approval?.approved_scope);
   const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
@@ -103748,7 +103758,7 @@ function evaluateRules(artifacts, changedFiles) {
       if (!evidenceRequired) {
         continue;
       }
-      if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation)) {
+      if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation, approval)) {
         const id = stringValue(condition.id) || "condition";
         add(error2("KC-AE-009", "missing_condition_evidence", `${id} requires evidence type ${evidenceRequired}.`));
       }
@@ -103838,9 +103848,13 @@ function requireNonEmptyArray(add, source, key, ruleId, reasonCode) {
     add(error2(ruleId, reasonCode, `${key} must contain at least one item.`));
   }
 }
-function conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation) {
+function conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation, approval) {
   if (evidenceRequired === "diff_scope_check") {
     return !findings.some((finding) => finding.ruleId === "KC-AE-005" || finding.ruleId === "KC-AE-006");
+  }
+  if (evidenceRequired === "human_approval_evidence") {
+    const humanApproval = recordValue(approval?.human_approval);
+    return Boolean(stringValue(humanApproval?.actor) && stringValue(humanApproval?.source) && stringValue(humanApproval?.ref));
   }
   if (evidenceRequired === "unit_test" || evidenceRequired === "github_actions") {
     return verification.some((item) => hasValue(item.ref) || hasValue(item.status));
@@ -103885,6 +103899,12 @@ function arrayRecords(value) {
     return [];
   }
   return value.filter((item) => typeof item === "object" && item !== null && !Array.isArray(item));
+}
+function recordValue(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return void 0;
 }
 function readPath(source, pathParts) {
   let cursor = source;

@@ -1,19 +1,19 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/11
-  problem_statement: "The README explains KC in internal terms but does not quickly show new users the problem, value, and first successful path."
-  expected_outcome: "README.md and README.ja.md make KC understandable and worth trying for new users while staying accurate to current behavior."
+  issue_ref: github:sawadari/KC/issues/13
+  problem_statement: "KC accepts agent-written approval YAML as sufficient, so KC's own development flow has no real human judgment point."
+  expected_outcome: "Approved plans require explicit human approval evidence, and KC documentation clarifies what humans judge versus what KC checks."
   acceptance_criteria:
-    - "Lead with the AI-assisted PR review problem and KC value."
-    - "Provide a short try-now path using the published npm package."
-    - "Explain deterministic decisions and AI-assist boundaries in plain language."
-    - "Show GitHub Action setup and expected outputs."
-    - "Keep artifact and rule details available after the quick-start flow."
-    - "Update both English and Japanese README files."
+    - "Add a deterministic rule that blocks approved plans without human approval evidence."
+    - "Update approval templates to include human approval source, actor, and reference."
+    - "Document human judgment points in README.md and README.ja.md."
+    - "Provide a Codex-friendly numbered approval brief flow so humans can approve, approve with conditions, request changes, or reject without manually composing YAML."
+    - "Add tests for missing and present human approval evidence."
+    - "Update KC self-governance artifacts without self-approving the work."
   validation_scenario:
-    statement: "A first-time reader can identify what KC solves, how to run the first command, how to add the Action, and what PASS/WARN/HOLD/FAIL mean."
-  risk_tier: low
+    statement: "Codex presents a numbered approval brief, the human replies with a decision number, the decision is mirrored to durable approval evidence, and kc check blocks approved plans without that evidence."
+  risk_tier: medium
   non_goals:
-    - "Runtime behavior changes"
-    - "Package naming or release process changes"
-    - "Unsupported marketing claims"
+    - "Cryptographic identity verification"
+    - "Replacing GitHub required reviewers"
+    - "Treating AI output as approval"
   issue_state: ready_for_plan

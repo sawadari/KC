@@ -2,6 +2,11 @@ plan_approval:
   approval_id: APR-123
   target_plan_id: PLAN-123
   decision: approved_with_conditions
+  human_approval:
+    actor: sawadari
+    source: github_issue_comment
+    ref: https://github.com/org/repo/issues/123#issuecomment-approval
+    summary: "Approved fixture plan."
   approved_scope:
     - src/report/upload.ts
     - tests/uploadRetry.test.ts
@@ -12,4 +17,3 @@ plan_approval:
       evidence_required: unit_test
     - id: COND-3
       evidence_required: validation_report
-

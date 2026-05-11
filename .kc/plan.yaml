@@ -1,51 +1,117 @@
 agent_plan:
-  plan_id: PLAN-KC-README-001
-  issue_ref: github:sawadari/KC/issues/11
+  plan_id: PLAN-KC-HUMAN-APPROVAL-001
+  issue_ref: github:sawadari/KC/issues/13
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Rewrite the README content so the project is clearer and more appealing to first-time users."
+  interpreted_requirement: "Add an explicit human approval evidence requirement so KC cannot treat agent-written approval YAML as sufficient."
   scope:
     allowed_files:
       - .kc/**
       - README.md
       - README.ja.md
       - reports/validation/**
+      - src/cli/index.ts
+      - src/core/approval-brief.ts
+      - src/core/rules.ts
+      - dist/action/index.js
+      - templates/.kc/approval.example.yaml
+      - templates/.kc/ruleset.yaml
+      - tests/**
     prohibited_files:
       - .env
       - .npmrc
+      - node_modules/**
+      - lib/**
       - package.json
       - package-lock.json
-      - src/**
-      - lib/**
-      - dist/**
-      - node_modules/**
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not change CLI, Action, package, or runtime behavior."
-    - "Do not publish a new npm package."
-    - "Do not overstate AI approval or enforcement guarantees."
+    - "Do not add cryptographic or OAuth identity verification in this issue."
+    - "Do not change package version or publish a release in this issue."
+    - "Do not use AI text as approval evidence."
   plan_items:
     - id: P1
-      action: "Rewrite README.md around problem, quick start, Action usage, decisions, workflow, and details."
+      action: "Add KC-AE-013 to require human approval evidence on approved plans."
+      expected_files:
+        - src/core/rules.ts
+        - dist/action/index.js
+        - tests/**
+      actual_files:
+        - src/core/rules.ts
+        - dist/action/index.js
+        - tests/core.test.mjs
+        - tests/fixtures/fail/.kc/approval.yaml
+        - tests/fixtures/hold/.kc/approval.yaml
+        - tests/fixtures/pass/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/ruleset.yaml
+        - tests/fixtures/ruleset-override/.kc/approval.yaml
+        - tests/fixtures/ruleset-override/.kc/ruleset.yaml
+        - tests/fixtures/warn/.kc/approval.yaml
+      status: implemented
+    - id: P2
+      action: "Update approval examples and fixtures with the new human approval evidence shape."
+      expected_files:
+        - templates/.kc/approval.example.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/**
+      actual_files:
+        - templates/.kc/approval.example.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/core.test.mjs
+        - tests/fixtures/fail/.kc/approval.yaml
+        - tests/fixtures/hold/.kc/approval.yaml
+        - tests/fixtures/pass/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/approval.yaml
+        - tests/fixtures/ruleset-override/.kc/approval.yaml
+        - tests/fixtures/warn/.kc/approval.yaml
+      status: implemented
+    - id: P3
+      action: "Add a Codex-friendly numbered approval brief flow and documentation."
+      expected_files:
+        - src/cli/index.ts
+        - src/core/approval-brief.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - src/core/approval-brief.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - id: P4
+      action: "Document human judgment points and KC's deterministic boundary."
       expected_files:
         - README.md
-    - id: P2
-      action: "Rewrite README.ja.md with the same user-facing structure in Japanese."
-      expected_files:
         - README.ja.md
-    - id: P3
-      action: "Update KC self-governance artifacts and validation report for Issue #11."
+      actual_files:
+        - README.md
+        - README.ja.md
+      status: implemented
+    - id: P5
+      action: "Update self-governance artifacts and validation report."
       expected_files:
         - .kc/**
         - reports/validation/**
+      actual_files:
+        - .kc/approval.yaml
+        - .kc/evidence_bundle.yaml
+        - .kc/issue.yaml
+        - .kc/plan.yaml
+        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-HUMAN-APPROVAL-001.md
+      status: implemented
   verification_plan:
     - "Run npm.cmd run check."
     - "Run npm.cmd test."
-    - "Run KC self-check for the changed file set."
+    - "Run KC self-check after human approval evidence is recorded."
   validation_evidence_plan:
-    - "Review the README content against the Issue #11 acceptance criteria."
-  questions_for_human: []
+    - "Record a validation report showing numbered human approval evidence can be recorded and missing evidence is blocked."
+  questions_for_human:
+    - "Do you approve PLAN-KC-HUMAN-APPROVAL-001 for implementation?"
   status: approved

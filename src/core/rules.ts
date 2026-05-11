@@ -16,7 +16,8 @@ const knownRuleIds = [
   "KC-AE-009",
   "KC-AE-010",
   "KC-AE-011",
-  "KC-AE-012"
+  "KC-AE-012",
+  "KC-AE-013"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 
@@ -76,6 +77,16 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     }
   }
 
+  if (isRuleEnabled(policy, "KC-AE-013") && approval && approvedValues.has(stringValue(approval.decision))) {
+    const humanApproval = recordValue(approval.human_approval);
+    const actor = stringValue(humanApproval?.actor);
+    const source = stringValue(humanApproval?.source);
+    const ref = stringValue(humanApproval?.ref);
+    if (!actor || !source || !ref) {
+      add(error("KC-AE-013", "missing_human_approval_evidence", "Approved plans require human_approval.actor, human_approval.source, and human_approval.ref."));
+    }
+  }
+
   const approvedScope = stringArray(approval?.approved_scope);
   const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
@@ -117,7 +128,7 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
         continue;
       }
 
-      if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation)) {
+      if (!conditionEvidenceSatisfied(evidenceRequired, findings, verification, validation, approval)) {
         const id = stringValue(condition.id) || "condition";
         add(error("KC-AE-009", "missing_condition_evidence", `${id} requires evidence type ${evidenceRequired}.`));
       }
@@ -227,9 +238,13 @@ function requireNonEmptyArray(add: (finding: Finding) => void, source: Record<st
   }
 }
 
-function conditionEvidenceSatisfied(evidenceRequired: string, findings: Finding[], verification: Record<string, unknown>[], validation: Record<string, unknown>[]): boolean {
+function conditionEvidenceSatisfied(evidenceRequired: string, findings: Finding[], verification: Record<string, unknown>[], validation: Record<string, unknown>[], approval: Record<string, unknown> | undefined): boolean {
   if (evidenceRequired === "diff_scope_check") {
     return !findings.some((finding) => finding.ruleId === "KC-AE-005" || finding.ruleId === "KC-AE-006");
+  }
+  if (evidenceRequired === "human_approval_evidence") {
+    const humanApproval = recordValue(approval?.human_approval);
+    return Boolean(stringValue(humanApproval?.actor) && stringValue(humanApproval?.source) && stringValue(humanApproval?.ref));
   }
   if (evidenceRequired === "unit_test" || evidenceRequired === "github_actions") {
     return verification.some((item) => hasValue(item.ref) || hasValue(item.status));
@@ -280,6 +295,13 @@ function arrayRecords(value: unknown): Record<string, unknown>[] {
     return [];
   }
   return value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item));
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
 }
 
 function readPath(source: unknown, pathParts: string[]): unknown {
