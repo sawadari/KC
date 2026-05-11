@@ -1,128 +1,37 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-HARDENING-001
-  issue_ref: github:sawadari/KC/issues/17-27
-  plan_ref: PLAN-KC-HARDENING-001
-  approval_ref: APR-KC-HARDENING-001
+  bundle_id: AEB-KC-RELEASE-0.4.0
+  issue_ref: github:sawadari/KC/issues/29
+  plan_ref: PLAN-KC-RELEASE-0.4.0
+  approval_ref: APR-KC-RELEASE-0.4.0
   pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
-      - .github/workflows/ci.yml
       - .kc/approval.yaml
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - .kc/ruleset.yaml
-      - README.ja.md
-      - README.md
-      - dist/action/index.js
       - package-lock.json
       - package.json
-      - reports/validation/VAL-KC-HARDENING-001.md
-      - reports/validation/VAL-KC-RELEASE-0.3.0.md
-      - src/action/index.ts
-      - src/cli/index.ts
-      - src/core/artifacts.ts
-      - src/core/assist.ts
-      - src/core/check.ts
-      - src/core/issue.ts
-      - src/core/pr-body.ts
-      - src/core/promote.ts
-      - src/core/rules.ts
-      - src/core/types.ts
-      - templates/.kc/approval.example.yaml
-      - templates/.kc/config.example.yaml
-      - templates/.kc/evidence_bundle.example.yaml
-      - templates/.kc/plan.example.yaml
-      - templates/.kc/ruleset.yaml
-      - templates/hooks/README.md
-      - tests/core.test.mjs
-      - tests/fixtures/**
+      - reports/validation/VAL-KC-RELEASE-0.4.0.md
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - .github/**
-        - reports/validation/**
-        - dist/action/index.js
         - package.json
         - package-lock.json
       actual_files:
-        - .github/workflows/ci.yml
-        - reports/validation/VAL-KC-HARDENING-001.md
-        - reports/validation/VAL-KC-RELEASE-0.3.0.md
-        - dist/action/index.js
         - package.json
         - package-lock.json
       status: implemented
     - plan_item_id: P2
       expected_files:
-        - src/core/rules.ts
-        - templates/.kc/**
-        - tests/**
+        - dist/action/index.js
+        - reports/validation/**
       actual_files:
-        - src/core/rules.ts
-        - templates/.kc/approval.example.yaml
-        - templates/.kc/config.example.yaml
-        - templates/.kc/evidence_bundle.example.yaml
-        - templates/.kc/plan.example.yaml
-        - templates/.kc/ruleset.yaml
-        - tests/core.test.mjs
-        - tests/fixtures/**
+        - reports/validation/VAL-KC-RELEASE-0.4.0.md
       status: implemented
     - plan_item_id: P3
-      expected_files:
-        - src/action/index.ts
-        - src/core/artifacts.ts
-        - src/core/pr-body.ts
-        - src/core/types.ts
-        - templates/.kc/config.example.yaml
-        - tests/**
-      actual_files:
-        - src/action/index.ts
-        - src/core/artifacts.ts
-        - src/core/pr-body.ts
-        - src/core/types.ts
-        - templates/.kc/config.example.yaml
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P4
-      expected_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - tests/**
-      actual_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P5
-      expected_files:
-        - src/cli/index.ts
-        - src/core/issue.ts
-        - src/core/promote.ts
-        - tests/**
-      actual_files:
-        - src/cli/index.ts
-        - src/core/issue.ts
-        - src/core/promote.ts
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P6
-      expected_files:
-        - src/core/assist.ts
-        - README.md
-        - README.ja.md
-        - templates/hooks/README.md
-        - tests/**
-      actual_files:
-        - src/core/assist.ts
-        - README.md
-        - README.ja.md
-        - templates/hooks/README.md
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P7
       expected_files:
         - .kc/**
       actual_files:
@@ -130,48 +39,47 @@ approval_evidence_bundle:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
       status: implemented
   verification_evidence:
-    - evidence_id: VE-HARDENING-1
-      type: typecheck
-      ref: npm.cmd run check
-      status: passed
-    - evidence_id: VE-HARDENING-2
+    - evidence_id: VE-RELEASE-0.4.0-1
       type: unit_test
       ref: npm.cmd test
       status: passed
-    - evidence_id: VE-HARDENING-3
-      type: test_run
-      ref: "npm.cmd run check; npm.cmd test"
+    - evidence_id: VE-RELEASE-0.4.0-2
+      type: action_bundle_build
+      ref: "npm.cmd run build; git diff --exit-code -- dist/action/index.js"
       status: passed
-    - evidence_id: VE-HARDENING-4
-      type: deterministic_check
-      ref: "No npm publish or v0 tag movement was performed. supports-color was added as an explicit dependency to make the Action bundle deterministic across Windows and Linux."
-      status: passed
-    - evidence_id: VE-HARDENING-5
+    - evidence_id: VE-RELEASE-0.4.0-3
       type: package_dry_run
       ref: npm.cmd run pack:dry
       status: passed
-    - evidence_id: VE-HARDENING-6
-      type: action_bundle_build
-      ref: npm.cmd run build
+    - evidence_id: VE-RELEASE-0.4.0-4
+      type: deterministic_check
+      ref: "npm publish and v0 tag movement were not performed on this branch."
       status: passed
-    - evidence_id: VE-HARDENING-7
+    - evidence_id: VE-RELEASE-0.4.0-5
+      type: test_run
+      ref: "npm.cmd test; npm.cmd run build; npm.cmd run pack:dry"
+      status: passed
+    - evidence_id: VE-RELEASE-0.4.0-6
       type: kc_self_check
-      ref: node lib/cli/index.js check --workspace . --changed-files <tmp>
+      ref: "node lib/cli/index.js check --workspace . --changed-file ..."
       status: passed
+  validation_status: passed
   validation_evidence:
-    - evidence_id: VA-HARDENING-1
-      type: human_approval
-      ref: https://github.com/sawadari/KC/issues/19#issuecomment-4422055887
-      status: passed
-    - evidence_id: VA-HARDENING-2
+    - evidence_id: VA-RELEASE-0.4.0-1
       type: validation_report
-      ref: reports/validation/VAL-KC-HARDENING-001.md
+      ref: reports/validation/VAL-KC-RELEASE-0.4.0.md
+      status: passed
+    - evidence_id: VA-RELEASE-0.4.0-2
+      type: human_approval
+      ref: https://github.com/sawadari/KC/issues/29#issuecomment-4425619920
       status: passed
   findings: []
   decision:
     branch: execute
-    primary_reason: release_candidate_validated
-    required_actions: []
+    primary_reason: release_metadata_validated
+    required_actions:
+      - "Merge the release PR."
+      - "Publish @sawadari/kc@0.4.0 --access public."
+      - "Create v0.4.0 and move v0 to the release commit."
