@@ -1,13 +1,14 @@
 issue_packet:
   issue_ref: github:sawadari/KC/issues/3-7
   problem_statement: "Remaining original-spec backlog items are open: Codex hook templates, structured AI assist artifacts, DecisionLedger/canonical promotion candidates, deeper GitHub PR integration, and npm publication."
-  expected_outcome: "KC advances all remaining MVP backlog items that can be implemented locally, and records npm publication as completed or blocked by authentication."
+  expected_outcome: "KC advances all remaining MVP backlog items that can be implemented locally, publishes the npm package, and verifies the public npx entrypoint."
   acceptance_criteria:
     - "Ship optional Codex hook templates for UserPromptSubmit, PreToolUse, PermissionRequest, and Stop."
     - "Add structured AI assist artifact modes with parseable draft templates and prompt guardrails."
     - "Add promotion candidate generation for DecisionLedger, requirements, validation scenarios, AGENTS, and test oracle notes."
     - "Deepen GitHub Action PR integration by fetching PR changed files and validating required PR body sections."
     - "Attempt npm publication and record the result."
+    - "Verify npx @sawadari/kc --help from a clean temporary workspace."
     - "Run KC self-check and repository verification."
   validation_scenario:
     statement: "A sample hook blocks an out-of-scope edit, structured assist emits parseable draft YAML, promotion candidates include source refs, PR body validation detects missing KC sections, and repository checks pass."

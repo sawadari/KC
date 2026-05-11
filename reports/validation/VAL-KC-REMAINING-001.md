@@ -17,7 +17,8 @@ A sample hook blocks an out-of-scope edit, structured assist emits parseable dra
 | Promotion command writes DecisionLedger and canonical candidates with source refs | candidates written | passed |
 | PR body validation finds missing KC sections | HOLD finding | passed |
 | KC self-check for changed files | PASS | PASS |
-| npm publication | published or auth-blocked | auth-blocked |
+| npm publication | published or auth-blocked | `@sawadari/kc@0.2.0` published |
+| Public CLI entrypoint | `npx @sawadari/kc --help` exits 0 | 0.2.0 exposed CLI but root help was missing; 0.2.1 local fix passed |
 
 ## Verification
 
@@ -26,8 +27,9 @@ A sample hook blocks an out-of-scope edit, structured assist emits parseable dra
 | `npm test` | passed |
 | `npm audit --audit-level=moderate` | passed |
 | `npm run pack:dry` | passed |
-| `npm whoami` / `npm publish --access public` | blocked: npm login required |
+| `npm.cmd publish --access public` | passed for `@sawadari/kc@0.2.0` |
+| `node lib/cli/index.js --help` | passed after 0.2.1 fix |
 
 ## Validation Result
 
-Status: passed for Issues #3, #4, #5, and #6. Issue #7 is blocked by local npm authentication; `npm whoami` returned `ENEEDAUTH`, so `npm publish --access public` was not run.
+Status: passed for Issues #3, #4, #5, and #6. Issue #7 publication succeeded for `@sawadari/kc@0.2.0`; final closure requires publishing the 0.2.1 root help fix and re-running `npx @sawadari/kc --help` from a clean workspace.
