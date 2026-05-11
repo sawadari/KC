@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
+import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-brief.js";
 import { runAssist, systemPrompt } from "../lib/core/assist.js";
 import { runCheck } from "../lib/core/check.js";
 import { validatePullRequestBody } from "../lib/core/pr-body.js";
@@ -100,6 +101,19 @@ describe("KC rule engine", () => {
 
     assert.equal(result.decision, "FAIL");
     assert.equal(result.primaryReason, "unknown_rule_id");
+  });
+
+  it("holds approved plans that lack human approval evidence", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: false });
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.equal(result.primaryReason, "missing_human_approval_evidence");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-013"));
   });
 });
 
@@ -200,6 +214,38 @@ describe("KC assist and promotion", () => {
   });
 });
 
+describe("KC approval brief", () => {
+  it("renders numbered approval choices", () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const brief = renderApprovalBrief({ workspace });
+
+    assert.match(brief, /KC Approval Brief/);
+    assert.match(brief, /1\. Approve/);
+    assert.match(brief, /2\. Approve with conditions/);
+    assert.match(brief, /3\. Request changes/);
+    assert.match(brief, /4\. Reject/);
+  });
+
+  it("records a numbered approval choice with durable human evidence", () => {
+    const workspace = createPromotionWorkspace();
+    const result = recordApprovalChoice({
+      workspace,
+      choice: "1",
+      actor: "sawadari",
+      source: "github_issue_comment",
+      ref: "https://github.com/org/repo/issues/123#issuecomment-approval",
+      summary: "Approved by numbered brief."
+    });
+    const approval = YAML.parse(fs.readFileSync(path.join(workspace, ".kc", "approval.yaml"), "utf8"));
+
+    assert.equal(result.decision, "approved");
+    assert.equal(approval.plan_approval.decision, "approved");
+    assert.equal(approval.plan_approval.human_approval.actor, "sawadari");
+    assert.equal(approval.plan_approval.human_approval.choice, "1");
+    assert.equal(approval.plan_approval.human_approval.ref, "https://github.com/org/repo/issues/123#issuecomment-approval");
+  });
+});
+
 describe("GitHub PR integration helpers", () => {
   it("detects missing required PR body sections", () => {
     const findings = validatePullRequestBody("## Linked Issue\n#1\n\n## Summary\nChange");
@@ -290,5 +336,61 @@ function createPromotionWorkspace() {
     "      ref: reports/validation/VAL-123.md",
     "      status: passed"
   ].join("\n"), "utf8");
+  return workspace;
+}
+
+function createHumanApprovalWorkspace({ withHumanApproval }) {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-human-approval-"));
+  fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
+  fs.writeFileSync(path.join(workspace, ".kc", "issue.yaml"), YAML.stringify({
+    issue_packet: {
+      issue_ref: "github:org/repo/issues/789",
+      problem_statement: "Need upload retry behavior.",
+      expected_outcome: "Transient upload failures are retried.",
+      acceptance_criteria: ["Retry transient upload failures."],
+      validation_scenario: { statement: "Transient failure recovers." },
+      risk_tier: "medium",
+      non_goals: ["Authentication changes"]
+    }
+  }), "utf8");
+  fs.writeFileSync(path.join(workspace, ".kc", "plan.yaml"), YAML.stringify({
+    agent_plan: {
+      plan_id: "PLAN-789",
+      issue_ref: "github:org/repo/issues/789",
+      interpreted_requirement: "Add upload retry behavior.",
+      scope: {
+        allowed_files: ["src/report/upload.ts"],
+        prohibited_files: ["src/auth/**"]
+      },
+      status: "approved"
+    }
+  }), "utf8");
+  const approval = {
+    approval_id: "APR-789",
+    target_plan_id: "PLAN-789",
+    decision: "approved",
+    approved_scope: ["src/report/upload.ts"],
+    conditions: []
+  };
+  if (withHumanApproval) {
+    approval.human_approval = {
+      actor: "sawadari",
+      source: "github_issue_comment",
+      ref: "https://github.com/org/repo/issues/789#issuecomment-approval",
+      summary: "Approved fixture plan."
+    };
+  }
+  fs.writeFileSync(path.join(workspace, ".kc", "approval.yaml"), YAML.stringify({ plan_approval: approval }), "utf8");
+  fs.writeFileSync(path.join(workspace, ".kc", "evidence_bundle.yaml"), YAML.stringify({
+    approval_evidence_bundle: {
+      bundle_id: "AEB-789",
+      issue_ref: "github:org/repo/issues/789",
+      plan_ref: "PLAN-789",
+      approval_ref: "APR-789",
+      diff_summary: { changed_files: ["src/report/upload.ts"], out_of_scope_files: [] },
+      verification_evidence: [{ type: "unit_test", ref: "npm test", status: "passed" }],
+      validation_evidence: [{ type: "validation_report", ref: "reports/validation/VAL-789.md", status: "passed" }]
+    }
+  }), "utf8");
   return workspace;
 }

@@ -1,8 +1,8 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-README-001
-  issue_ref: github:sawadari/KC/issues/11
-  plan_ref: PLAN-KC-README-001
-  approval_ref: APR-KC-README-001
+  bundle_id: AEB-KC-HUMAN-APPROVAL-001
+  issue_ref: github:sawadari/KC/issues/13
+  plan_ref: PLAN-KC-HUMAN-APPROVAL-001
+  approval_ref: APR-KC-HUMAN-APPROVAL-001
   pr_ref: pending
   agent_ref: codex
   diff_summary:
@@ -11,24 +11,84 @@ approval_evidence_bundle:
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
+      - .kc/ruleset.yaml
       - README.md
       - README.ja.md
-      - reports/validation/VAL-KC-README-001.md
+      - dist/action/index.js
+      - src/cli/index.ts
+      - src/core/approval-brief.ts
+      - src/core/rules.ts
+      - templates/.kc/approval.example.yaml
+      - templates/.kc/ruleset.yaml
+      - tests/core.test.mjs
+      - tests/fixtures/fail/.kc/approval.yaml
+      - tests/fixtures/hold/.kc/approval.yaml
+      - tests/fixtures/pass/.kc/approval.yaml
+      - tests/fixtures/ruleset-disabled/.kc/approval.yaml
+      - tests/fixtures/ruleset-disabled/.kc/ruleset.yaml
+      - tests/fixtures/ruleset-override/.kc/approval.yaml
+      - tests/fixtures/ruleset-override/.kc/ruleset.yaml
+      - tests/fixtures/warn/.kc/approval.yaml
+      - reports/validation/VAL-KC-HUMAN-APPROVAL-001.md
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - README.md
+        - src/core/rules.ts
+        - dist/action/index.js
+        - tests/**
       actual_files:
-        - README.md
+        - src/core/rules.ts
+        - dist/action/index.js
+        - tests/core.test.mjs
+        - tests/fixtures/fail/.kc/approval.yaml
+        - tests/fixtures/hold/.kc/approval.yaml
+        - tests/fixtures/pass/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/ruleset.yaml
+        - tests/fixtures/ruleset-override/.kc/approval.yaml
+        - tests/fixtures/ruleset-override/.kc/ruleset.yaml
+        - tests/fixtures/warn/.kc/approval.yaml
       status: implemented
     - plan_item_id: P2
       expected_files:
-        - README.ja.md
+        - templates/.kc/approval.example.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/**
       actual_files:
-        - README.ja.md
+        - templates/.kc/approval.example.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/core.test.mjs
+        - tests/fixtures/fail/.kc/approval.yaml
+        - tests/fixtures/hold/.kc/approval.yaml
+        - tests/fixtures/pass/.kc/approval.yaml
+        - tests/fixtures/ruleset-disabled/.kc/approval.yaml
+        - tests/fixtures/ruleset-override/.kc/approval.yaml
+        - tests/fixtures/warn/.kc/approval.yaml
       status: implemented
     - plan_item_id: P3
+      expected_files:
+        - src/cli/index.ts
+        - src/core/approval-brief.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - src/core/approval-brief.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - plan_item_id: P4
+      expected_files:
+        - README.md
+        - README.ja.md
+      actual_files:
+        - README.md
+        - README.ja.md
+      status: implemented
+    - plan_item_id: P5
       expected_files:
         - .kc/**
         - reports/validation/**
@@ -37,25 +97,42 @@ approval_evidence_bundle:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-README-001.md
+        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-HUMAN-APPROVAL-001.md
       status: implemented
   verification_evidence:
-    - evidence_id: VE-README-1
+    - evidence_id: VE-HUMAN-APPROVAL-1
       type: typecheck
       ref: npm.cmd run check
       status: passed
-    - evidence_id: VE-README-2
+    - evidence_id: VE-HUMAN-APPROVAL-2
       type: unit_test
       ref: npm.cmd test
       status: passed
-    - evidence_id: VE-README-3
+    - evidence_id: VE-HUMAN-APPROVAL-3
+      type: cli_check
+      ref: node lib/cli/index.js approval-brief --workspace .
+      status: passed
+    - evidence_id: VE-HUMAN-APPROVAL-4
       type: kc_self_check
       ref: node lib/cli/index.js check --workspace . --changed-files <tmp>
       status: passed
   validation_evidence:
-    - evidence_id: VA-README-1
+    - evidence_id: VA-HUMAN-APPROVAL-1
+      type: human_approval
+      ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421612950
+      status: passed
+    - evidence_id: VA-HUMAN-APPROVAL-2
+      type: scope_amendment
+      ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421669229
+      status: passed
+    - evidence_id: VA-HUMAN-APPROVAL-3
+      type: scope_amendment
+      ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421704563
+      status: passed
+    - evidence_id: VA-HUMAN-APPROVAL-4
       type: validation_report
-      ref: reports/validation/VAL-KC-README-001.md
+      ref: reports/validation/VAL-KC-HUMAN-APPROVAL-001.md
       status: passed
   findings: []
   decision:

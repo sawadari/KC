@@ -20,6 +20,17 @@ KC は PR ごとに、次の問いを見える化します。
 
 KC は人間の代わりに承認しません。承認前に足りない文脈を見つけます。
 
+## 人間が判断する場所
+
+KC は、人間の判断と機械的な検査を分けます。
+
+- 人間は、その Issue をやるべきか、acceptance criteria が十分かを判断する
+- 人間は、実装前の Plan を承認、条件付き承認、差し戻し、却下する
+- 人間は、validation evidence がプロダクトや運用リスクに対して十分かを判断する
+- KC は、その判断が記録されているか、差分が scope 内か、必要 evidence があるかを検査する
+
+KC は「誰が入力したか」を暗号学的に証明するものではありません。その代わり、GitHub Issue comment URL のような durable な human approval evidence を要求し、reviewer が判断履歴を追えるようにします。
+
 ## まず試す
 
 公開済み CLI を確認します。
@@ -53,6 +64,35 @@ npx -y @sawadari/kc check --workspace .
 ```
 
 `kc check` は `HOLD` または `FAIL` のとき終了コード `1` を返すため、CI の gate として使えます。
+
+## 番号式の承認フロー
+
+Codex 上で進める場合、KC は人間が番号で返せる approval brief を出せます。
+
+```bash
+npx -y @sawadari/kc approval-brief --workspace .
+```
+
+brief では次の選択肢を提示します。
+
+1. Approve
+2. Approve with conditions
+3. Request changes
+4. Reject
+
+人間が番号で返答したら、その判断を GitHub Issue comment などの durable な場所にミラーします。その comment URL を `.kc/approval.yaml` に記録します。
+
+```bash
+npx -y @sawadari/kc approval-record \
+  --workspace . \
+  --choice 1 \
+  --actor sawadari \
+  --source github_issue_comment \
+  --ref https://github.com/org/repo/issues/123#issuecomment-approval \
+  --summary "Approved the plan after reviewing scope and risks."
+```
+
+`approved` または `approved_with_conditions` なのに `human_approval.actor`, `human_approval.source`, `human_approval.ref` が無い場合、`kc check` は merge-ready にしません。
 
 ## GitHub Action に入れる
 
@@ -122,6 +162,8 @@ kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
 kc assist --kind issue-packet --input issue.md --offline-template
+kc approval-brief --workspace .
+kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
 kc promote --workspace . --output-dir reports/promotion
 ```
 
@@ -131,6 +173,8 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc check`: deterministic rules を実行し、`HOLD` / `FAIL` で失敗する
 - `kc bundle`: プロセスを失敗させずに Evidence Bundle を生成する
 - `kc assist`: candidate artifact を下書きする。AI 出力は最終判定を変えない
+- `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
+- `kc approval-record`: 番号式の人間判断を `.kc/approval.yaml` に記録する
 - `kc promote`: DecisionLedger などの promotion candidate を人間 review 用に生成する
 
 AI assist は任意です。`OPENAI_API_KEY` または `--openai-api-key` があるときだけ使います。deterministic check に API 認証情報は不要です。
@@ -141,7 +185,7 @@ KC は対象 repo から次のファイルを読みます。
 
 - `.kc/issue.yaml`: problem、expected outcome、acceptance criteria、risk tier、non-goals
 - `.kc/plan.yaml`: 解釈した要求、実装 plan、allowed files、prohibited files
-- `.kc/approval.yaml`: 人間の承認と承認条件
+- `.kc/approval.yaml`: 人間の承認 evidence と承認条件
 - `.kc/agent_envelope.yaml`: agent の識別子と実行境界
 - `.kc/evidence_bundle.yaml`: verification、validation、PR、audit evidence
 - `.kc/ruleset.yaml`: 実行する rules と severity override
@@ -161,7 +205,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness を扱います。
+現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence を扱います。
 
 ## 任意の Codex Hooks
 

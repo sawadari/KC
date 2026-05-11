@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brief.js";
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
 import { runPromote } from "../core/promote.js";
@@ -62,6 +63,28 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (args.command === "approval-brief") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    console.log(renderApprovalBrief({ workspace }));
+    return;
+  }
+
+  if (args.command === "approval-record") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const result = recordApprovalChoice({
+      workspace,
+      choice: requiredValue(args, "choice"),
+      actor: requiredValue(args, "actor"),
+      source: requiredValue(args, "source"),
+      ref: requiredValue(args, "ref"),
+      summary: value(args, "summary")
+    });
+    console.log(`KC approval recorded: ${result.decision}`);
+    console.log(`choice: ${result.choice.number} (${result.choice.label})`);
+    console.log(`approval: ${result.approvalPath}`);
+    return;
+  }
+
   if (args.command === "promote") {
     const workspace = value(args, "workspace") || value(args, "w") || ".";
     const result = runPromote({
@@ -117,6 +140,14 @@ function push(values: Map<string, string[]>, key: string, item: string): void {
 
 function value(args: ParsedArgs, key: string): string | undefined {
   return args.values.get(key)?.at(-1);
+}
+
+function requiredValue(args: ParsedArgs, key: string): string {
+  const result = value(args, key);
+  if (!result) {
+    throw new Error(`--${key} is required.`);
+  }
+  return result;
 }
 
 async function readChangedFiles(args: ParsedArgs): Promise<string[] | undefined> {
@@ -197,6 +228,8 @@ Usage:
   kc check [--workspace .] [--changed-files files.txt] [--changed-file path] [--json]
   kc bundle [--workspace .] [--changed-files files.txt]
   kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
+  kc approval-brief [--workspace .]
+  kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]
   kc promote [--workspace .] [--output-dir reports/promotion]
 
 AI assist uses OPENAI_API_KEY or --openai-api-key. Deterministic checks do not require API credentials.`);

@@ -14,6 +14,7 @@ ruleset:
     - KC-AE-010
     - KC-AE-011
     - KC-AE-012
+    - KC-AE-013
   severity_overrides:
     KC-AE-007: warning
 

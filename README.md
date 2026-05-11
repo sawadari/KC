@@ -20,6 +20,17 @@ Use KC when you want every PR to answer these questions:
 
 KC does not approve work for you. It makes missing context visible before merge.
 
+## Where Humans Decide
+
+KC separates human judgment from deterministic checking:
+
+- Humans decide whether the Issue is worth doing and whether the acceptance criteria are sufficient.
+- Humans approve, conditionally approve, request changes, or reject the Plan before implementation.
+- Humans judge whether validation evidence is convincing for the real product or operational risk.
+- KC checks that those decisions were recorded, that the diff stayed in scope, and that required evidence exists.
+
+KC cannot cryptographically prove who typed an approval. It requires durable human approval evidence, such as a GitHub Issue comment URL, so reviewers can inspect the decision trail.
+
 ## Try It Now
 
 Check the published CLI:
@@ -53,6 +64,35 @@ npx -y @sawadari/kc check --workspace .
 ```
 
 `kc check` exits non-zero for `HOLD` and `FAIL`, which makes it suitable for CI gates.
+
+## Numbered Approval Flow
+
+For Codex-driven work, KC can print a brief that the human can answer with a number:
+
+```bash
+npx -y @sawadari/kc approval-brief --workspace .
+```
+
+The brief asks for one of these choices:
+
+1. Approve
+2. Approve with conditions
+3. Request changes
+4. Reject
+
+After the human replies, mirror that decision to a durable source, usually a GitHub Issue comment. Then record the comment URL:
+
+```bash
+npx -y @sawadari/kc approval-record \
+  --workspace . \
+  --choice 1 \
+  --actor sawadari \
+  --source github_issue_comment \
+  --ref https://github.com/org/repo/issues/123#issuecomment-approval \
+  --summary "Approved the plan after reviewing scope and risks."
+```
+
+`kc check` treats `approved` or `approved_with_conditions` without `human_approval.actor`, `human_approval.source`, and `human_approval.ref` as non-merge-ready.
 
 ## Add The GitHub Action
 
@@ -122,6 +162,8 @@ kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
 kc assist --kind issue-packet --input issue.md --offline-template
+kc approval-brief --workspace .
+kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
 kc promote --workspace . --output-dir reports/promotion
 ```
 
@@ -131,6 +173,8 @@ Command summary:
 - `kc check`: run deterministic rules and fail on `HOLD` or `FAIL`.
 - `kc bundle`: generate the Evidence Bundle without failing the process.
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
+- `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
+- `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.
 - `kc promote`: generate candidate DecisionLedger and related promotion files for human review.
 
 AI assist is optional. It uses `OPENAI_API_KEY` or `--openai-api-key` only when requested. Deterministic checks work without API credentials.
@@ -141,7 +185,7 @@ KC reads these files from the target repository:
 
 - `.kc/issue.yaml`: problem, expected outcome, acceptance criteria, risk tier, non-goals
 - `.kc/plan.yaml`: interpreted requirement, implementation plan, allowed files, prohibited files
-- `.kc/approval.yaml`: human approval and approval conditions
+- `.kc/approval.yaml`: human approval evidence and approval conditions
 - `.kc/agent_envelope.yaml`: agent identity and execution boundaries
 - `.kc/evidence_bundle.yaml`: verification, validation, PR, and audit evidence
 - `.kc/ruleset.yaml`: enabled rules and severity overrides
@@ -161,7 +205,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, and merge readiness.
+The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, and explicit human approval evidence.
 
 ## Optional Codex Hooks
 

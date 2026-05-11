@@ -1,18 +1,48 @@
 plan_approval:
-  approval_id: APR-KC-README-001
-  target_plan_id: PLAN-KC-README-001
-  decision: approved_with_conditions
+  approval_id: APR-KC-HUMAN-APPROVAL-001
+  target_plan_id: PLAN-KC-HUMAN-APPROVAL-001
+  decision: approved
   approver_role: owner
-  timestamp: "2026-05-11T23:01:00+09:00"
+  timestamp: 2026-05-11T14:31:50.259Z
+  human_approval:
+    actor: sawadari
+    source: github_issue_comment
+    ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421612950
+    summary: Approved option 1 from the Codex numbered approval brief for
+      PLAN-KC-HUMAN-APPROVAL-001.
+    choice: "1"
   approved_scope:
     - .kc/**
     - README.md
     - README.ja.md
     - reports/validation/**
+    - src/cli/index.ts
+    - src/core/approval-brief.ts
+    - src/core/rules.ts
+    - dist/action/index.js
+    - templates/.kc/approval.example.yaml
+    - templates/.kc/ruleset.yaml
+    - tests/**
+  scope_amendments:
+    - id: AMEND-HUMAN-APPROVAL-1
+      actor: sawadari
+      source: github_issue_comment
+      ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421669229
+      summary: "Approved adding dist/action/index.js because the GitHub Action bundle must match source rule changes."
+      approved_scope:
+        - dist/action/index.js
+    - id: AMEND-HUMAN-APPROVAL-2
+      actor: sawadari
+      source: github_issue_comment
+      ref: https://github.com/sawadari/KC/issues/13#issuecomment-4421704563
+      summary: "Approved adding templates/.kc/ruleset.yaml so the default ruleset distributed by kc init includes KC-AE-013."
+      approved_scope:
+        - templates/.kc/ruleset.yaml
   conditions:
-    - id: COND-README-1
-      statement: "Documentation must stay accurate to current KC behavior."
-      evidence_required: validation_report
-    - id: COND-README-2
-      statement: "Changes must remain documentation-only."
-      evidence_required: diff_scope_check
+    - id: COND-HUMAN-APPROVAL-1
+      statement: Implementation must not proceed as merge-ready until explicit human
+        approval evidence is recorded.
+      evidence_required: human_approval_evidence
+    - id: COND-HUMAN-APPROVAL-2
+      statement: The new deterministic rule must fail when approval evidence is missing.
+      evidence_required: unit_test
