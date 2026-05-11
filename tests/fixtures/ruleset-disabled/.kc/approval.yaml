@@ -5,7 +5,7 @@ plan_approval:
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/org/repo/issues/127#issuecomment-approval
+    ref: https://github.com/sawadari/KC-fixture/issues/127#issuecomment-123456
     summary: "Approved fixture plan."
   approved_scope:
     - src/report/upload.ts

@@ -101646,9 +101646,39 @@ function validateStructuredOutput(kind, output) {
   return import_yaml.default.stringify(parsed);
 }
 function ensureDraftOnly(value) {
-  const serialized = JSON.stringify(value).toLowerCase();
-  if (serialized.includes("approved_with_conditions") || serialized.includes('validation_status":"passed') || serialized.includes('merge_ready":true')) {
-    throw new Error("AI assist output attempted to claim approval, validation passed, or merge readiness.");
+  const violations = [];
+  collectAuthorityViolations(value, [], violations);
+  if (violations.length > 0) {
+    throw new Error(`AI assist output attempted to claim approval, validation passed, merge readiness, or execution authority: ${violations.join(", ")}.`);
+  }
+}
+function collectAuthorityViolations(value, path7, violations) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectAuthorityViolations(item, [...path7, String(index)], violations));
+    return;
+  }
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  for (const [key, item] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase();
+    const normalizedValue = typeof item === "string" ? item.trim().toLowerCase() : item;
+    if (normalizedKey === "decision" && (normalizedValue === "approved" || normalizedValue === "approved_with_conditions")) {
+      violations.push([...path7, key].join("."));
+    }
+    if (normalizedKey === "status" && (normalizedValue === "approved" || normalizedValue === "approved_with_conditions")) {
+      violations.push([...path7, key].join("."));
+    }
+    if (normalizedKey === "validation_status" && normalizedValue === "passed") {
+      violations.push([...path7, key].join("."));
+    }
+    if (normalizedKey === "merge_ready" && (item === true || normalizedValue === "true")) {
+      violations.push([...path7, key].join("."));
+    }
+    if (normalizedKey === "branch" && normalizedValue === "execute") {
+      violations.push([...path7, key].join("."));
+    }
+    collectAuthorityViolations(item, [...path7, key], violations);
   }
 }
 function stripCodeFence(output) {
@@ -101684,6 +101714,98 @@ function extractOutputText(json) {
     }
   }
   return chunks.join("\n").trim() || JSON.stringify(json, null, 2);
+}
+
+// lib/core/artifacts.js
+var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_path = __toESM(require("node:path"), 1);
+var import_yaml2 = __toESM(require_dist5(), 1);
+var artifactFiles = {
+  issue: ".kc/issue.yaml",
+  plan: ".kc/plan.yaml",
+  approval: ".kc/approval.yaml",
+  envelope: ".kc/agent_envelope.yaml",
+  evidence: ".kc/evidence_bundle.yaml",
+  config: ".kc/config.yaml"
+};
+function readYamlFile(filePath) {
+  if (!import_node_fs2.default.existsSync(filePath)) {
+    return void 0;
+  }
+  const content = import_node_fs2.default.readFileSync(filePath, "utf8");
+  const parsed = import_yaml2.default.parse(content);
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+  return parsed;
+}
+function loadArtifacts(workspace, rulesetPath) {
+  const loadFindings = [];
+  const loaded = { loadFindings };
+  for (const [key, relativePath] of Object.entries(artifactFiles)) {
+    const absolutePath = import_node_path.default.join(workspace, relativePath);
+    try {
+      const data = readYamlFile(absolutePath);
+      if (data) {
+        const unwrapped = unwrapRoot(key, data);
+        if (key === "issue") {
+          loaded.issue = unwrapped;
+        } else if (key === "plan") {
+          loaded.plan = unwrapped;
+        } else if (key === "approval") {
+          loaded.approval = unwrapped;
+        } else if (key === "envelope") {
+          loaded.envelope = unwrapped;
+        } else if (key === "evidence") {
+          loaded.evidence = unwrapped;
+        } else if (key === "config") {
+          loaded.config = unwrapped;
+        }
+      }
+    } catch (error3) {
+      loadFindings.push({
+        ruleId: "KC-AE-000",
+        severity: "error",
+        reasonCode: "invalid_yaml",
+        path: relativePath,
+        message: `${relativePath} could not be parsed: ${String(error3.message ?? error3)}`
+      });
+    }
+  }
+  if (rulesetPath) {
+    const absoluteRuleset = import_node_path.default.isAbsolute(rulesetPath) ? rulesetPath : import_node_path.default.join(workspace, rulesetPath);
+    try {
+      loaded.ruleset = readYamlFile(absoluteRuleset);
+    } catch (error3) {
+      loadFindings.push({
+        ruleId: "KC-AE-000",
+        severity: "warning",
+        reasonCode: "invalid_ruleset",
+        path: rulesetPath,
+        message: `${rulesetPath} could not be parsed: ${String(error3.message ?? error3)}`
+      });
+    }
+  }
+  return loaded;
+}
+function unwrapRoot(kind, data) {
+  const roots = {
+    issue: "issue_packet",
+    plan: "agent_plan",
+    approval: "plan_approval",
+    envelope: "agent_execution_envelope",
+    evidence: "approval_evidence_bundle"
+  };
+  const root = roots[kind];
+  const maybeWrapped = root ? data[root] : void 0;
+  if (maybeWrapped && typeof maybeWrapped === "object" && !Array.isArray(maybeWrapped)) {
+    return maybeWrapped;
+  }
+  return data;
+}
+function writeYamlFile(filePath, value) {
+  import_node_fs2.default.mkdirSync(import_node_path.default.dirname(filePath), { recursive: true });
+  import_node_fs2.default.writeFileSync(filePath, import_yaml2.default.stringify(value), "utf8");
 }
 
 // lib/core/check.js
@@ -102769,11 +102891,11 @@ var qmarksTestNoExtDot = ([$0]) => {
   return (f) => f.length === len && f !== "." && f !== "..";
 };
 var defaultPlatform = typeof process === "object" && process ? typeof process.env === "object" && process.env && process.env.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
-var path4 = {
+var path5 = {
   win32: { sep: "\\" },
   posix: { sep: "/" }
 };
-var sep2 = defaultPlatform === "win32" ? path4.win32.sep : path4.posix.sep;
+var sep2 = defaultPlatform === "win32" ? path5.win32.sep : path5.posix.sep;
 minimatch.sep = sep2;
 var GLOBSTAR = /* @__PURE__ */ Symbol("globstar **");
 minimatch.GLOBSTAR = GLOBSTAR;
@@ -103555,95 +103677,6 @@ function detectChangedFiles(workspace) {
   return [];
 }
 
-// lib/core/artifacts.js
-var import_node_fs2 = __toESM(require("node:fs"), 1);
-var import_node_path = __toESM(require("node:path"), 1);
-var import_yaml2 = __toESM(require_dist5(), 1);
-var artifactFiles = {
-  issue: ".kc/issue.yaml",
-  plan: ".kc/plan.yaml",
-  approval: ".kc/approval.yaml",
-  envelope: ".kc/agent_envelope.yaml",
-  evidence: ".kc/evidence_bundle.yaml"
-};
-function readYamlFile(filePath) {
-  if (!import_node_fs2.default.existsSync(filePath)) {
-    return void 0;
-  }
-  const content = import_node_fs2.default.readFileSync(filePath, "utf8");
-  const parsed = import_yaml2.default.parse(content);
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return {};
-  }
-  return parsed;
-}
-function loadArtifacts(workspace, rulesetPath) {
-  const loadFindings = [];
-  const loaded = { loadFindings };
-  for (const [key, relativePath] of Object.entries(artifactFiles)) {
-    const absolutePath = import_node_path.default.join(workspace, relativePath);
-    try {
-      const data = readYamlFile(absolutePath);
-      if (data) {
-        const unwrapped = unwrapRoot(key, data);
-        if (key === "issue") {
-          loaded.issue = unwrapped;
-        } else if (key === "plan") {
-          loaded.plan = unwrapped;
-        } else if (key === "approval") {
-          loaded.approval = unwrapped;
-        } else if (key === "envelope") {
-          loaded.envelope = unwrapped;
-        } else if (key === "evidence") {
-          loaded.evidence = unwrapped;
-        }
-      }
-    } catch (error3) {
-      loadFindings.push({
-        ruleId: "KC-AE-000",
-        severity: "error",
-        reasonCode: "invalid_yaml",
-        path: relativePath,
-        message: `${relativePath} could not be parsed: ${String(error3.message ?? error3)}`
-      });
-    }
-  }
-  if (rulesetPath) {
-    const absoluteRuleset = import_node_path.default.isAbsolute(rulesetPath) ? rulesetPath : import_node_path.default.join(workspace, rulesetPath);
-    try {
-      loaded.ruleset = readYamlFile(absoluteRuleset);
-    } catch (error3) {
-      loadFindings.push({
-        ruleId: "KC-AE-000",
-        severity: "warning",
-        reasonCode: "invalid_ruleset",
-        path: rulesetPath,
-        message: `${rulesetPath} could not be parsed: ${String(error3.message ?? error3)}`
-      });
-    }
-  }
-  return loaded;
-}
-function unwrapRoot(kind, data) {
-  const roots = {
-    issue: "issue_packet",
-    plan: "agent_plan",
-    approval: "plan_approval",
-    envelope: "agent_execution_envelope",
-    evidence: "approval_evidence_bundle"
-  };
-  const root = roots[kind];
-  const maybeWrapped = root ? data[root] : void 0;
-  if (maybeWrapped && typeof maybeWrapped === "object" && !Array.isArray(maybeWrapped)) {
-    return maybeWrapped;
-  }
-  return data;
-}
-function writeYamlFile(filePath, value) {
-  import_node_fs2.default.mkdirSync(import_node_path.default.dirname(filePath), { recursive: true });
-  import_node_fs2.default.writeFileSync(filePath, import_yaml2.default.stringify(value), "utf8");
-}
-
 // lib/core/rules.js
 var approvedValues = /* @__PURE__ */ new Set(["approved", "approved_with_conditions"]);
 var riskyTiers = /* @__PURE__ */ new Set(["medium", "high", "critical"]);
@@ -103661,9 +103694,13 @@ var knownRuleIds = [
   "KC-AE-010",
   "KC-AE-011",
   "KC-AE-012",
-  "KC-AE-013"
+  "KC-AE-013",
+  "KC-AE-014",
+  "KC-AE-015",
+  "KC-AE-016"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
+var placeholderValues = /* @__PURE__ */ new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
 function evaluateRules(artifacts, changedFiles) {
   const policy = resolveRulePolicy(artifacts.ruleset);
   const findings = [...artifacts.loadFindings, ...policy.findings];
@@ -103696,6 +103733,12 @@ function evaluateRules(artifacts, changedFiles) {
       add(warn("KC-AE-002", "validation_pending", "Validation scenario is pending and must be resolved before treating validation as passed."));
     }
   }
+  if (isRuleEnabled(policy, "KC-AE-015") && issue2 && highRiskTiers.has(riskTier)) {
+    const validationStatus2 = stringValue(issue2.validation_status).toLowerCase();
+    if (validationStatus2 === "pending" && !hasExceptionBasis(issue2, approval, evidence)) {
+      add(error2("KC-AE-015", "high_risk_validation_pending", "High/critical risk issues cannot keep validation_status=pending without exception_basis."));
+    }
+  }
   if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
     add(error2("KC-AE-003", "missing_approved_plan", ".kc/plan.yaml is required for an agent-governed PR."));
   }
@@ -103722,6 +103765,11 @@ function evaluateRules(artifacts, changedFiles) {
       add(error2("KC-AE-013", "missing_human_approval_evidence", "Approved plans require human_approval.actor, human_approval.source, and human_approval.ref."));
     }
   }
+  if (isRuleEnabled(policy, "KC-AE-014")) {
+    for (const finding of placeholderFindings({ issue: issue2, plan, approval, envelope, evidence })) {
+      add(finding);
+    }
+  }
   const approvedScope = stringArray(approval?.approved_scope);
   const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
@@ -103739,6 +103787,23 @@ function evaluateRules(artifacts, changedFiles) {
     for (const file of changedFiles) {
       if (matchesAny(file, prohibitedFiles)) {
         add(error2("KC-AE-006", "prohibited_file_changed", `${file} matches a prohibited path.`, file));
+      }
+    }
+  }
+  if (isRuleEnabled(policy, "KC-AE-016") && changedFiles.length > 0 && plan) {
+    const planItems = arrayRecords(plan.plan_items);
+    const expectedByItem = planItems.map((item) => ({
+      id: stringValue(item.id) || "plan_item",
+      expectedFiles: stringArray(item.expected_files)
+    })).filter((item) => item.expectedFiles.length > 0);
+    if (expectedByItem.length > 0) {
+      for (const file of changedFiles) {
+        if (!expectedByItem.some((item) => matchesAny(file, item.expectedFiles))) {
+          add(error2("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+        }
+      }
+      if (!hasValue(evidence?.plan_diff_trace)) {
+        add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
       }
     }
   }
@@ -103864,6 +103929,41 @@ function conditionEvidenceSatisfied(evidenceRequired, findings, verification, va
   }
   return verification.some((item) => stringValue(item.type) === evidenceRequired) || validation.some((item) => stringValue(item.type) === evidenceRequired);
 }
+function hasExceptionBasis(issue2, approval, evidence) {
+  return hasValue(issue2.exception_basis) || hasValue(issue2.validation_exception_basis) || hasValue(approval?.exception_basis) || hasValue(evidence?.exception_basis) || hasValue(evidence?.validation_exception_basis);
+}
+function placeholderFindings(artifacts) {
+  const findings = [];
+  for (const [artifactName, artifact] of Object.entries(artifacts)) {
+    collectPlaceholderFindings(artifact, artifactName, findings);
+  }
+  return findings;
+}
+function collectPlaceholderFindings(value, path7, findings) {
+  if (typeof value === "string") {
+    if (isPlaceholder(value)) {
+      findings.push(error2("KC-AE-014", "placeholder_detected", `Active KC artifact contains placeholder value: ${value}.`, path7));
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectPlaceholderFindings(item, `${path7}[${index}]`, findings));
+    return;
+  }
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  for (const [key, item] of Object.entries(value)) {
+    collectPlaceholderFindings(item, `${path7}.${key}`, findings);
+  }
+}
+function isPlaceholder(value) {
+  const trimmed = value.trim();
+  if (placeholderValues.has(trimmed)) {
+    return true;
+  }
+  return trimmed === "github:org/repo" || trimmed.startsWith("github:org/repo/") || trimmed.includes("github.com/org/repo") || trimmed.includes("#issuecomment-approval");
+}
 function error2(ruleId, reasonCode, message, filePath) {
   return { ruleId, severity: "error", reasonCode, message, path: filePath };
 }
@@ -103960,6 +104060,7 @@ function buildEvidenceBundle(input) {
       changed_files: input.changedFiles,
       out_of_scope_files: input.findings.filter((finding) => finding.ruleId === "KC-AE-005").map((finding) => finding.path).filter(Boolean)
     },
+    plan_diff_trace: buildPlanDiffTrace(plan, input.changedFiles),
     verification_evidence: evidence.verification_evidence ?? [],
     validation_evidence: evidence.validation_evidence ?? [],
     findings: input.findings.map((finding) => ({
@@ -103978,8 +104079,54 @@ function buildEvidenceBundle(input) {
     generated_at: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
+function buildPlanDiffTrace(plan, changedFiles) {
+  const planItems = arrayRecords2(plan?.plan_items).map((item) => ({
+    id: stringValue2(item.id) || "plan_item",
+    expectedFiles: stringArray2(item.expected_files)
+  })).filter((item) => item.expectedFiles.length > 0);
+  if (planItems.length === 0) {
+    return [];
+  }
+  const mapped = /* @__PURE__ */ new Set();
+  const trace = planItems.map((item) => {
+    const actualFiles = changedFiles.filter((file) => matchesExpected(file, item.expectedFiles));
+    for (const file of actualFiles) {
+      mapped.add(file);
+    }
+    return {
+      plan_item_id: item.id,
+      expected_files: item.expectedFiles,
+      actual_files: actualFiles,
+      status: actualFiles.length > 0 ? "implemented" : "not_touched"
+    };
+  });
+  for (const file of changedFiles.filter((changedFile) => !mapped.has(changedFile))) {
+    trace.push({
+      plan_item_id: "unmapped",
+      expected_files: [],
+      actual_files: [file],
+      status: "unmapped_change"
+    });
+  }
+  return trace;
+}
+function matchesExpected(file, expectedFiles) {
+  return matchesAny(file, expectedFiles);
+}
 function stringValue2(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+function stringArray2(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item) => typeof item === "string" && item.trim().length > 0);
+}
+function arrayRecords2(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item) => typeof item === "object" && item !== null && !Array.isArray(item));
 }
 function readPath2(source, pathParts) {
   let cursor = source;
@@ -104017,6 +104164,31 @@ function validatePullRequestBody(body2) {
   }
   return findings;
 }
+function shouldValidatePullRequestBody(context5) {
+  const enforcement = readEnforcement(context5.config);
+  if (enforcement.mode === "disabled") {
+    return false;
+  }
+  if (enforcement.mode === "strict") {
+    return true;
+  }
+  if (enforcement.mode !== "opt_in") {
+    return true;
+  }
+  const requireWhen = enforcement.requireWhen;
+  const labels = context5.labels ?? [];
+  if (requireWhen.labels.length > 0 && labels.some((label) => requireWhen.labels.includes(label))) {
+    return true;
+  }
+  const marker2 = requireWhen.prBodyMarker || "KC: required";
+  if ((context5.body ?? "").includes(marker2)) {
+    return true;
+  }
+  if (requireWhen.changedPaths.length > 0 && (context5.changedFiles ?? []).some((file) => matchesAny(file, requireWhen.changedPaths))) {
+    return true;
+  }
+  return false;
+}
 function linkedIssueNumbers(body2) {
   const text = body2 ?? "";
   const linkedIssue = readSection(text, "Linked Issue") ?? text;
@@ -104038,8 +104210,38 @@ function readSection(body2, heading) {
   }
   return content.join("\n");
 }
+function readEnforcement(config) {
+  const root = recordValue2(config?.kc) ?? config;
+  const enforcement = recordValue2(root?.enforcement);
+  const mode = stringValue3(enforcement?.mode) || "strict";
+  const requireWhen = recordValue2(enforcement?.require_when);
+  return {
+    mode,
+    requireWhen: {
+      labels: stringArray3(requireWhen?.labels),
+      changedPaths: stringArray3(requireWhen?.changed_paths),
+      prBodyMarker: stringValue3(requireWhen?.pr_body_marker)
+    }
+  };
+}
+function recordValue2(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return void 0;
+}
+function stringValue3(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+function stringArray3(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item) => typeof item === "string" && item.trim().length > 0);
+}
 
 // lib/action/index.js
+var kcGuardCommentMarker = "<!-- kc-guard-comment -->";
 async function main() {
   const workspace = getInput("workspace") || ".";
   const ruleset = getInput("ruleset") || ".kc/ruleset.yaml";
@@ -104052,7 +104254,14 @@ async function main() {
   const token = process.env.GITHUB_TOKEN;
   const octokit = token ? getOctokit(token) : void 0;
   const changedFiles = octokit && pullRequest ? await fetchPullRequestFiles(octokit, pullRequest.number) : void 0;
-  const prBodyFindings = pullRequest ? validatePullRequestBody(pullRequest.body ?? "") : [];
+  const config = loadArtifacts(workspace, ruleset).config;
+  const labels = pullRequest?.labels?.map((label) => label.name).filter((label) => Boolean(label)) ?? [];
+  const prBodyFindings = pullRequest && shouldValidatePullRequestBody({
+    body: pullRequest.body ?? "",
+    labels,
+    changedFiles,
+    config
+  }) ? validatePullRequestBody(pullRequest.body ?? "") : [];
   const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings });
   setOutput("decision", result.decision);
   setOutput("merge_ready", String(result.mergeReady));
@@ -104142,6 +104351,7 @@ async function commentOnPullRequest(result, aiCandidate) {
   }
   const octokit = getOctokit(token);
   const body2 = [
+    kcGuardCommentMarker,
     `## KC Guard: ${result.decision}`,
     "",
     `- merge_ready: ${result.mergeReady}`,
@@ -104155,6 +104365,22 @@ async function commentOnPullRequest(result, aiCandidate) {
 
 ${aiCandidate}` : ""
   ].join("\n");
+  const comments = await octokit.paginate(octokit.rest.issues.listComments, {
+    owner: context2.repo.owner,
+    repo: context2.repo.repo,
+    issue_number: pullRequest.number,
+    per_page: 100
+  });
+  const existing = comments.find((comment) => comment.body?.includes(kcGuardCommentMarker));
+  if (existing) {
+    await octokit.rest.issues.updateComment({
+      owner: context2.repo.owner,
+      repo: context2.repo.repo,
+      comment_id: existing.id,
+      body: body2
+    });
+    return;
+  }
   await octokit.rest.issues.createComment({
     owner: context2.repo.owner,
     repo: context2.repo.repo,

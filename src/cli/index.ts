@@ -4,6 +4,7 @@ import path from "node:path";
 import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brief.js";
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
+import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../core/issue.js";
 import { runPromote } from "../core/promote.js";
 import { initWorkspace } from "../core/templates.js";
 
@@ -66,6 +67,43 @@ async function main(): Promise<void> {
   if (args.command === "approval-brief") {
     const workspace = value(args, "workspace") || value(args, "w") || ".";
     console.log(renderApprovalBrief({ workspace }));
+    return;
+  }
+
+  if (args.command === "issue-brief") {
+    const input = await readAssistInput(args);
+    await writeOrPrint(args, renderIssueBrief(input));
+    return;
+  }
+
+  if (args.command === "issue-record") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const issuePath = recordIssue({
+      workspace,
+      issueRef: requiredValue(args, "issue-ref"),
+      problem: requiredValue(args, "problem"),
+      expectedOutcome: requiredValue(args, "expected-outcome"),
+      acceptanceCriteria: args.values.get("acceptance-criterion") ?? [requiredValue(args, "acceptance-criteria")],
+      nonGoals: args.values.get("non-goal") ?? [requiredValue(args, "non-goals")],
+      riskTier: value(args, "risk-tier") || "medium",
+      validationScenario: value(args, "validation-scenario"),
+      validationStatus: value(args, "validation-status"),
+      force: args.values.has("force")
+    });
+    console.log(`KC issue recorded: ${issuePath}`);
+    return;
+  }
+
+  if (args.command === "issue-check") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const findings = validateIssueArtifact(workspace);
+    console.log(`KC issue check: ${findings.length === 0 ? "PASS" : "HOLD"}`);
+    for (const finding of findings) {
+      console.log(`- [${finding.severity}] ${finding.ruleId} ${finding.reasonCode}: ${finding.message}`);
+    }
+    if (findings.some((finding) => finding.severity === "error")) {
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -228,6 +266,9 @@ Usage:
   kc check [--workspace .] [--changed-files files.txt] [--changed-file path] [--json]
   kc bundle [--workspace .] [--changed-files files.txt]
   kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
+  kc issue-brief [--input file] [--output file]
+  kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text]
+  kc issue-check [--workspace .]
   kc approval-brief [--workspace .]
   kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]
   kc promote [--workspace .] [--output-dir reports/promotion]

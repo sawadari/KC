@@ -1,5 +1,5 @@
 issue_packet:
-  issue_ref: github:org/repo/issues/123
+  issue_ref: github:sawadari/KC-fixture/issues/123
   problem_statement: "Nightly CSV export upload fails on transient HTTP 503."
   expected_outcome: "Transient HTTP 503 is retried automatically."
   acceptance_criteria:

@@ -57,6 +57,8 @@ cp .kc/agent_envelope.example.yaml .kc/agent_envelope.yaml
 cp .kc/evidence_bundle.example.yaml .kc/evidence_bundle.yaml
 ```
 
+The examples are intentionally not merge-ready. Replace placeholder values, record real human approval evidence, and attach verification/validation evidence before expecting `PASS`.
+
 Then run the deterministic check:
 
 ```bash
@@ -88,7 +90,7 @@ npx -y @sawadari/kc approval-record \
   --choice 1 \
   --actor sawadari \
   --source github_issue_comment \
-  --ref https://github.com/org/repo/issues/123#issuecomment-approval \
+  --ref https://github.com/OWNER/REPO/issues/123#issuecomment-123456 \
   --summary "Approved the plan after reviewing scope and risks."
 ```
 
@@ -162,6 +164,9 @@ kc init --workspace .
 kc check --workspace .
 kc bundle --workspace .
 kc assist --kind issue-packet --input issue.md --offline-template
+kc issue-brief --input issue.md
+kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text
+kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
 kc promote --workspace . --output-dir reports/promotion
@@ -173,6 +178,9 @@ Command summary:
 - `kc check`: run deterministic rules and fail on `HOLD` or `FAIL`.
 - `kc bundle`: generate the Evidence Bundle without failing the process.
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
+- `kc issue-brief`: turn an intake note into a human-fillable issue brief.
+- `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields.
+- `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
 - `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.
 - `kc promote`: generate candidate DecisionLedger and related promotion files for human review.
@@ -189,8 +197,27 @@ KC reads these files from the target repository:
 - `.kc/agent_envelope.yaml`: agent identity and execution boundaries
 - `.kc/evidence_bundle.yaml`: verification, validation, PR, and audit evidence
 - `.kc/ruleset.yaml`: enabled rules and severity overrides
+- `.kc/config.yaml`: optional GitHub Action enforcement scope
 
-The examples created by `kc init` are intentionally explicit so reviewers can inspect them in a PR.
+The examples created by `kc init` are intentionally explicit and pending. Active artifacts containing common example placeholders are blocked by KC.
+
+## Enforcement Scope
+
+By default, the GitHub Action expects KC PR sections on every PR. To adopt KC gradually, add `.kc/config.yaml`:
+
+```yaml
+kc:
+  enforcement:
+    mode: opt_in
+    require_when:
+      labels:
+        - codex
+      changed_paths:
+        - src/**
+      pr_body_marker: "KC: required"
+```
+
+Supported modes are `strict`, `opt_in`, and `disabled`.
 
 ## Ruleset Control
 
@@ -205,7 +232,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, and explicit human approval evidence.
+The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, and plan-item trace checks.
 
 ## Optional Codex Hooks
 

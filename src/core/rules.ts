@@ -17,9 +17,13 @@ const knownRuleIds = [
   "KC-AE-010",
   "KC-AE-011",
   "KC-AE-012",
-  "KC-AE-013"
+  "KC-AE-013",
+  "KC-AE-014",
+  "KC-AE-015",
+  "KC-AE-016"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
+const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
 
 export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]): Finding[] {
   const policy = resolveRulePolicy(artifacts.ruleset);
@@ -57,6 +61,13 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     }
   }
 
+  if (isRuleEnabled(policy, "KC-AE-015") && issue && highRiskTiers.has(riskTier)) {
+    const validationStatus = stringValue(issue.validation_status).toLowerCase();
+    if (validationStatus === "pending" && !hasExceptionBasis(issue, approval, evidence)) {
+      add(error("KC-AE-015", "high_risk_validation_pending", "High/critical risk issues cannot keep validation_status=pending without exception_basis."));
+    }
+  }
+
   if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
     add(error("KC-AE-003", "missing_approved_plan", ".kc/plan.yaml is required for an agent-governed PR."));
   }
@@ -87,6 +98,12 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     }
   }
 
+  if (isRuleEnabled(policy, "KC-AE-014")) {
+    for (const finding of placeholderFindings({ issue, plan, approval, envelope, evidence })) {
+      add(finding);
+    }
+  }
+
   const approvedScope = stringArray(approval?.approved_scope);
   const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
@@ -105,6 +122,24 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     for (const file of changedFiles) {
       if (matchesAny(file, prohibitedFiles)) {
         add(error("KC-AE-006", "prohibited_file_changed", `${file} matches a prohibited path.`, file));
+      }
+    }
+  }
+
+  if (isRuleEnabled(policy, "KC-AE-016") && changedFiles.length > 0 && plan) {
+    const planItems = arrayRecords(plan.plan_items);
+    const expectedByItem = planItems.map((item) => ({
+      id: stringValue(item.id) || "plan_item",
+      expectedFiles: stringArray(item.expected_files)
+    })).filter((item) => item.expectedFiles.length > 0);
+    if (expectedByItem.length > 0) {
+      for (const file of changedFiles) {
+        if (!expectedByItem.some((item) => matchesAny(file, item.expectedFiles))) {
+          add(error("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+        }
+      }
+      if (!hasValue(evidence?.plan_diff_trace)) {
+        add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
       }
     }
   }
@@ -253,6 +288,52 @@ function conditionEvidenceSatisfied(evidenceRequired: string, findings: Finding[
     return validation.some((item) => stringValue(item.status).toLowerCase() !== "pending" && (hasValue(item.ref) || hasValue(item.status)));
   }
   return verification.some((item) => stringValue(item.type) === evidenceRequired) || validation.some((item) => stringValue(item.type) === evidenceRequired);
+}
+
+function hasExceptionBasis(issue: Record<string, unknown>, approval: Record<string, unknown> | undefined, evidence: Record<string, unknown> | undefined): boolean {
+  return hasValue(issue.exception_basis)
+    || hasValue(issue.validation_exception_basis)
+    || hasValue(approval?.exception_basis)
+    || hasValue(evidence?.exception_basis)
+    || hasValue(evidence?.validation_exception_basis);
+}
+
+function placeholderFindings(artifacts: Record<string, Record<string, unknown> | undefined>): Finding[] {
+  const findings: Finding[] = [];
+  for (const [artifactName, artifact] of Object.entries(artifacts)) {
+    collectPlaceholderFindings(artifact, artifactName, findings);
+  }
+  return findings;
+}
+
+function collectPlaceholderFindings(value: unknown, path: string, findings: Finding[]): void {
+  if (typeof value === "string") {
+    if (isPlaceholder(value)) {
+      findings.push(error("KC-AE-014", "placeholder_detected", `Active KC artifact contains placeholder value: ${value}.`, path));
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectPlaceholderFindings(item, `${path}[${index}]`, findings));
+    return;
+  }
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    collectPlaceholderFindings(item, `${path}.${key}`, findings);
+  }
+}
+
+function isPlaceholder(value: string): boolean {
+  const trimmed = value.trim();
+  if (placeholderValues.has(trimmed)) {
+    return true;
+  }
+  return trimmed === "github:org/repo"
+    || trimmed.startsWith("github:org/repo/")
+    || trimmed.includes("github.com/org/repo")
+    || trimmed.includes("#issuecomment-approval");
 }
 
 function error(ruleId: string, reasonCode: string, message: string, filePath?: string): Finding {

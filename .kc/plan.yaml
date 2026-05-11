@@ -1,73 +1,139 @@
 agent_plan:
-  plan_id: PLAN-KC-RELEASE-0.3.0
-  issue_ref: github:sawadari/KC/issues/15
+  plan_id: PLAN-KC-HARDENING-001
+  issue_ref: github:sawadari/KC/issues/17-27
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Release the already merged human approval flow as KC v0.3.0."
+  interpreted_requirement: "Implement KC hardening issues #17 through #27 without publishing a new release."
   scope:
     allowed_files:
+      - .github/**
       - .kc/**
-      - package.json
-      - package-lock.json
+      - README.md
+      - README.ja.md
       - dist/action/index.js
       - reports/validation/**
+      - src/**
+      - templates/**
+      - tests/**
     prohibited_files:
       - .env
       - .npmrc
       - node_modules/**
       - lib/**
       - coverage/**
+      - .vscode/**
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not add new product behavior in this release issue."
-    - "Do not commit npm credentials or local token files."
-    - "Do not change repository or npm account security settings."
+    - "Do not publish to npm."
+    - "Do not move the v0 GitHub Action tag."
+    - "Do not commit local editor configuration."
   plan_items:
     - id: P1
-      action: "Update package metadata to version 0.3.0."
+      action: "Finalize release evidence and add Action bundle CI guard."
       expected_files:
-        - package.json
-        - package-lock.json
+        - .github/**
+        - reports/validation/**
+        - dist/action/index.js
       actual_files:
-        - package.json
-        - package-lock.json
+        - .github/workflows/ci.yml
+        - reports/validation/VAL-KC-RELEASE-0.3.0.md
+        - reports/validation/VAL-KC-HARDENING-001.md
+        - dist/action/index.js
       status: implemented
     - id: P2
-      action: "Rebuild the bundled GitHub Action artifact."
+      action: "Add placeholder detection, safe examples, and risk-aware validation pending enforcement."
       expected_files:
-        - dist/action/index.js
+        - src/core/rules.ts
+        - templates/.kc/**
+        - tests/**
       actual_files:
-        - dist/action/index.js
+        - src/core/rules.ts
+        - templates/.kc/approval.example.yaml
+        - templates/.kc/config.example.yaml
+        - templates/.kc/evidence_bundle.example.yaml
+        - templates/.kc/plan.example.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/core.test.mjs
       status: implemented
     - id: P3
-      action: "Record validation evidence for the release candidate."
+      action: "Add configurable Action enforcement and PR comment upsert."
       expected_files:
-        - reports/validation/**
+        - src/action/index.ts
+        - src/core/artifacts.ts
+        - src/core/pr-body.ts
+        - src/core/types.ts
+        - templates/.kc/config.example.yaml
+        - tests/**
+      actual_files:
+        - src/action/index.ts
+        - src/core/artifacts.ts
+        - src/core/pr-body.ts
+        - src/core/types.ts
+        - templates/.kc/config.example.yaml
+        - tests/core.test.mjs
+      status: implemented
+    - id: P4
+      action: "Add plan-item trace generation and checks."
+      expected_files:
+        - src/core/check.ts
+        - src/core/rules.ts
+        - tests/**
+      actual_files:
+        - src/core/check.ts
+        - src/core/rules.ts
+        - tests/core.test.mjs
+      status: implemented
+    - id: P5
+      action: "Add issue intake CLI and evidence-aware promotion."
+      expected_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - src/core/promote.ts
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - src/core/promote.ts
+        - tests/core.test.mjs
+      status: implemented
+    - id: P6
+      action: "Tighten AI assist guardrails and update docs."
+      expected_files:
+        - src/core/assist.ts
+        - README.md
+        - README.ja.md
+        - templates/hooks/README.md
+        - tests/**
+      actual_files:
+        - src/core/assist.ts
+        - README.md
+        - README.ja.md
+        - templates/hooks/README.md
+        - tests/core.test.mjs
+      status: implemented
+    - id: P7
+      action: "Update KC self-governance artifacts."
+      expected_files:
         - .kc/**
       actual_files:
-        - .kc/agent_envelope.yaml
         - .kc/approval.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-RELEASE-0.3.0.md
+        - .kc/ruleset.yaml
       status: implemented
-    - id: P4
-      action: "Publish and tag the release after PR validation."
-      expected_files: []
-      actual_files: []
-      status: pending
   verification_plan:
     - "Run npm.cmd run check."
     - "Run npm.cmd test."
     - "Run npm.cmd run pack:dry."
-    - "Run KC self-check against the release changed files."
+    - "Run npm.cmd run build and verify dist/action/index.js has no diff afterward."
+    - "Run KC self-check against the changed files."
   validation_evidence_plan:
-    - "Record GitHub issue approval evidence and release validation report."
-    - "Verify npm and GitHub release outputs after publication."
+    - "Record reports/validation/VAL-KC-HARDENING-001.md."
+    - "Use GitHub Actions CI on the PR as final remote validation."
   questions_for_human:
-    - "Do you approve PLAN-KC-RELEASE-0.3.0 for release implementation and publication?"
+    - "Do you approve PLAN-KC-HARDENING-001 for implementation?"
   status: approved

@@ -205,7 +205,7 @@ function structuredTemplate(kind: AssistKind, input: string): string {
   ].join("\n");
 }
 
-function validateStructuredOutput(kind: AssistKind, output: string): string {
+export function validateStructuredOutput(kind: AssistKind, output: string): string {
   if (kind === "decision-ledger" || kind === "pr-summary") {
     return output;
   }
@@ -220,9 +220,41 @@ function validateStructuredOutput(kind: AssistKind, output: string): string {
 }
 
 function ensureDraftOnly(value: Record<string, unknown>): void {
-  const serialized = JSON.stringify(value).toLowerCase();
-  if (serialized.includes("approved_with_conditions") || serialized.includes("validation_status\":\"passed") || serialized.includes("merge_ready\":true")) {
-    throw new Error("AI assist output attempted to claim approval, validation passed, or merge readiness.");
+  const violations: string[] = [];
+  collectAuthorityViolations(value, [], violations);
+  if (violations.length > 0) {
+    throw new Error(`AI assist output attempted to claim approval, validation passed, merge readiness, or execution authority: ${violations.join(", ")}.`);
+  }
+}
+
+function collectAuthorityViolations(value: unknown, path: string[], violations: string[]): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectAuthorityViolations(item, [...path, String(index)], violations));
+    return;
+  }
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedKey = key.toLowerCase();
+    const normalizedValue = typeof item === "string" ? item.trim().toLowerCase() : item;
+    if (normalizedKey === "decision" && (normalizedValue === "approved" || normalizedValue === "approved_with_conditions")) {
+      violations.push([...path, key].join("."));
+    }
+    if (normalizedKey === "status" && (normalizedValue === "approved" || normalizedValue === "approved_with_conditions")) {
+      violations.push([...path, key].join("."));
+    }
+    if (normalizedKey === "validation_status" && normalizedValue === "passed") {
+      violations.push([...path, key].join("."));
+    }
+    if (normalizedKey === "merge_ready" && (item === true || normalizedValue === "true")) {
+      violations.push([...path, key].join("."));
+    }
+    if (normalizedKey === "branch" && normalizedValue === "execute") {
+      violations.push([...path, key].join("."));
+    }
+    collectAuthorityViolations(item, [...path, key], violations);
   }
 }
 

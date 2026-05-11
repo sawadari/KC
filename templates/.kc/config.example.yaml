@@ -1,0 +1,14 @@
+kc:
+  enforcement:
+    # strict: require KC PR sections on every PR.
+    # opt_in: require KC only when a label, PR body marker, or changed path matches.
+    # disabled: skip PR body section enforcement.
+    mode: strict
+    require_when:
+      labels:
+        - ai-agent
+        - codex
+      changed_paths:
+        - src/**
+        - tests/**
+      pr_body_marker: "KC: required"

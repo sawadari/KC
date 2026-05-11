@@ -1,8 +1,8 @@
 approval_evidence_bundle:
-  bundle_id: AEB-123
-  issue_ref: github:org/repo/issues/123
-  plan_ref: PLAN-123
-  approval_ref: APR-123
+  bundle_id: AEB-KC-FIXTURE-123
+  issue_ref: github:sawadari/KC-fixture/issues/123
+  plan_ref: PLAN-KC-FIXTURE-123
+  approval_ref: APR-KC-FIXTURE-123
   diff_summary:
     changed_files:
       - src/report/upload.ts

@@ -1,6 +1,6 @@
 approval_evidence_bundle:
   bundle_id: AEB-128
-  issue_ref: github:org/repo/issues/128
+  issue_ref: github:sawadari/KC-fixture/issues/128
   plan_ref: PLAN-128
   approval_ref: APR-128
   diff_summary:

@@ -1,5 +1,5 @@
 issue_packet:
-  issue_ref: github:org/repo/issues/127
+  issue_ref: github:sawadari/KC-fixture/issues/127
   problem_statement: "Evaluate ruleset rule enablement."
   expected_outcome: "Disabled rules do not run."
   acceptance_criteria:

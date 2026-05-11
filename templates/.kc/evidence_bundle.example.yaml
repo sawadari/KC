@@ -18,11 +18,11 @@ approval_evidence_bundle:
   validation_evidence:
     - evidence_id: VA-1
       type: validation_report
-      ref: github:org/repo/blob/main/reports/validation/VAL-123.md
-      status: passed
+      ref: ""
+      status: pending
   findings: []
   decision:
-    branch: execute
-    primary_reason: none
-    required_actions: []
-
+    branch: hold
+    primary_reason: pending_human_review
+    required_actions:
+      - "Replace example values, record human approval evidence, and attach validation evidence before merge."

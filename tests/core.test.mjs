@@ -7,9 +7,10 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-brief.js";
-import { runAssist, systemPrompt } from "../lib/core/assist.js";
+import { runAssist, systemPrompt, validateStructuredOutput } from "../lib/core/assist.js";
 import { runCheck } from "../lib/core/check.js";
-import { validatePullRequestBody } from "../lib/core/pr-body.js";
+import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
+import { shouldValidatePullRequestBody, validatePullRequestBody } from "../lib/core/pr-body.js";
 import { runPromote } from "../lib/core/promote.js";
 import { initWorkspace } from "../lib/core/templates.js";
 
@@ -115,6 +116,86 @@ describe("KC rule engine", () => {
     assert.equal(result.primaryReason, "missing_human_approval_evidence");
     assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-013"));
   });
+
+  it("holds active artifacts that still contain placeholders", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "plan.yaml"), YAML.stringify({
+      agent_plan: {
+        plan_id: "PLAN-123",
+        issue_ref: "github:org/repo/issues/123",
+        interpreted_requirement: "TBD",
+        scope: { allowed_files: ["src/report/upload.ts"] },
+        status: "approved"
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.equal(result.primaryReason, "placeholder_detected");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-014"));
+  });
+
+  it("blocks high-risk validation pending without an exception basis", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    delete issue.issue_packet.validation_scenario;
+    issue.issue_packet.validation_status = "pending";
+    issue.issue_packet.risk_tier = "high";
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.equal(result.primaryReason, "high_risk_validation_pending");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-015"));
+  });
+
+  it("allows high-risk validation pending with an exception basis", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    delete issue.issue_packet.validation_scenario;
+    issue.issue_packet.validation_status = "pending";
+    issue.issue_packet.risk_tier = "high";
+    issue.issue_packet.exception_basis = "Owner accepted deferred validation.";
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.rollback_path = "Revert the upload retry change.";
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "WARN");
+    assert.equal(result.primaryReason, "validation_pending");
+  });
+
+  it("flags changed files that are not mapped to plan item expected files", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const planPath = path.join(workspace, ".kc", "plan.yaml");
+    const plan = YAML.parse(fs.readFileSync(planPath, "utf8"));
+    plan.agent_plan.plan_items = [{ id: "P1", action: "Update upload", expected_files: ["src/report/upload.ts"] }];
+    fs.writeFileSync(planPath, YAML.stringify(plan), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts", "src/report/extra.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-016" && finding.reasonCode === "unmapped_plan_item_change"));
+  });
 });
 
 describe("KC CLI", () => {
@@ -173,7 +254,7 @@ describe("workspace init and action build", () => {
   });
 
   it("builds the GitHub Action bundle", () => {
-    assert.ok(fs.existsSync(path.join(root, "dist", "action", "index.js")));
+    assert.ok(fs.statSync(path.join(root, "dist", "action", "index.js")).size > 0);
   });
 });
 
@@ -209,8 +290,33 @@ describe("KC assist and promotion", () => {
 
     assert.ok(result.files.length >= 5);
     assert.match(ledger, /candidate_status: draft/);
-    assert.match(ledger, /issue_ref: github:org\/repo\/issues\/123/);
-    assert.match(ledger, /plan_ref: PLAN-123/);
+    assert.match(ledger, /issue_ref: github:sawadari\/KC-fixture\/issues\/123/);
+    assert.match(ledger, /plan_ref: PLAN-KC-FIXTURE-123/);
+    assert.match(ledger, /human_decision_context:/);
+  });
+
+  it("rejects AI assist outputs that claim authority", () => {
+    assert.throws(() => validateStructuredOutput("plan", YAML.stringify({
+      agent_plan: {
+        candidate_status: "draft",
+        decision: "approved"
+      }
+    })), /attempted to claim/);
+    assert.throws(() => validateStructuredOutput("evidence-bundle", YAML.stringify({
+      approval_evidence_bundle: {
+        candidate_status: "draft",
+        validation_status: "passed"
+      }
+    })), /attempted to claim/);
+    assert.throws(() => validateStructuredOutput("evidence-bundle", YAML.stringify({
+      approval_evidence_bundle: {
+        candidate_status: "draft",
+        decision: {
+          branch: "execute",
+          merge_ready: true
+        }
+      }
+    })), /attempted to claim/);
   });
 });
 
@@ -233,7 +339,7 @@ describe("KC approval brief", () => {
       choice: "1",
       actor: "sawadari",
       source: "github_issue_comment",
-      ref: "https://github.com/org/repo/issues/123#issuecomment-approval",
+      ref: "https://github.com/sawadari/KC-fixture/issues/123#issuecomment-123456",
       summary: "Approved by numbered brief."
     });
     const approval = YAML.parse(fs.readFileSync(path.join(workspace, ".kc", "approval.yaml"), "utf8"));
@@ -242,7 +348,29 @@ describe("KC approval brief", () => {
     assert.equal(approval.plan_approval.decision, "approved");
     assert.equal(approval.plan_approval.human_approval.actor, "sawadari");
     assert.equal(approval.plan_approval.human_approval.choice, "1");
-    assert.equal(approval.plan_approval.human_approval.ref, "https://github.com/org/repo/issues/123#issuecomment-approval");
+    assert.equal(approval.plan_approval.human_approval.ref, "https://github.com/sawadari/KC-fixture/issues/123#issuecomment-123456");
+  });
+});
+
+describe("KC issue intake", () => {
+  it("renders issue briefs and records issue artifacts", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-"));
+    const brief = renderIssueBrief("Need scoped approval evidence.");
+    assert.match(brief, /KC Issue Brief/);
+
+    const issuePath = recordIssue({
+      workspace,
+      issueRef: "github:sawadari/KC/issues/24",
+      problem: "Issue intake is not explicit.",
+      expectedOutcome: "Users can record issue artifacts from the CLI.",
+      acceptanceCriteria: ["Record .kc/issue.yaml"],
+      nonGoals: ["AI approval"],
+      riskTier: "medium",
+      validationScenario: "Run issue-check."
+    });
+
+    assert.ok(fs.existsSync(issuePath));
+    assert.deepEqual(validateIssueArtifact(workspace), []);
   });
 });
 
@@ -270,6 +398,26 @@ describe("GitHub PR integration helpers", () => {
     ].join("\n");
 
     assert.deepEqual(validatePullRequestBody(body), []);
+  });
+
+  it("supports opt-in PR body enforcement", () => {
+    const config = {
+      kc: {
+        enforcement: {
+          mode: "opt_in",
+          require_when: {
+            labels: ["codex"],
+            changed_paths: ["src/**"],
+            pr_body_marker: "KC: required"
+          }
+        }
+      }
+    };
+
+    assert.equal(shouldValidatePullRequestBody({ body: "Update docs", labels: ["docs"], changedFiles: ["README.md"], config }), false);
+    assert.equal(shouldValidatePullRequestBody({ body: "Update\n\nKC: required", labels: [], changedFiles: [], config }), true);
+    assert.equal(shouldValidatePullRequestBody({ body: "Update", labels: ["codex"], changedFiles: [], config }), true);
+    assert.equal(shouldValidatePullRequestBody({ body: "Update", labels: [], changedFiles: ["src/index.ts"], config }), true);
   });
 });
 
@@ -315,22 +463,37 @@ function createPromotionWorkspace() {
   fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
   fs.writeFileSync(path.join(workspace, ".kc", "issue.yaml"), [
     "issue_packet:",
-    "  issue_ref: github:org/repo/issues/123",
+    "  issue_ref: github:sawadari/KC-fixture/issues/123",
     "  expected_outcome: Add retry behavior."
   ].join("\n"), "utf8");
   fs.writeFileSync(path.join(workspace, ".kc", "plan.yaml"), [
     "agent_plan:",
-    "  plan_id: PLAN-123",
+    "  plan_id: PLAN-KC-FIXTURE-123",
     "  interpreted_requirement: Add retry behavior."
   ].join("\n"), "utf8");
   fs.writeFileSync(path.join(workspace, ".kc", "approval.yaml"), [
     "plan_approval:",
-    "  approval_id: APR-123"
+    "  approval_id: APR-KC-FIXTURE-123",
+    "  conditions:",
+    "    - id: COND-KC-FIXTURE-1",
+    "      statement: Keep validation evidence explicit.",
+    "      evidence_required: validation_report",
+    "  human_approval:",
+    "    actor: sawadari",
+    "    source: github_issue_comment",
+    "    ref: https://github.com/sawadari/KC-fixture/issues/123#issuecomment-123456"
   ].join("\n"), "utf8");
   fs.writeFileSync(path.join(workspace, ".kc", "evidence_bundle.yaml"), [
     "approval_evidence_bundle:",
-    "  bundle_id: AEB-123",
-    "  pr_ref: github:org/repo/pull/456",
+    "  bundle_id: AEB-KC-FIXTURE-123",
+    "  pr_ref: github:sawadari/KC-fixture/pull/456",
+    "  plan_diff_trace:",
+    "    - plan_item_id: P1",
+    "      expected_files:",
+    "        - src/retry.ts",
+    "      actual_files:",
+    "        - src/retry.ts",
+    "      status: implemented",
     "  validation_evidence:",
     "    - type: validation_report",
     "      ref: reports/validation/VAL-123.md",
@@ -344,7 +507,7 @@ function createHumanApprovalWorkspace({ withHumanApproval }) {
   fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
   fs.writeFileSync(path.join(workspace, ".kc", "issue.yaml"), YAML.stringify({
     issue_packet: {
-      issue_ref: "github:org/repo/issues/789",
+      issue_ref: "github:sawadari/KC-fixture/issues/789",
       problem_statement: "Need upload retry behavior.",
       expected_outcome: "Transient upload failures are retried.",
       acceptance_criteria: ["Retry transient upload failures."],
@@ -355,8 +518,8 @@ function createHumanApprovalWorkspace({ withHumanApproval }) {
   }), "utf8");
   fs.writeFileSync(path.join(workspace, ".kc", "plan.yaml"), YAML.stringify({
     agent_plan: {
-      plan_id: "PLAN-789",
-      issue_ref: "github:org/repo/issues/789",
+      plan_id: "PLAN-KC-FIXTURE-789",
+      issue_ref: "github:sawadari/KC-fixture/issues/789",
       interpreted_requirement: "Add upload retry behavior.",
       scope: {
         allowed_files: ["src/report/upload.ts"],
@@ -366,8 +529,8 @@ function createHumanApprovalWorkspace({ withHumanApproval }) {
     }
   }), "utf8");
   const approval = {
-    approval_id: "APR-789",
-    target_plan_id: "PLAN-789",
+    approval_id: "APR-KC-FIXTURE-789",
+    target_plan_id: "PLAN-KC-FIXTURE-789",
     decision: "approved",
     approved_scope: ["src/report/upload.ts"],
     conditions: []
@@ -376,17 +539,17 @@ function createHumanApprovalWorkspace({ withHumanApproval }) {
     approval.human_approval = {
       actor: "sawadari",
       source: "github_issue_comment",
-      ref: "https://github.com/org/repo/issues/789#issuecomment-approval",
+      ref: "https://github.com/sawadari/KC-fixture/issues/789#issuecomment-123456",
       summary: "Approved fixture plan."
     };
   }
   fs.writeFileSync(path.join(workspace, ".kc", "approval.yaml"), YAML.stringify({ plan_approval: approval }), "utf8");
   fs.writeFileSync(path.join(workspace, ".kc", "evidence_bundle.yaml"), YAML.stringify({
     approval_evidence_bundle: {
-      bundle_id: "AEB-789",
-      issue_ref: "github:org/repo/issues/789",
-      plan_ref: "PLAN-789",
-      approval_ref: "APR-789",
+      bundle_id: "AEB-KC-FIXTURE-789",
+      issue_ref: "github:sawadari/KC-fixture/issues/789",
+      plan_ref: "PLAN-KC-FIXTURE-789",
+      approval_ref: "APR-KC-FIXTURE-789",
       diff_summary: { changed_files: ["src/report/upload.ts"], out_of_scope_files: [] },
       verification_evidence: [{ type: "unit_test", ref: "npm test", status: "passed" }],
       validation_evidence: [{ type: "validation_report", ref: "reports/validation/VAL-789.md", status: "passed" }]

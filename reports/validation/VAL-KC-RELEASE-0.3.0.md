@@ -20,6 +20,6 @@ Release KC v0.3.0 so the already merged human approval flow is available from np
 
 ## Publication Checks
 
-- npm package `@sawadari/kc@0.3.0`: pending
-- GitHub release `v0.3.0`: pending
-- GitHub Action major tag `v0`: pending
+- npm package `@sawadari/kc@0.3.0`: passed, verified with `npm.cmd view @sawadari/kc version`
+- GitHub release `v0.3.0`: passed, https://github.com/sawadari/KC/releases/tag/v0.3.0
+- GitHub Action major tag `v0`: passed, points to `71c13d6d958ce0d97a35d71f03d7455ab78c38d1`

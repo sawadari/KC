@@ -17,4 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: test -s dist/action/index.js
+      - run: npm run build
+      - run: git diff --exit-code dist/action/index.js
       - run: npm run pack:dry
