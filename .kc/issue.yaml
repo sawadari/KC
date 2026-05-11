@@ -1,22 +1,19 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/3-7
-  problem_statement: "Remaining original-spec backlog items are open: Codex hook templates, structured AI assist artifacts, DecisionLedger/canonical promotion candidates, deeper GitHub PR integration, and npm publication."
-  expected_outcome: "KC advances all remaining MVP backlog items that can be implemented locally, publishes the npm package, and verifies the public npx entrypoint."
+  issue_ref: github:sawadari/KC/issues/11
+  problem_statement: "The README explains KC in internal terms but does not quickly show new users the problem, value, and first successful path."
+  expected_outcome: "README.md and README.ja.md make KC understandable and worth trying for new users while staying accurate to current behavior."
   acceptance_criteria:
-    - "Ship optional Codex hook templates for UserPromptSubmit, PreToolUse, PermissionRequest, and Stop."
-    - "Add structured AI assist artifact modes with parseable draft templates and prompt guardrails."
-    - "Add promotion candidate generation for DecisionLedger, requirements, validation scenarios, AGENTS, and test oracle notes."
-    - "Deepen GitHub Action PR integration by fetching PR changed files and validating required PR body sections."
-    - "Attempt npm publication and record the result."
-    - "Verify npx @sawadari/kc --help from a clean temporary workspace."
-    - "Run KC self-check and repository verification."
+    - "Lead with the AI-assisted PR review problem and KC value."
+    - "Provide a short try-now path using the published npm package."
+    - "Explain deterministic decisions and AI-assist boundaries in plain language."
+    - "Show GitHub Action setup and expected outputs."
+    - "Keep artifact and rule details available after the quick-start flow."
+    - "Update both English and Japanese README files."
   validation_scenario:
-    statement: "A sample hook blocks an out-of-scope edit, structured assist emits parseable draft YAML, promotion candidates include source refs, PR body validation detects missing KC sections, and repository checks pass."
-  risk_tier: medium
+    statement: "A first-time reader can identify what KC solves, how to run the first command, how to add the Action, and what PASS/WARN/HOLD/FAIL mean."
+  risk_tier: low
   non_goals:
-    - "Enterprise ALM integration."
-    - "Automatic human approval."
-    - "Claiming Codex Hooks provide complete control."
-    - "Automating npm credential setup."
+    - "Runtime behavior changes"
+    - "Package naming or release process changes"
+    - "Unsupported marketing claims"
   issue_state: ready_for_plan
-

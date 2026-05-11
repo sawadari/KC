@@ -1,29 +1,18 @@
 plan_approval:
-  approval_id: APR-KC-REMAINING-001
-  target_plan_id: PLAN-KC-REMAINING-001
+  approval_id: APR-KC-README-001
+  target_plan_id: PLAN-KC-README-001
   decision: approved_with_conditions
   approver_role: owner
-  timestamp: "2026-05-11T22:25:00+09:00"
+  timestamp: "2026-05-11T23:01:00+09:00"
   approved_scope:
     - .kc/**
     - README.md
     - README.ja.md
-    - action.yml
-    - dist/action/index.js
-    - package-lock.json
-    - package.json
     - reports/validation/**
-    - src/**
-    - templates/**
-    - tests/**
   conditions:
-    - id: COND-REMAINING-1
-      statement: "All changed files must stay within the approved remaining-backlog scope."
-      evidence_required: diff_scope_check
-    - id: COND-REMAINING-2
-      statement: "Automated tests must cover hook, assist, promotion, and PR integration behavior."
-      evidence_required: unit_test
-    - id: COND-REMAINING-3
-      statement: "Validation evidence must record KC self-check and npm publication status."
+    - id: COND-README-1
+      statement: "Documentation must stay accurate to current KC behavior."
       evidence_required: validation_report
-
+    - id: COND-README-2
+      statement: "Changes must remain documentation-only."
+      evidence_required: diff_scope_check

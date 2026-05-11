@@ -1,21 +1,62 @@
 # KC
 
-KC is a distributable Knowledge Convergence guard for Codex + GitHub development workflows.
+KC is a merge-readiness guard for AI-assisted GitHub pull requests.
 
-It turns Issue intent, Codex plans, human approval, verification evidence, validation evidence, and PR diffs into a deterministic merge-readiness signal.
+When an agent can change code quickly, the hard part is no longer "can we produce a diff?" It is "can a reviewer see the original intent, approved scope, evidence, and validation story before merging?" KC turns that trail into a deterministic `PASS`, `WARN`, `HOLD`, or `FAIL`.
 
-KC does not treat AI output as approval. AI assist can draft questions, plans, evidence bundles, and PR explanations, but the gate result is always produced by deterministic rules.
+KC is designed for teams using Codex or other coding agents who want a lightweight way to keep AI-assisted work reviewable, auditable, and scoped.
 
-Japanese documentation: [README.ja.md](README.ja.md)
+[Japanese README](README.ja.md)
 
-## Install
+## Why KC
+
+Use KC when you want every PR to answer these questions:
+
+- What issue or user problem is this PR solving?
+- What plan was approved before implementation started?
+- Are the changed files inside the approved scope?
+- What verification and validation evidence exists?
+- Is the merge decision based on deterministic rules instead of AI opinion?
+
+KC does not approve work for you. It makes missing context visible before merge.
+
+## Try It Now
+
+Check the published CLI:
 
 ```bash
-npx @sawadari/kc init --workspace .
-npx @sawadari/kc check --workspace .
+npx -y @sawadari/kc --help
 ```
 
-Use in GitHub Actions:
+Add KC templates to an existing repository:
+
+```bash
+npx -y @sawadari/kc init --workspace .
+```
+
+That installs `.kc` examples, GitHub templates, an `AGENTS.md` starter, and optional Codex hook templates. Existing files are not overwritten unless you pass `--force`.
+
+For a real PR, copy the examples into active KC artifacts and fill in the details:
+
+```bash
+cp .kc/issue.example.yaml .kc/issue.yaml
+cp .kc/plan.example.yaml .kc/plan.yaml
+cp .kc/approval.example.yaml .kc/approval.yaml
+cp .kc/agent_envelope.example.yaml .kc/agent_envelope.yaml
+cp .kc/evidence_bundle.example.yaml .kc/evidence_bundle.yaml
+```
+
+Then run the deterministic check:
+
+```bash
+npx -y @sawadari/kc check --workspace .
+```
+
+`kc check` exits non-zero for `HOLD` and `FAIL`, which makes it suitable for CI gates.
+
+## Add The GitHub Action
+
+Create `.github/workflows/kc-guard.yml`:
 
 ```yaml
 name: KC Guard
@@ -44,7 +85,37 @@ jobs:
           comment-on-linked-issue: false
 ```
 
-## CLI
+On pull requests, the Action reads the KC artifacts, compares the PR changed files with the approved scope and prohibited paths, writes an Evidence Bundle, and posts a summary when configured.
+
+Action outputs:
+
+- `decision`: `PASS`, `WARN`, `HOLD`, or `FAIL`
+- `merge_ready`: `true` for `PASS` and `WARN`
+- `primary_reason`: the main reason code behind the result
+- `findings_json`: machine-readable findings
+- `evidence_bundle_path`: generated Evidence Bundle path
+
+## What The Decisions Mean
+
+| Decision | Meaning | CI behavior |
+|---|---|---|
+| `PASS` | The PR has the required KC context and no blocking findings. | Succeeds |
+| `WARN` | Merge can proceed, but KC found something reviewers should notice. | Succeeds with annotations |
+| `HOLD` | Something important is missing or outside approved scope. | Fails |
+| `FAIL` | The artifacts or policy state are invalid. | Fails |
+
+## Daily Workflow
+
+1. Open an issue with the problem, expected outcome, acceptance criteria, and non-goals.
+2. Ask the agent to produce a plan and write it into `.kc/plan.yaml`.
+3. Record human approval in `.kc/approval.yaml`.
+4. Let the agent implement within the approved scope.
+5. Add verification and validation evidence to `.kc/evidence_bundle.yaml`.
+6. Run `kc check` locally or let the GitHub Action gate the PR.
+
+This keeps "what we asked for", "what was approved", "what changed", and "what proved it works" in the repository instead of scattered across chat history.
+
+## CLI Commands
 
 ```bash
 kc init --workspace .
@@ -54,46 +125,32 @@ kc assist --kind issue-packet --input issue.md --offline-template
 kc promote --workspace . --output-dir reports/promotion
 ```
 
-`kc check` exits with code `1` for `HOLD` and `FAIL`. `kc bundle` writes the generated Evidence Bundle but does not fail the process.
+Command summary:
 
-AI assist uses `OPENAI_API_KEY` or `--openai-api-key`. It is optional; deterministic checks do not require credentials. Use `--offline-template` to emit a parseable draft template without calling the API.
+- `kc init`: install templates without overwriting existing files.
+- `kc check`: run deterministic rules and fail on `HOLD` or `FAIL`.
+- `kc bundle`: generate the Evidence Bundle without failing the process.
+- `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
+- `kc promote`: generate candidate DecisionLedger and related promotion files for human review.
 
-## Artifacts
+AI assist is optional. It uses `OPENAI_API_KEY` or `--openai-api-key` only when requested. Deterministic checks work without API credentials.
+
+## KC Artifacts
 
 KC reads these files from the target repository:
 
-- `.kc/issue.yaml`
-- `.kc/plan.yaml`
-- `.kc/approval.yaml`
-- `.kc/agent_envelope.yaml`
-- `.kc/evidence_bundle.yaml`
-- `.kc/ruleset.yaml`
+- `.kc/issue.yaml`: problem, expected outcome, acceptance criteria, risk tier, non-goals
+- `.kc/plan.yaml`: interpreted requirement, implementation plan, allowed files, prohibited files
+- `.kc/approval.yaml`: human approval and approval conditions
+- `.kc/agent_envelope.yaml`: agent identity and execution boundaries
+- `.kc/evidence_bundle.yaml`: verification, validation, PR, and audit evidence
+- `.kc/ruleset.yaml`: enabled rules and severity overrides
 
-`kc init` installs examples and GitHub templates. Existing files are not overwritten unless `--force` is passed.
+The examples created by `kc init` are intentionally explicit so reviewers can inspect them in a PR.
 
-## Decisions
+## Ruleset Control
 
-- `PASS`: merge-ready.
-- `WARN`: merge may proceed with notes.
-- `HOLD`: merge should be blocked until the finding is resolved or explicitly handled.
-- `FAIL`: invalid or policy-violating state.
-
-## Rules
-
-The first release implements KC-AE-001 through KC-AE-012:
-
-- required Issue fields
-- validation scenario requirements by risk tier
-- Plan existence and approval
-- approved scope and prohibited path checks
-- verification evidence requirements
-- verification/validation separation
-- approval condition evidence
-- agent audit references
-- high-risk rollback path
-- merge readiness
-
-`.kc/ruleset.yaml` is executable policy. `ruleset.rules` limits which KC-AE rules run, and `ruleset.severity_overrides` can override a finding severity by rule ID:
+`.kc/ruleset.yaml` is executable policy. Use `ruleset.rules` to limit which KC-AE rules run, and `ruleset.severity_overrides` to adjust severity by rule ID:
 
 ```yaml
 ruleset:
@@ -104,23 +161,13 @@ ruleset:
     KC-AE-007: warning
 ```
 
-## Release
-
-The GitHub Action is intended to be consumed as:
-
-```yaml
-- uses: sawadari/KC@v0
-```
-
-The CLI is intended to be consumed as:
-
-```bash
-npx @sawadari/kc check --workspace .
-```
+The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, and merge readiness.
 
 ## Optional Codex Hooks
 
-KC ships optional hook templates under `templates/hooks/`. They are conservative local enforcement aids for `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, and `Stop`; they are not activated unless you copy or reference them from your Codex hook configuration. GitHub Actions remains the final gate.
+KC ships optional hook templates under `templates/hooks/` for `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, and `Stop`.
+
+These hooks are local enforcement aids. They are not active unless you wire them into your Codex hook configuration, and they do not replace the GitHub Action gate.
 
 ## License
 
