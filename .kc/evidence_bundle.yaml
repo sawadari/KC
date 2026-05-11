@@ -81,8 +81,12 @@ approval_evidence_bundle:
       status: passed
     - evidence_id: VE-REMAINING-4
       type: npm_publish
-      ref: npm whoami
-      status: blocked_auth_required
+      ref: npm.cmd publish --access public
+      status: published_0_2_0
+    - evidence_id: VE-REMAINING-5
+      type: cli_entrypoint
+      ref: node lib/cli/index.js --help
+      status: passed_local_0_2_1_fix
   validation_evidence:
     - evidence_id: VA-REMAINING-1
       type: validation_report
@@ -93,4 +97,4 @@ approval_evidence_bundle:
     branch: execute
     primary_reason: none
     required_actions:
-      - "Issue #7 remains blocked until npm authentication is configured."
+      - "Publish 0.2.1 after merging the npx --help fix, then verify npx @sawadari/kc --help from a clean workspace."

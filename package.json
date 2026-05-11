@@ -1,19 +1,19 @@
 {
   "name": "@sawadari/kc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Knowledge Convergence guard for Codex and GitHub workflows.",
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sawadari/KC.git"
+    "url": "git+https://github.com/sawadari/KC.git"
   },
   "homepage": "https://github.com/sawadari/KC#readme",
   "bugs": {
     "url": "https://github.com/sawadari/KC/issues"
   },
   "bin": {
-    "kc": "./lib/cli/index.js"
+    "kc": "lib/cli/index.js"
   },
   "files": [
     "action.yml",

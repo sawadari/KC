@@ -104,6 +104,17 @@ describe("KC rule engine", () => {
 });
 
 describe("KC CLI", () => {
+  it("prints root help for --help", () => {
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "--help"
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Usage:/);
+    assert.match(result.stdout, /kc check/);
+  });
+
   it("runs check successfully for PASS fixtures", () => {
     const workspace = path.join(fixtures, "pass");
     const result = spawnSync(process.execPath, [
