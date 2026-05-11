@@ -21,3 +21,4 @@ jobs:
         with:
           ai-assist: false
           comment-on-pr: true
+          comment-on-linked-issue: false

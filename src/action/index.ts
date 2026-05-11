@@ -4,6 +4,7 @@ import * as github from "@actions/github";
 import { DefaultArtifactClient } from "@actions/artifact";
 import { runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
+import { linkedIssueNumbers, validatePullRequestBody } from "../core/pr-body.js";
 
 async function main(): Promise<void> {
   const workspace = core.getInput("workspace") || ".";
@@ -11,9 +12,15 @@ async function main(): Promise<void> {
   const aiAssist = core.getBooleanInput("ai-assist");
   const model = core.getInput("model") || defaultModel;
   const commentOnPr = core.getBooleanInput("comment-on-pr");
-  const prRef = github.context.payload.pull_request?.html_url;
+  const commentOnLinkedIssue = core.getBooleanInput("comment-on-linked-issue");
+  const pullRequest = github.context.payload.pull_request;
+  const prRef = pullRequest?.html_url;
+  const token = process.env.GITHUB_TOKEN;
+  const octokit = token ? github.getOctokit(token) : undefined;
+  const changedFiles = octokit && pullRequest ? await fetchPullRequestFiles(octokit, pullRequest.number) : undefined;
+  const prBodyFindings = pullRequest ? validatePullRequestBody(pullRequest.body ?? "") : [];
 
-  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef });
+  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings });
 
   core.setOutput("decision", result.decision);
   core.setOutput("merge_ready", String(result.mergeReady));
@@ -54,12 +61,25 @@ async function main(): Promise<void> {
 
   await writeSummary(result, aiCandidate);
   if (commentOnPr) {
-    await comment(result, aiCandidate);
+    await commentOnPullRequest(result, aiCandidate);
+  }
+  if (commentOnLinkedIssue && prBodyFindings.length > 0) {
+    await commentOnLinkedIssues(pullRequest?.body ?? "", prBodyFindings);
   }
 
   if (result.decision === "HOLD" || result.decision === "FAIL") {
     core.setFailed(`KC Guard ${result.decision}: ${result.primaryReason}`);
   }
+}
+
+async function fetchPullRequestFiles(octokit: ReturnType<typeof github.getOctokit>, pullNumber: number): Promise<string[]> {
+  const files = await octokit.paginate(octokit.rest.pulls.listFiles, {
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    pull_number: pullNumber,
+    per_page: 100
+  });
+  return files.map((file) => file.filename);
 }
 
 async function uploadBundle(filePath: string): Promise<void> {
@@ -88,7 +108,7 @@ async function writeSummary(result: Awaited<ReturnType<typeof runCheck>>, aiCand
     .write();
 }
 
-async function comment(result: Awaited<ReturnType<typeof runCheck>>, aiCandidate: string): Promise<void> {
+async function commentOnPullRequest(result: Awaited<ReturnType<typeof runCheck>>, aiCandidate: string): Promise<void> {
   const token = process.env.GITHUB_TOKEN;
   const pullRequest = github.context.payload.pull_request;
   if (!token || !pullRequest) {
@@ -116,7 +136,31 @@ async function comment(result: Awaited<ReturnType<typeof runCheck>>, aiCandidate
   });
 }
 
+async function commentOnLinkedIssues(body: string, findings: Awaited<ReturnType<typeof validatePullRequestBody>>): Promise<void> {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    return;
+  }
+  const issueNumbers = linkedIssueNumbers(body);
+  if (issueNumbers.length === 0) {
+    return;
+  }
+  const octokit = github.getOctokit(token);
+  const commentBody = [
+    "KC Guard found PR body issues that may block the linked implementation:",
+    "",
+    ...findings.map((finding) => `- ${finding.reasonCode}: ${finding.message}`)
+  ].join("\n");
+  for (const issue_number of issueNumbers) {
+    await octokit.rest.issues.createComment({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      issue_number,
+      body: commentBody
+    });
+  }
+}
+
 main().catch((error) => {
   core.setFailed(error instanceof Error ? error.message : String(error));
 });
-

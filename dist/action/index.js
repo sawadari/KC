@@ -47123,11 +47123,11 @@ var require_zip_archive_entry = __commonJS({
     ZipArchiveEntry.prototype.getVersionNeededToExtract = function() {
       return this.minver;
     };
-    ZipArchiveEntry.prototype.setComment = function(comment2) {
-      if (Buffer.byteLength(comment2) !== comment2.length) {
+    ZipArchiveEntry.prototype.setComment = function(comment) {
+      if (Buffer.byteLength(comment) !== comment.length) {
         this.getGeneralPurposeBit().useUTF8ForNames(true);
       }
-      this.comment = comment2;
+      this.comment = comment;
     };
     ZipArchiveEntry.prototype.setCompressedSize = function(size) {
       if (size < 0) {
@@ -47672,10 +47672,10 @@ var require_zip_archive_output_stream = __commonJS({
       this.write(zipUtil.getShortBytes(records));
       this.write(zipUtil.getLongBytes(size));
       this.write(zipUtil.getLongBytes(offset));
-      var comment2 = this.getComment();
-      var commentLength = Buffer.byteLength(comment2);
+      var comment = this.getComment();
+      var commentLength = Buffer.byteLength(comment);
       this.write(zipUtil.getShortBytes(commentLength));
-      this.write(comment2);
+      this.write(comment);
     };
     ZipArchiveOutputStream.prototype._writeCentralDirectoryZip64 = function() {
       this.write(zipUtil.getLongBytes(constants3.SIG_ZIP64_EOCD));
@@ -47723,22 +47723,22 @@ var require_zip_archive_output_stream = __commonJS({
       this.write(zipUtil.getLongBytes(compressedSize));
       this.write(zipUtil.getLongBytes(size));
       var name = ae.getName();
-      var comment2 = ae.getComment();
+      var comment = ae.getComment();
       var extra = ae.getCentralDirectoryExtra();
       if (gpb.usesUTF8ForNames()) {
         name = Buffer.from(name);
-        comment2 = Buffer.from(comment2);
+        comment = Buffer.from(comment);
       }
       this.write(zipUtil.getShortBytes(name.length));
       this.write(zipUtil.getShortBytes(extra.length));
-      this.write(zipUtil.getShortBytes(comment2.length));
+      this.write(zipUtil.getShortBytes(comment.length));
       this.write(constants3.SHORT_ZERO);
       this.write(zipUtil.getShortBytes(ae.getInternalAttributes()));
       this.write(zipUtil.getLongBytes(ae.getExternalAttributes()));
       this.write(zipUtil.getLongBytes(fileOffset));
       this.write(name);
       this.write(extra);
-      this.write(comment2);
+      this.write(comment);
     };
     ZipArchiveOutputStream.prototype._writeDataDescriptor = function(ae) {
       this.write(zipUtil.getLongBytes(constants3.SIG_DD));
@@ -47785,14 +47785,14 @@ var require_zip_archive_output_stream = __commonJS({
       this.write(extra);
       ae._offsets.contents = this.offset;
     };
-    ZipArchiveOutputStream.prototype.getComment = function(comment2) {
+    ZipArchiveOutputStream.prototype.getComment = function(comment) {
       return this._archive.comment !== null ? this._archive.comment : "";
     };
     ZipArchiveOutputStream.prototype.isZip64 = function() {
       return this._archive.forceZip64 || this._entries.length > constants3.ZIP64_MAGIC_SHORT || this._archive.centralLength > constants3.ZIP64_MAGIC || this._archive.centralOffset > constants3.ZIP64_MAGIC;
     };
-    ZipArchiveOutputStream.prototype.setComment = function(comment2) {
-      this._archive.comment = comment2;
+    ZipArchiveOutputStream.prototype.setComment = function(comment) {
+      this._archive.comment = comment;
     };
   }
 });
@@ -54901,12 +54901,12 @@ var require_stringifyComment = __commonJS({
   "node_modules/yaml/dist/stringify/stringifyComment.js"(exports2) {
     "use strict";
     var stringifyComment = (str) => str.replace(/^(?!$)(?: $)?/gm, "#");
-    function indentComment(comment2, indent) {
-      if (/^\n+$/.test(comment2))
-        return comment2.substring(1);
-      return indent ? comment2.replace(/^(?! *$)/gm, indent) : comment2;
+    function indentComment(comment, indent) {
+      if (/^\n+$/.test(comment))
+        return comment.substring(1);
+      return indent ? comment.replace(/^(?! *$)/gm, indent) : comment;
     }
-    var lineComment = (str, indent, comment2) => str.endsWith("\n") ? indentComment(comment2, indent) : comment2.includes("\n") ? "\n" + indentComment(comment2, indent) : (str.endsWith(" ") ? "" : " ") + comment2;
+    var lineComment = (str, indent, comment) => str.endsWith("\n") ? indentComment(comment, indent) : comment.includes("\n") ? "\n" + indentComment(comment, indent) : (str.endsWith(" ") ? "" : " ") + comment;
     exports2.indentComment = indentComment;
     exports2.lineComment = lineComment;
     exports2.stringifyComment = stringifyComment;
@@ -55190,7 +55190,7 @@ ${indent}`) + "'";
     } catch {
       blockEndNewlines = /\n+(?!\n|$)/g;
     }
-    function blockString({ comment: comment2, type, value }, ctx, onComment, onChompKeep) {
+    function blockString({ comment, type, value }, ctx, onComment, onChompKeep) {
       const { blockQuote, commentString, lineWidth } = ctx.options;
       if (!blockQuote || /\n[\t ]+$/.test(value)) {
         return quotedString(value, ctx);
@@ -55242,8 +55242,8 @@ ${indent}`) + "'";
       }
       const indentSize = indent ? "2" : "1";
       let header = (startWithSpace ? indentSize : "") + chomp;
-      if (comment2) {
-        header += " " + commentString(comment2.replace(/ ?[\r\n]+/g, " "));
+      if (comment) {
+        header += " " + commentString(comment.replace(/ ?[\r\n]+/g, " "));
         if (onComment)
           onComment();
       }
@@ -55787,20 +55787,20 @@ var require_stringifyCollection = __commonJS({
       const stringify2 = flow ? stringifyFlowCollection : stringifyBlockCollection;
       return stringify2(collection, ctx, options);
     }
-    function stringifyBlockCollection({ comment: comment2, items }, ctx, { blockItemPrefix, flowChars, itemIndent, onChompKeep, onComment }) {
+    function stringifyBlockCollection({ comment, items }, ctx, { blockItemPrefix, flowChars, itemIndent, onChompKeep, onComment }) {
       const { indent, options: { commentString } } = ctx;
       const itemCtx = Object.assign({}, ctx, { indent: itemIndent, type: null });
       let chompKeep = false;
       const lines = [];
       for (let i = 0; i < items.length; ++i) {
         const item = items[i];
-        let comment3 = null;
+        let comment2 = null;
         if (identity.isNode(item)) {
           if (!chompKeep && item.spaceBefore)
             lines.push("");
           addCommentBefore(ctx, lines, item.commentBefore, chompKeep);
           if (item.comment)
-            comment3 = item.comment;
+            comment2 = item.comment;
         } else if (identity.isPair(item)) {
           const ik = identity.isNode(item.key) ? item.key : null;
           if (ik) {
@@ -55810,10 +55810,10 @@ var require_stringifyCollection = __commonJS({
           }
         }
         chompKeep = false;
-        let str2 = stringify.stringify(item, itemCtx, () => comment3 = null, () => chompKeep = true);
-        if (comment3)
-          str2 += stringifyComment.lineComment(str2, itemIndent, commentString(comment3));
-        if (chompKeep && comment3)
+        let str2 = stringify.stringify(item, itemCtx, () => comment2 = null, () => chompKeep = true);
+        if (comment2)
+          str2 += stringifyComment.lineComment(str2, itemIndent, commentString(comment2));
+        if (chompKeep && comment2)
           chompKeep = false;
         lines.push(blockItemPrefix + str2);
       }
@@ -55828,8 +55828,8 @@ var require_stringifyCollection = __commonJS({
 ${indent}${line}` : "\n";
         }
       }
-      if (comment2) {
-        str += "\n" + stringifyComment.indentComment(commentString(comment2), indent);
+      if (comment) {
+        str += "\n" + stringifyComment.indentComment(commentString(comment), indent);
         if (onComment)
           onComment();
       } else if (chompKeep && onChompKeep)
@@ -55849,13 +55849,13 @@ ${indent}${line}` : "\n";
       const lines = [];
       for (let i = 0; i < items.length; ++i) {
         const item = items[i];
-        let comment2 = null;
+        let comment = null;
         if (identity.isNode(item)) {
           if (item.spaceBefore)
             lines.push("");
           addCommentBefore(ctx, lines, item.commentBefore, false);
           if (item.comment)
-            comment2 = item.comment;
+            comment = item.comment;
         } else if (identity.isPair(item)) {
           const ik = identity.isNode(item.key) ? item.key : null;
           if (ik) {
@@ -55868,16 +55868,16 @@ ${indent}${line}` : "\n";
           const iv = identity.isNode(item.value) ? item.value : null;
           if (iv) {
             if (iv.comment)
-              comment2 = iv.comment;
+              comment = iv.comment;
             if (iv.commentBefore)
               reqNewline = true;
           } else if (item.value == null && ik?.comment) {
-            comment2 = ik.comment;
+            comment = ik.comment;
           }
         }
-        if (comment2)
+        if (comment)
           reqNewline = true;
-        let str = stringify.stringify(item, itemCtx, () => comment2 = null);
+        let str = stringify.stringify(item, itemCtx, () => comment = null);
         reqNewline || (reqNewline = lines.length > linesAtValue || str.includes("\n"));
         if (i < items.length - 1) {
           str += ",";
@@ -55889,8 +55889,8 @@ ${indent}${line}` : "\n";
             str += ",";
           }
         }
-        if (comment2)
-          str += stringifyComment.lineComment(str, itemIndent, commentString(comment2));
+        if (comment)
+          str += stringifyComment.lineComment(str, itemIndent, commentString(comment));
         lines.push(str);
         linesAtValue = lines.length;
       }
@@ -55914,11 +55914,11 @@ ${indent}${end}`;
         }
       }
     }
-    function addCommentBefore({ indent, options: { commentString } }, lines, comment2, chompKeep) {
-      if (comment2 && chompKeep)
-        comment2 = comment2.replace(/^\n+/, "");
-      if (comment2) {
-        const ic = stringifyComment.indentComment(commentString(comment2), indent);
+    function addCommentBefore({ indent, options: { commentString } }, lines, comment, chompKeep) {
+      if (comment && chompKeep)
+        comment = comment.replace(/^\n+/, "");
+      if (comment) {
+        const ic = stringifyComment.indentComment(commentString(comment), indent);
         lines.push(ic.trimStart());
       }
     }
@@ -56538,7 +56538,7 @@ var require_binary2 = __commonJS({
           return src;
         }
       },
-      stringify({ comment: comment2, type, value }, ctx, onComment, onChompKeep) {
+      stringify({ comment, type, value }, ctx, onComment, onChompKeep) {
         if (!value)
           return "";
         const buf = value;
@@ -56563,7 +56563,7 @@ var require_binary2 = __commonJS({
           }
           str = lines.join(type === Scalar.Scalar.BLOCK_LITERAL ? "\n" : " ");
         }
-        return stringifyString.stringifyString({ comment: comment2, type, value: str }, ctx, onComment, onChompKeep);
+        return stringifyString.stringifyString({ comment, type, value: str }, ctx, onComment, onChompKeep);
       }
     };
     exports2.binary = binary;
@@ -57695,7 +57695,7 @@ var require_resolve_props = __commonJS({
       let spaceBefore = false;
       let atNewline = startOnNewline;
       let hasSpace = startOnNewline;
-      let comment2 = "";
+      let comment = "";
       let commentSep = "";
       let hasNewline = false;
       let reqSpace = false;
@@ -57729,18 +57729,18 @@ var require_resolve_props = __commonJS({
             if (!hasSpace)
               onError(token, "MISSING_CHAR", "Comments must be separated from other tokens by white space characters");
             const cb = token.source.substring(1) || " ";
-            if (!comment2)
-              comment2 = cb;
+            if (!comment)
+              comment = cb;
             else
-              comment2 += commentSep + cb;
+              comment += commentSep + cb;
             commentSep = "";
             atNewline = false;
             break;
           }
           case "newline":
             if (atNewline) {
-              if (comment2)
-                comment2 += token.source;
+              if (comment)
+                comment += token.source;
               else if (!found || indicator !== "seq-item-ind")
                 spaceBefore = true;
             } else
@@ -57808,7 +57808,7 @@ var require_resolve_props = __commonJS({
         comma,
         found,
         spaceBefore,
-        comment: comment2,
+        comment,
         hasNewline,
         anchor,
         tag,
@@ -58061,7 +58061,7 @@ var require_resolve_end = __commonJS({
   "node_modules/yaml/dist/compose/resolve-end.js"(exports2) {
     "use strict";
     function resolveEnd(end, offset, reqSpace, onError) {
-      let comment2 = "";
+      let comment = "";
       if (end) {
         let hasSpace = false;
         let sep3 = "";
@@ -58075,15 +58075,15 @@ var require_resolve_end = __commonJS({
               if (reqSpace && !hasSpace)
                 onError(token, "MISSING_CHAR", "Comments must be separated from other tokens by white space characters");
               const cb = source.substring(1) || " ";
-              if (!comment2)
-                comment2 = cb;
+              if (!comment)
+                comment = cb;
               else
-                comment2 += sep3 + cb;
+                comment += sep3 + cb;
               sep3 = "";
               break;
             }
             case "newline":
-              if (comment2)
+              if (comment)
                 sep3 += source;
               hasSpace = true;
               break;
@@ -58093,7 +58093,7 @@ var require_resolve_end = __commonJS({
           offset += source.length;
         }
       }
-      return { comment: comment2, offset };
+      return { comment, offset };
     }
     exports2.resolveEnd = resolveEnd;
   }
@@ -58492,7 +58492,7 @@ var require_resolve_block_scalar = __commonJS({
       if (error3 !== -1)
         onError(error3, "UNEXPECTED_TOKEN", `Block scalar header includes extra characters: ${source}`);
       let hasSpace = false;
-      let comment2 = "";
+      let comment = "";
       let length = source.length;
       for (let i = 1; i < props.length; ++i) {
         const token = props[i];
@@ -58509,7 +58509,7 @@ var require_resolve_block_scalar = __commonJS({
               onError(token, "MISSING_CHAR", message);
             }
             length += token.source.length;
-            comment2 = token.source.substring(1);
+            comment = token.source.substring(1);
             break;
           case "error":
             onError(token, "UNEXPECTED_TOKEN", token.message);
@@ -58525,7 +58525,7 @@ var require_resolve_block_scalar = __commonJS({
           }
         }
       }
-      return { mode, indent, chomp, comment: comment2, length };
+      return { mode, indent, chomp, comment, length };
     }
     function splitLines(source) {
       const split = source.split(/\n( *)/);
@@ -58770,7 +58770,7 @@ var require_compose_scalar = __commonJS({
     var resolveBlockScalar = require_resolve_block_scalar();
     var resolveFlowScalar = require_resolve_flow_scalar();
     function composeScalar(ctx, token, tagToken, onError) {
-      const { value, type, comment: comment2, range: range3 } = token.type === "block-scalar" ? resolveBlockScalar.resolveBlockScalar(ctx, token, onError) : resolveFlowScalar.resolveFlowScalar(token, ctx.options.strict, onError);
+      const { value, type, comment, range: range3 } = token.type === "block-scalar" ? resolveBlockScalar.resolveBlockScalar(ctx, token, onError) : resolveFlowScalar.resolveFlowScalar(token, ctx.options.strict, onError);
       const tagName = tagToken ? ctx.directives.tagName(tagToken.source, (msg) => onError(tagToken, "TAG_RESOLVE_FAILED", msg)) : null;
       let tag;
       if (ctx.options.stringKeys && ctx.atKey) {
@@ -58798,8 +58798,8 @@ var require_compose_scalar = __commonJS({
         scalar.tag = tagName;
       if (tag.format)
         scalar.format = tag.format;
-      if (comment2)
-        scalar.comment = comment2;
+      if (comment)
+        scalar.comment = comment;
       return scalar;
     }
     function findScalarTagByName(schema, value, tagName, tagToken, onError) {
@@ -58885,7 +58885,7 @@ var require_compose_node = __commonJS({
     var CN = { composeNode, composeEmptyNode };
     function composeNode(ctx, token, props, onError) {
       const atKey = ctx.atKey;
-      const { spaceBefore, comment: comment2, anchor, tag } = props;
+      const { spaceBefore, comment, anchor, tag } = props;
       let node;
       let isSrcToken = true;
       switch (token.type) {
@@ -58929,17 +58929,17 @@ var require_compose_node = __commonJS({
       }
       if (spaceBefore)
         node.spaceBefore = true;
-      if (comment2) {
+      if (comment) {
         if (token.type === "scalar" && token.source === "")
-          node.comment = comment2;
+          node.comment = comment;
         else
-          node.commentBefore = comment2;
+          node.commentBefore = comment;
       }
       if (ctx.options.keepSourceTokens && isSrcToken)
         node.srcToken = token;
       return node;
     }
-    function composeEmptyNode(ctx, offset, before, pos, { spaceBefore, comment: comment2, anchor, tag, end }, onError) {
+    function composeEmptyNode(ctx, offset, before, pos, { spaceBefore, comment, anchor, tag, end }, onError) {
       const token = {
         type: "scalar",
         offset: utilEmptyScalarPosition.emptyScalarPosition(offset, before, pos),
@@ -58954,8 +58954,8 @@ var require_compose_node = __commonJS({
       }
       if (spaceBefore)
         node.spaceBefore = true;
-      if (comment2) {
-        node.comment = comment2;
+      if (comment) {
+        node.comment = comment;
         node.range[2] = end;
       }
       return node;
@@ -59041,14 +59041,14 @@ var require_composer = __commonJS({
       return [offset, offset + (typeof source === "string" ? source.length : 1)];
     }
     function parsePrelude(prelude) {
-      let comment2 = "";
+      let comment = "";
       let atComment = false;
       let afterEmptyLine = false;
       for (let i = 0; i < prelude.length; ++i) {
         const source = prelude[i];
         switch (source[0]) {
           case "#":
-            comment2 += (comment2 === "" ? "" : afterEmptyLine ? "\n\n" : "\n") + (source.substring(1) || " ");
+            comment += (comment === "" ? "" : afterEmptyLine ? "\n\n" : "\n") + (source.substring(1) || " ");
             atComment = true;
             afterEmptyLine = false;
             break;
@@ -59063,7 +59063,7 @@ var require_composer = __commonJS({
             atComment = false;
         }
       }
-      return { comment: comment2, afterEmptyLine };
+      return { comment, afterEmptyLine };
     }
     var Composer = class {
       constructor(options = {}) {
@@ -59083,25 +59083,25 @@ var require_composer = __commonJS({
         this.options = options;
       }
       decorate(doc, afterDoc) {
-        const { comment: comment2, afterEmptyLine } = parsePrelude(this.prelude);
-        if (comment2) {
+        const { comment, afterEmptyLine } = parsePrelude(this.prelude);
+        if (comment) {
           const dc = doc.contents;
           if (afterDoc) {
             doc.comment = doc.comment ? `${doc.comment}
-${comment2}` : comment2;
+${comment}` : comment;
           } else if (afterEmptyLine || doc.directives.docStart || !dc) {
-            doc.commentBefore = comment2;
+            doc.commentBefore = comment;
           } else if (identity.isCollection(dc) && !dc.flow && dc.items.length > 0) {
             let it = dc.items[0];
             if (identity.isPair(it))
               it = it.key;
             const cb = it.commentBefore;
-            it.commentBefore = cb ? `${comment2}
-${cb}` : comment2;
+            it.commentBefore = cb ? `${comment}
+${cb}` : comment;
           } else {
             const cb = dc.commentBefore;
-            dc.commentBefore = cb ? `${comment2}
-${cb}` : comment2;
+            dc.commentBefore = cb ? `${comment}
+${cb}` : comment;
           }
         }
         if (afterDoc) {
@@ -75208,10 +75208,10 @@ var DocTypeReader = class {
     if (xmlData[i + 3] === "O" && xmlData[i + 4] === "C" && xmlData[i + 5] === "T" && xmlData[i + 6] === "Y" && xmlData[i + 7] === "P" && xmlData[i + 8] === "E") {
       i = i + 9;
       let angleBracketsCount = 1;
-      let hasBody = false, comment2 = false;
+      let hasBody = false, comment = false;
       let exp = "";
       for (; i < xmlData.length; i++) {
-        if (xmlData[i] === "<" && !comment2) {
+        if (xmlData[i] === "<" && !comment) {
           if (hasBody && hasSeq(xmlData, "!ENTITY", i)) {
             i += 7;
             let entityName, val;
@@ -75235,14 +75235,14 @@ var DocTypeReader = class {
             i += 9;
             const { index } = this.readNotationExp(xmlData, i + 1, this.suppressValidationErr);
             i = index;
-          } else if (hasSeq(xmlData, "!--", i)) comment2 = true;
+          } else if (hasSeq(xmlData, "!--", i)) comment = true;
           else throw new Error(`Invalid DOCTYPE`);
           angleBracketsCount++;
           exp = "";
         } else if (xmlData[i] === ">") {
-          if (comment2) {
+          if (comment) {
             if (xmlData[i - 1] === "-" && xmlData[i - 2] === "-") {
-              comment2 = false;
+              comment = false;
               angleBracketsCount--;
             }
           } else {
@@ -76636,9 +76636,9 @@ var parseXml = function(xmlData) {
       } else if (c1 === 33 && xmlData.charCodeAt(i + 2) === 45 && xmlData.charCodeAt(i + 3) === 45) {
         const endIndex = findClosingIndex(xmlData, "-->", i + 4, "Comment is not closed.");
         if (options.commentPropName) {
-          const comment2 = xmlData.substring(i + 4, endIndex - 2);
+          const comment = xmlData.substring(i + 4, endIndex - 2);
           textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
-          currentNode.add(options.commentPropName, [{ [options.textNodeName]: comment2 }]);
+          currentNode.add(options.commentPropName, [{ [options.textNodeName]: comment }]);
         }
         i = endIndex;
       } else if (c1 === 33 && xmlData.charCodeAt(i + 2) === 68) {
@@ -101475,12 +101475,21 @@ If the error persists, please check whether Actions and API requests are operati
 var client = new DefaultArtifactClient();
 
 // lib/core/assist.js
+var import_yaml = __toESM(require_dist5(), 1);
 var defaultModel = "gpt-5.5";
 async function runAssist(options) {
+  if (options.offlineTemplate) {
+    return {
+      skipped: false,
+      output: structuredTemplate(options.kind, options.input),
+      structured: options.kind !== "pr-summary"
+    };
+  }
   if (!options.apiKey) {
     return {
       skipped: true,
-      output: "AI assist skipped: OPENAI_API_KEY or --openai-api-key is not configured."
+      output: "AI assist skipped: OPENAI_API_KEY or --openai-api-key is not configured.",
+      structured: false
     };
   }
   const model = options.model || defaultModel;
@@ -101495,7 +101504,7 @@ async function runAssist(options) {
       input: [
         {
           role: "system",
-          content: "You draft Knowledge Convergence artifacts. Output candidates only. Never claim approval, validation passed, or deterministic gate status."
+          content: systemPrompt()
         },
         {
           role: "user",
@@ -101509,25 +101518,143 @@ async function runAssist(options) {
     throw new Error(`OpenAI Responses API returned ${response.status}: ${body2}`);
   }
   const json = await response.json();
+  const output = extractOutputText(json);
   return {
     skipped: false,
     model,
-    output: extractOutputText(json)
+    output: validateStructuredOutput(options.kind, output),
+    structured: options.kind !== "pr-summary"
   };
+}
+function systemPrompt() {
+  return [
+    "You draft Knowledge Convergence artifacts.",
+    "Output candidates only.",
+    "Never claim approval, validation passed, merge readiness, or deterministic gate status.",
+    "Set candidate_status to draft for YAML artifacts.",
+    "Use validation_status: pending unless the user supplies an explicit validation report reference.",
+    "Preserve verification and validation as separate concepts."
+  ].join(" ");
 }
 function buildPrompt(kind, input) {
   const header = {
-    "issue-questions": "Draft missing-information questions for this GitHub Issue.",
-    "plan-draft": "Draft a .kc/plan.yaml candidate from this issue or plan text.",
-    "bundle-draft": "Draft an approval evidence bundle candidate from this check context.",
+    "issue-packet": "Draft a parseable .kc/issue.yaml candidate.",
+    plan: "Draft a parseable .kc/plan.yaml candidate with status pending_approval.",
+    "evidence-bundle": "Draft a parseable .kc/evidence_bundle.yaml candidate with no passed validation unless evidence is explicit.",
+    "decision-ledger": "Draft a DecisionLedger candidate in Markdown with source references.",
     "pr-summary": "Draft a concise PR comment explaining the KC Guard result."
   }[kind];
+  const format = kind === "decision-ledger" || kind === "pr-summary" ? "Markdown" : "YAML only, no code fences";
   return `${header}
 
-Mark all output as candidate/draft. Preserve verification and validation as separate concepts.
+Format: ${format}.
+Mark all output as candidate/draft.
 
 Input:
 ${input}`;
+}
+function structuredTemplate(kind, input) {
+  const sourceSummary = input.trim().slice(0, 500);
+  if (kind === "issue-packet") {
+    return import_yaml.default.stringify({
+      issue_packet: {
+        candidate_status: "draft",
+        issue_ref: "candidate:unlinked",
+        problem_statement: sourceSummary || "TBD",
+        expected_outcome: "TBD",
+        acceptance_criteria: ["TBD"],
+        validation_status: "pending",
+        risk_tier: "medium",
+        non_goals: ["TBD"],
+        issue_state: "draft"
+      }
+    });
+  }
+  if (kind === "plan") {
+    return import_yaml.default.stringify({
+      agent_plan: {
+        candidate_status: "draft",
+        plan_id: "PLAN-DRAFT",
+        issue_ref: "candidate:unlinked",
+        interpreted_requirement: sourceSummary || "TBD",
+        scope: { allowed_files: ["TBD"], prohibited_files: ["TBD"] },
+        non_goals: ["TBD"],
+        plan_items: [{ id: "P1", action: "TBD", expected_files: ["TBD"] }],
+        verification_plan: ["TBD"],
+        validation_evidence_plan: ["TBD"],
+        questions_for_human: [],
+        status: "pending_approval"
+      }
+    });
+  }
+  if (kind === "evidence-bundle") {
+    return import_yaml.default.stringify({
+      approval_evidence_bundle: {
+        candidate_status: "draft",
+        bundle_id: "AEB-DRAFT",
+        issue_ref: "candidate:unlinked",
+        plan_ref: "PLAN-DRAFT",
+        approval_ref: "pending",
+        pr_ref: "pending",
+        diff_summary: { changed_files: [], out_of_scope_files: [] },
+        verification_evidence: [],
+        validation_evidence: [],
+        validation_status: "pending",
+        findings: [],
+        decision: { branch: "hold", primary_reason: "candidate_not_reviewed", required_actions: ["Human review required."] }
+      }
+    });
+  }
+  if (kind === "decision-ledger") {
+    return [
+      "# DecisionLedger Candidate",
+      "",
+      "candidate_status: draft",
+      "",
+      "## Source",
+      "",
+      sourceSummary || "TBD",
+      "",
+      "## Candidate Decision",
+      "",
+      "- decision: pending",
+      "- rationale: TBD",
+      "- validation_status: pending",
+      "- human_review_required: true"
+    ].join("\n");
+  }
+  return [
+    "## KC Guard Candidate Summary",
+    "",
+    "candidate_status: draft",
+    "",
+    sourceSummary || "No input provided.",
+    "",
+    "This candidate does not change the deterministic KC decision."
+  ].join("\n");
+}
+function validateStructuredOutput(kind, output) {
+  if (kind === "decision-ledger" || kind === "pr-summary") {
+    return output;
+  }
+  const yamlText = stripCodeFence(output);
+  const parsed = import_yaml.default.parse(yamlText);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`AI assist produced non-object YAML for ${kind}.`);
+  }
+  ensureDraftOnly(parsed);
+  return import_yaml.default.stringify(parsed);
+}
+function ensureDraftOnly(value) {
+  const serialized = JSON.stringify(value).toLowerCase();
+  if (serialized.includes("approved_with_conditions") || serialized.includes('validation_status":"passed') || serialized.includes('merge_ready":true')) {
+    throw new Error("AI assist output attempted to claim approval, validation passed, or merge readiness.");
+  }
+}
+function stripCodeFence(output) {
+  const trimmed = output.trim();
+  const match2 = trimmed.match(/^```(?:yaml|yml)?\s*([\s\S]*?)\s*```$/i);
+  return match2 ? match2[1] : trimmed;
 }
 function extractOutputText(json) {
   if (typeof json.output_text === "string") {
@@ -103431,7 +103558,7 @@ function detectChangedFiles(workspace) {
 // lib/core/artifacts.js
 var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
-var import_yaml = __toESM(require_dist5(), 1);
+var import_yaml2 = __toESM(require_dist5(), 1);
 var artifactFiles = {
   issue: ".kc/issue.yaml",
   plan: ".kc/plan.yaml",
@@ -103444,7 +103571,7 @@ function readYamlFile(filePath) {
     return void 0;
   }
   const content = import_node_fs2.default.readFileSync(filePath, "utf8");
-  const parsed = import_yaml.default.parse(content);
+  const parsed = import_yaml2.default.parse(content);
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     return {};
   }
@@ -103514,7 +103641,7 @@ function unwrapRoot(kind, data) {
 }
 function writeYamlFile(filePath, value) {
   import_node_fs2.default.mkdirSync(import_node_path.default.dirname(filePath), { recursive: true });
-  import_node_fs2.default.writeFileSync(filePath, import_yaml.default.stringify(value), "utf8");
+  import_node_fs2.default.writeFileSync(filePath, import_yaml2.default.stringify(value), "utf8");
 }
 
 // lib/core/rules.js
@@ -103775,7 +103902,7 @@ async function runCheck(options) {
   const workspace = import_node_path2.default.resolve(options.workspace);
   const changedFiles = uniquePaths(options.changedFiles && options.changedFiles.length > 0 ? options.changedFiles : detectChangedFiles(workspace));
   const artifacts = loadArtifacts(workspace, options.rulesetPath);
-  const findings = evaluateRules(artifacts, changedFiles);
+  const findings = [...evaluateRules(artifacts, changedFiles), ...options.additionalFindings ?? []];
   const decision = decide(findings);
   const reason = primaryReason(findings);
   const evidenceBundle = buildEvidenceBundle({
@@ -103845,6 +103972,53 @@ function readPath2(source, pathParts) {
   return cursor;
 }
 
+// lib/core/pr-body.js
+var requiredSections = ["Linked Issue", "Approved Plan", "Approval", "Verification", "Validation", "KC Evidence"];
+function validatePullRequestBody(body2) {
+  const text = body2 ?? "";
+  const findings = [];
+  for (const section of requiredSections) {
+    const content = readSection(text, section);
+    if (content === void 0) {
+      findings.push({
+        ruleId: "KC-PR-001",
+        severity: "error",
+        reasonCode: "missing_pr_section",
+        message: `PR body is missing required section: ${section}.`
+      });
+    } else if (content.trim().length === 0) {
+      findings.push({
+        ruleId: "KC-PR-001",
+        severity: "error",
+        reasonCode: "empty_pr_section",
+        message: `PR body section is empty: ${section}.`
+      });
+    }
+  }
+  return findings;
+}
+function linkedIssueNumbers(body2) {
+  const text = body2 ?? "";
+  const linkedIssue = readSection(text, "Linked Issue") ?? text;
+  return [...new Set([...linkedIssue.matchAll(/#(\d+)/g)].map((match2) => Number(match2[1])).filter((number) => Number.isInteger(number)))];
+}
+function readSection(body2, heading) {
+  const lines = body2.split(/\r?\n/);
+  const headingPattern = new RegExp(`^##\\s+${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "i");
+  const start = lines.findIndex((line) => headingPattern.test(line));
+  if (start === -1) {
+    return void 0;
+  }
+  const content = [];
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##\s+/.test(lines[index])) {
+      break;
+    }
+    content.push(lines[index]);
+  }
+  return content.join("\n");
+}
+
 // lib/action/index.js
 async function main() {
   const workspace = getInput("workspace") || ".";
@@ -103852,8 +104026,14 @@ async function main() {
   const aiAssist = getBooleanInput("ai-assist");
   const model = getInput("model") || defaultModel;
   const commentOnPr = getBooleanInput("comment-on-pr");
-  const prRef = context2.payload.pull_request?.html_url;
-  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef });
+  const commentOnLinkedIssue = getBooleanInput("comment-on-linked-issue");
+  const pullRequest = context2.payload.pull_request;
+  const prRef = pullRequest?.html_url;
+  const token = process.env.GITHUB_TOKEN;
+  const octokit = token ? getOctokit(token) : void 0;
+  const changedFiles = octokit && pullRequest ? await fetchPullRequestFiles(octokit, pullRequest.number) : void 0;
+  const prBodyFindings = pullRequest ? validatePullRequestBody(pullRequest.body ?? "") : [];
+  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings });
   setOutput("decision", result.decision);
   setOutput("merge_ready", String(result.mergeReady));
   setOutput("primary_reason", result.primaryReason);
@@ -103889,11 +104069,23 @@ async function main() {
   }
   await writeSummary(result, aiCandidate);
   if (commentOnPr) {
-    await comment(result, aiCandidate);
+    await commentOnPullRequest(result, aiCandidate);
+  }
+  if (commentOnLinkedIssue && prBodyFindings.length > 0) {
+    await commentOnLinkedIssues(pullRequest?.body ?? "", prBodyFindings);
   }
   if (result.decision === "HOLD" || result.decision === "FAIL") {
     setFailed(`KC Guard ${result.decision}: ${result.primaryReason}`);
   }
+}
+async function fetchPullRequestFiles(octokit, pullNumber) {
+  const files = await octokit.paginate(octokit.rest.pulls.listFiles, {
+    owner: context2.repo.owner,
+    repo: context2.repo.repo,
+    pull_number: pullNumber,
+    per_page: 100
+  });
+  return files.map((file) => file.filename);
 }
 async function uploadBundle(filePath) {
   if (!import_node_fs3.default.existsSync(filePath)) {
@@ -103922,7 +104114,7 @@ async function writeSummary(result, aiCandidate) {
 ${aiCandidate}
 ` : "").write();
 }
-async function comment(result, aiCandidate) {
+async function commentOnPullRequest(result, aiCandidate) {
   const token = process.env.GITHUB_TOKEN;
   const pullRequest = context2.payload.pull_request;
   if (!token || !pullRequest) {
@@ -103949,6 +104141,30 @@ ${aiCandidate}` : ""
     issue_number: pullRequest.number,
     body: body2
   });
+}
+async function commentOnLinkedIssues(body2, findings) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    return;
+  }
+  const issueNumbers = linkedIssueNumbers(body2);
+  if (issueNumbers.length === 0) {
+    return;
+  }
+  const octokit = getOctokit(token);
+  const commentBody = [
+    "KC Guard found PR body issues that may block the linked implementation:",
+    "",
+    ...findings.map((finding) => `- ${finding.reasonCode}: ${finding.message}`)
+  ].join("\n");
+  for (const issue_number of issueNumbers) {
+    await octokit.rest.issues.createComment({
+      owner: context2.repo.owner,
+      repo: context2.repo.repo,
+      issue_number,
+      body: commentBody
+    });
+  }
 }
 main().catch((error3) => {
   setFailed(error3 instanceof Error ? error3.message : String(error3));

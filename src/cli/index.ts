@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
-import { runAssist, defaultModel } from "../core/assist.js";
+import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
+import { runPromote } from "../core/promote.js";
 import { initWorkspace } from "../core/templates.js";
 
 interface ParsedArgs {
@@ -53,23 +54,28 @@ async function main(): Promise<void> {
     const result = await runAssist({
       apiKey: value(args, "openai-api-key") || process.env.OPENAI_API_KEY,
       model: value(args, "model") || defaultModel,
-      kind: parseAssistKind(value(args, "kind") || "issue-questions"),
-      input
+      kind: normalizeAssistKind(value(args, "kind") || "issue-packet"),
+      input,
+      offlineTemplate: args.values.has("offline-template")
     });
-    console.log(`# KC AI Assist Candidate${result.model ? ` (${result.model})` : ""}`);
-    console.log("");
-    console.log(result.output);
+    await writeOrPrint(args, `# KC AI Assist Candidate${result.model ? ` (${result.model})` : ""}\n\n${result.output}`);
+    return;
+  }
+
+  if (args.command === "promote") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const result = runPromote({
+      workspace,
+      outputDir: value(args, "output-dir")
+    });
+    console.log(`KC promotion candidates written to ${result.outputDir}`);
+    for (const file of result.files) {
+      console.log(`created ${file}`);
+    }
     return;
   }
 
   throw new Error(`Unknown command: ${args.command}`);
-}
-
-function parseAssistKind(kind: string): "issue-questions" | "plan-draft" | "bundle-draft" | "pr-summary" {
-  if (kind === "issue-questions" || kind === "plan-draft" || kind === "bundle-draft" || kind === "pr-summary") {
-    return kind;
-  }
-  throw new Error(`Invalid assist kind: ${kind}`);
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -134,6 +140,17 @@ async function readAssistInput(args: ParsedArgs): Promise<string> {
   return await readStdin();
 }
 
+async function writeOrPrint(args: ParsedArgs, content: string): Promise<void> {
+  const outputFile = value(args, "output");
+  if (!outputFile) {
+    console.log(content);
+    return;
+  }
+  fs.mkdirSync(path.dirname(path.resolve(outputFile)), { recursive: true });
+  fs.writeFileSync(path.resolve(outputFile), content, "utf8");
+  console.log(`written ${outputFile}`);
+}
+
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) {
     return "";
@@ -179,7 +196,8 @@ Usage:
   kc init [--workspace .] [--force]
   kc check [--workspace .] [--changed-files files.txt] [--changed-file path] [--json]
   kc bundle [--workspace .] [--changed-files files.txt]
-  kc assist [--kind issue-questions|plan-draft|bundle-draft|pr-summary] [--input file] [--model gpt-5.5]
+  kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
+  kc promote [--workspace .] [--output-dir reports/promotion]
 
 AI assist uses OPENAI_API_KEY or --openai-api-key. Deterministic checks do not require API credentials.`);
 }
