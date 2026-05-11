@@ -5,6 +5,7 @@ import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brie
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
 import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../core/issue.js";
+import { closeWork, finalizeWork } from "../core/lifecycle.js";
 import { runPromote } from "../core/promote.js";
 import { initWorkspace } from "../core/templates.js";
 
@@ -42,7 +43,8 @@ async function main(): Promise<void> {
       workspace,
       rulesetPath: value(args, "ruleset") || ".kc/ruleset.yaml",
       changedFiles,
-      prRef: value(args, "pr-ref")
+      prRef: value(args, "pr-ref"),
+      mode: checkMode(value(args, "mode"))
     });
     printCheckResult(result, args.values.has("json"));
     if (args.command === "check" && (result.decision === "HOLD" || result.decision === "FAIL")) {
@@ -136,6 +138,44 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (args.command === "finalize") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const result = finalizeWork({
+      workspace,
+      issueRef: value(args, "issue-ref"),
+      prRef: value(args, "pr-ref"),
+      releaseRef: value(args, "release-ref"),
+      npmRef: value(args, "npm-ref"),
+      status: value(args, "status") || "completed",
+      workId: value(args, "work-id"),
+      finalEvidenceBundleRef: value(args, "final-evidence-bundle-ref"),
+      verifyExternal: args.values.has("verify-external"),
+      expectedCommit: value(args, "expected-commit"),
+      tagRefs: args.values.get("tag-ref"),
+      force: args.values.has("force")
+    });
+    console.log(`KC work finalized: ${result.currentPath}`);
+    if (result.archivePath) {
+      console.log(`archive: ${result.archivePath}`);
+    }
+    return;
+  }
+
+  if (args.command === "close-work") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const result = closeWork({
+      workspace,
+      workId: value(args, "work-id"),
+      archive: args.values.has("archive") || !args.values.has("no-archive"),
+      force: args.values.has("force")
+    });
+    console.log(`KC work closed: ${result.currentPath}`);
+    for (const file of result.archivedFiles ?? []) {
+      console.log(`archived ${file}`);
+    }
+    return;
+  }
+
   throw new Error(`Unknown command: ${args.command}`);
 }
 
@@ -186,6 +226,16 @@ function requiredValue(args: ParsedArgs, key: string): string {
     throw new Error(`--${key} is required.`);
   }
   return result;
+}
+
+function checkMode(raw: string | undefined): "pr" | "current" {
+  if (!raw || raw === "pr") {
+    return "pr";
+  }
+  if (raw === "current") {
+    return "current";
+  }
+  throw new Error(`Unsupported --mode: ${raw}. Expected pr or current.`);
 }
 
 async function readChangedFiles(args: ParsedArgs): Promise<string[] | undefined> {
@@ -263,7 +313,7 @@ function printHelp(): void {
 
 Usage:
   kc init [--workspace .] [--force]
-  kc check [--workspace .] [--changed-files files.txt] [--changed-file path] [--json]
+  kc check [--workspace .] [--mode pr|current] [--changed-files files.txt] [--changed-file path] [--json]
   kc bundle [--workspace .] [--changed-files files.txt]
   kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
   kc issue-brief [--input file] [--output file]
@@ -271,6 +321,8 @@ Usage:
   kc issue-check [--workspace .]
   kc approval-brief [--workspace .]
   kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]
+  kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version [--verify-external]
+  kc close-work --workspace . [--archive]
   kc promote [--workspace .] [--output-dir reports/promotion]
 
 AI assist uses OPENAI_API_KEY or --openai-api-key. Deterministic checks do not require API credentials.`);

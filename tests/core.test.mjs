@@ -10,6 +10,7 @@ import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-
 import { runAssist, systemPrompt, validateStructuredOutput } from "../lib/core/assist.js";
 import { runCheck } from "../lib/core/check.js";
 import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
+import { closeWork, finalizeWork } from "../lib/core/lifecycle.js";
 import { shouldValidatePullRequestBody, validatePullRequestBody } from "../lib/core/pr-body.js";
 import { runPromote } from "../lib/core/promote.js";
 import { initWorkspace } from "../lib/core/templates.js";
@@ -196,6 +197,75 @@ describe("KC rule engine", () => {
     assert.equal(result.decision, "HOLD");
     assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-016" && finding.reasonCode === "unmapped_plan_item_change"));
   });
+
+  it("detects stale completed lifecycle state in current mode", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "current.yaml"), YAML.stringify({
+      kc_current: {
+        lifecycle_state: "finalized",
+        active_work: false,
+        work_id: "KC-FIXTURE-789",
+        final_status: "completed"
+      }
+    }), "utf8");
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.issue_state = "ready_for_plan";
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.pr_ref = "pending";
+    evidence.approval_evidence_bundle.final_status = "completed";
+    evidence.approval_evidence_bundle.decision = { required_actions: ["Publish npm."] };
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      mode: "current",
+      changedFiles: []
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-017" && finding.reasonCode === "lifecycle_state_stale"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-018"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-019"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-020"));
+  });
+
+  it("passes current mode after finalizing completed work", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.pr_ref = "pending";
+    evidence.approval_evidence_bundle.decision = { required_actions: ["Merge PR."] };
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const finalizeResult = finalizeWork({
+      workspace,
+      issueRef: "github:sawadari/KC-fixture/issues/789",
+      prRef: "github:sawadari/KC-fixture/pull/456",
+      releaseRef: "https://github.com/sawadari/KC-fixture/releases/tag/v9.9.9",
+      npmRef: "@sawadari/kc@9.9.9",
+      workId: "KC-FIXTURE-789",
+      status: "completed"
+    });
+
+    assert.ok(fs.existsSync(finalizeResult.currentPath));
+    assert.ok(fs.existsSync(finalizeResult.archivePath));
+    const current = YAML.parse(fs.readFileSync(finalizeResult.currentPath, "utf8"));
+    assert.equal(current.kc_current.active_work, false);
+    assert.equal(current.kc_current.lifecycle_state, "finalized");
+    assert.equal(current.kc_current.final_evidence_bundle_ref, ".kc/archive/KC-FIXTURE-789.final.yaml");
+
+    const result = await runCheck({
+      workspace,
+      mode: "current",
+      changedFiles: []
+    });
+
+    assert.equal(result.decision, "PASS");
+    assert.deepEqual(result.findings.filter((finding) => finding.ruleId.startsWith("KC-AE-017") || finding.ruleId.startsWith("KC-AE-018")), []);
+  });
 });
 
 describe("KC CLI", () => {
@@ -238,6 +308,39 @@ describe("KC CLI", () => {
 
     assert.equal(result.status, 1);
     assert.match(result.stdout, /KC PR Check: HOLD/);
+  });
+
+  it("runs finalize and close-work from the CLI", () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const finalize = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "finalize",
+      "--workspace",
+      workspace,
+      "--issue-ref",
+      "github:sawadari/KC-fixture/issues/789",
+      "--pr-ref",
+      "github:sawadari/KC-fixture/pull/456",
+      "--status",
+      "completed",
+      "--work-id",
+      "KC-FIXTURE-789"
+    ], { encoding: "utf8" });
+
+    assert.equal(finalize.status, 0, finalize.stderr);
+    assert.match(finalize.stdout, /KC work finalized/);
+
+    const close = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "close-work",
+      "--workspace",
+      workspace,
+      "--archive",
+      "--force"
+    ], { encoding: "utf8" });
+
+    assert.equal(close.status, 0, close.stderr);
+    assert.match(close.stdout, /archived .kc\/archive\/KC-FIXTURE-789\/issue.yaml/);
   });
 });
 

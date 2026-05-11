@@ -101838,6 +101838,7 @@ var artifactFiles = {
   approval: ".kc/approval.yaml",
   envelope: ".kc/agent_envelope.yaml",
   evidence: ".kc/evidence_bundle.yaml",
+  current: ".kc/current.yaml",
   config: ".kc/config.yaml"
 };
 function readYamlFile(filePath) {
@@ -101870,6 +101871,8 @@ function loadArtifacts(workspace, rulesetPath) {
           loaded.envelope = unwrapped;
         } else if (key === "evidence") {
           loaded.evidence = unwrapped;
+        } else if (key === "current") {
+          loaded.current = unwrapped;
         } else if (key === "config") {
           loaded.config = unwrapped;
         }
@@ -101906,7 +101909,8 @@ function unwrapRoot(kind, data) {
     plan: "agent_plan",
     approval: "plan_approval",
     envelope: "agent_execution_envelope",
-    evidence: "approval_evidence_bundle"
+    evidence: "approval_evidence_bundle",
+    current: "kc_current"
   };
   const root = roots[kind];
   const maybeWrapped = root ? data[root] : void 0;
@@ -103809,11 +103813,15 @@ var knownRuleIds = [
   "KC-AE-013",
   "KC-AE-014",
   "KC-AE-015",
-  "KC-AE-016"
+  "KC-AE-016",
+  "KC-AE-017",
+  "KC-AE-018",
+  "KC-AE-019",
+  "KC-AE-020"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
 var placeholderValues = /* @__PURE__ */ new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
-function evaluateRules(artifacts, changedFiles) {
+function evaluateRules(artifacts, changedFiles, options = {}) {
   const policy = resolveRulePolicy(artifacts.ruleset);
   const findings = [...artifacts.loadFindings, ...policy.findings];
   const add = (finding) => {
@@ -103824,6 +103832,7 @@ function evaluateRules(artifacts, changedFiles) {
   const approval = artifacts.approval;
   const envelope = artifacts.envelope;
   const evidence = artifacts.evidence;
+  const current = artifacts.current;
   if (isRuleEnabled(policy, "KC-AE-001")) {
     if (!issue2) {
       add(error2("KC-AE-001", "missing_issue", ".kc/issue.yaml is required."));
@@ -103916,6 +103925,38 @@ function evaluateRules(artifacts, changedFiles) {
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
         add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
+      }
+    }
+  }
+  if (options.mode === "current") {
+    if (isRuleEnabled(policy, "KC-AE-017") && !current) {
+      add(error2("KC-AE-017", "missing_current_state", ".kc/current.yaml is required for current-mode lifecycle checks."));
+    }
+    const lifecycleState = stringValue(current?.lifecycle_state ?? evidence?.lifecycle_state).toLowerCase();
+    const finalStatus = stringValue(current?.final_status ?? evidence?.final_status).toLowerCase();
+    const completed = isCompletedLifecycle(lifecycleState, finalStatus, current);
+    if (completed && isRuleEnabled(policy, "KC-AE-017")) {
+      const issueState = stringValue(issue2?.issue_state).toLowerCase();
+      if (["draft", "ready_for_plan", "plan_requested", "pending_plan_approval"].includes(issueState)) {
+        add(error2("KC-AE-017", "lifecycle_state_stale", `Completed work must not keep issue_state=${issueState}.`));
+      }
+    }
+    if (completed && isRuleEnabled(policy, "KC-AE-018")) {
+      const prRef = stringValue(current?.pr_ref ?? evidence?.pr_ref);
+      if (!prRef || prRef === "pending") {
+        add(error2("KC-AE-018", "pending_pr_ref_after_completion", "Completed work requires a final pr_ref, not pending."));
+      }
+    }
+    if (completed && isRuleEnabled(policy, "KC-AE-019")) {
+      const requiredActions = arrayRecords(readPath(evidence, ["decision", "required_actions"])).length > 0 ? arrayRecords(readPath(evidence, ["decision", "required_actions"])) : stringArray(readPath(evidence, ["decision", "required_actions"]));
+      if (requiredActions.length > 0) {
+        add(error2("KC-AE-019", "required_actions_after_completion", "Completed work must not keep decision.required_actions."));
+      }
+    }
+    if (completed && isRuleEnabled(policy, "KC-AE-020")) {
+      const finalBundleRef = stringValue(current?.final_evidence_bundle_ref ?? evidence?.final_evidence_bundle_ref ?? evidence?.archive_ref);
+      if (!finalBundleRef) {
+        add(error2("KC-AE-020", "missing_finalized_bundle_archive", "Finalized work requires final_evidence_bundle_ref or archive_ref."));
       }
     }
   }
@@ -104044,6 +104085,12 @@ function conditionEvidenceSatisfied(evidenceRequired, findings, verification, va
 function hasExceptionBasis(issue2, approval, evidence) {
   return hasValue(issue2.exception_basis) || hasValue(issue2.validation_exception_basis) || hasValue(approval?.exception_basis) || hasValue(evidence?.exception_basis) || hasValue(evidence?.validation_exception_basis);
 }
+function isCompletedLifecycle(lifecycleState, finalStatus, current) {
+  if (["completed", "finalized", "archived"].includes(finalStatus) || ["completed", "finalized", "archived"].includes(lifecycleState)) {
+    return true;
+  }
+  return current?.active_work === false && Boolean(finalStatus || lifecycleState);
+}
 function placeholderFindings(artifacts) {
   const findings = [];
   for (const [artifactName, artifact] of Object.entries(artifacts)) {
@@ -104134,7 +104181,7 @@ async function runCheck(options) {
   const workspace = import_node_path2.default.resolve(options.workspace);
   const changedFiles = uniquePaths(options.changedFiles && options.changedFiles.length > 0 ? options.changedFiles : detectChangedFiles(workspace));
   const artifacts = loadArtifacts(workspace, options.rulesetPath);
-  const findings = [...evaluateRules(artifacts, changedFiles), ...options.additionalFindings ?? []];
+  const findings = [...evaluateRules(artifacts, changedFiles, { mode: options.mode ?? "pr" }), ...options.additionalFindings ?? []];
   const decision = decide(findings);
   const reason = primaryReason(findings);
   const evidenceBundle = buildEvidenceBundle({

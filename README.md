@@ -154,6 +154,7 @@ Action outputs:
 4. Let the agent implement within the approved scope.
 5. Add verification and validation evidence to `.kc/evidence_bundle.yaml`.
 6. Run `kc check` locally or let the GitHub Action gate the PR.
+7. After merge or release, run `kc finalize` to close the evidence and mark `.kc/current.yaml` as no longer active.
 
 This keeps "what we asked for", "what was approved", "what changed", and "what proved it works" in the repository instead of scattered across chat history.
 
@@ -169,6 +170,9 @@ kc issue-record --issue-ref URL --problem text --expected-outcome text --accepta
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
+kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version
+kc close-work --workspace . --archive
+kc check --workspace . --mode current
 kc promote --workspace . --output-dir reports/promotion
 ```
 
@@ -183,6 +187,9 @@ Command summary:
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
 - `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.
+- `kc finalize`: turn PR-time evidence into finalized evidence after merge or release.
+- `kc close-work`: archive active `.kc` artifacts and mark current work inactive.
+- `kc check --mode current`: detect stale main-branch lifecycle state.
 - `kc promote`: generate candidate DecisionLedger and related promotion files for human review.
 
 AI assist is optional. It uses `OPENAI_API_KEY` or `--openai-api-key` only when requested. Deterministic checks work without API credentials.
@@ -196,10 +203,38 @@ KC reads these files from the target repository:
 - `.kc/approval.yaml`: human approval evidence and approval conditions
 - `.kc/agent_envelope.yaml`: agent identity and execution boundaries
 - `.kc/evidence_bundle.yaml`: verification, validation, PR, and audit evidence
+- `.kc/current.yaml`: active/finalized lifecycle state for the current work item
 - `.kc/ruleset.yaml`: enabled rules and severity overrides
 - `.kc/config.yaml`: optional GitHub Action enforcement scope
 
 The examples created by `kc init` are intentionally explicit and pending. Active artifacts containing common example placeholders are blocked by KC.
+
+## Artifact Lifecycle
+
+KC treats active PR artifacts and finalized evidence differently:
+
+- Active artifacts tell Codex and reviewers what work is currently approved.
+- Finalized artifacts explain what already happened after a PR or release is completed.
+
+Use `kc finalize` after merge or release completion:
+
+```bash
+kc finalize --workspace . \
+  --issue-ref https://github.com/OWNER/REPO/issues/123 \
+  --pr-ref https://github.com/OWNER/REPO/pull/456 \
+  --release-ref https://github.com/OWNER/REPO/releases/tag/v1.2.3 \
+  --npm-ref @scope/package@1.2.3
+```
+
+This updates `.kc/evidence_bundle.yaml`, writes `.kc/current.yaml`, and archives the final bundle under `.kc/archive/`.
+
+Use current-mode checks on `main` or release branches when you want to catch stale lifecycle state:
+
+```bash
+kc check --workspace . --mode current
+```
+
+Use `kc close-work --archive` when active artifacts should be copied into `.kc/archive/<work-id>/` and `.kc/current.yaml` should show `active_work: false`.
 
 ## Enforcement Scope
 
@@ -232,7 +267,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, and plan-item trace checks.
+The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, plan-item trace checks, and current-mode lifecycle stale-state checks.
 
 ## Optional Codex Hooks
 

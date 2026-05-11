@@ -1,18 +1,19 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/29
-  problem_statement: "KC main contains guard hardening that is not yet available through npm latest or the v0 GitHub Action tag."
-  expected_outcome: "Publish KC v0.4.0 so npm users and GitHub Action users receive the hardened implementation."
+  issue_ref: github:sawadari/KC/issues/31-35
+  problem_statement: "KC can gate PR-time artifacts, but completed work remains stale on main because .kc artifacts do not have a lifecycle model, current state file, finalization command, or current-mode checks."
+  expected_outcome: "KC distinguishes active work from finalized evidence, can finalize completed work, can archive active artifacts, and can detect stale current ledger state."
   acceptance_criteria:
-    - "Bump package metadata to 0.4.0."
-    - "Verify tests, bundle freshness, non-empty Action bundle, and npm pack dry-run."
-    - "Open a release PR linked to Issue #29."
-    - "After merge, publish @sawadari/kc@0.4.0 with public access."
-    - "After merge, move v0 and create v0.4.0 on the release commit."
+    - "Define and document .kc artifact lifecycle states and .kc/current.yaml."
+    - "Implement kc finalize for completed KC work."
+    - "Implement kc check --mode current and lifecycle rules KC-AE-017 through KC-AE-020."
+    - "Implement kc close-work for archiving completed active artifacts."
+    - "Add optional release evidence verification helpers for finalize."
+    - "Update templates, README, README.ja, tests, and KC self-governance artifacts."
   validation_scenario:
-    statement: "Run npm.cmd test, verify dist/action/index.js is non-empty, rebuild with no dist diff, and run npm.cmd run pack:dry."
+    statement: "Run typecheck, unit tests, package dry-run, bundle freshness check, and KC self-check for the lifecycle implementation."
   risk_tier: medium
   non_goals:
-    - "Do not publish npm from the release preparation branch."
-    - "Do not move the v0 tag before the release PR is merged."
-    - "Do not change guard behavior in this release preparation PR."
+    - "Do not replace GitHub Issues, PRs, Releases, or npm as durable external evidence."
+    - "Do not require network access for deterministic checks."
+    - "Do not publish a new npm version in the implementation PR."
   issue_state: ready_for_plan

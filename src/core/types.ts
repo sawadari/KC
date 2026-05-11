@@ -16,6 +16,7 @@ export interface CheckOptions {
   changedFiles?: string[];
   additionalFindings?: Finding[];
   prRef?: string;
+  mode?: "pr" | "current";
 }
 
 export interface CheckResult {
@@ -34,6 +35,7 @@ export interface LoadedArtifacts {
   approval?: Record<string, unknown>;
   envelope?: Record<string, unknown>;
   evidence?: Record<string, unknown>;
+  current?: Record<string, unknown>;
   config?: Record<string, unknown>;
   ruleset?: Record<string, unknown>;
   loadFindings: Finding[];

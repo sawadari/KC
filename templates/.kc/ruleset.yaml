@@ -18,5 +18,9 @@ ruleset:
     - KC-AE-014
     - KC-AE-015
     - KC-AE-016
+    - KC-AE-017
+    - KC-AE-018
+    - KC-AE-019
+    - KC-AE-020
   severity_overrides: {}
 

@@ -18,5 +18,9 @@ Before finishing:
 3. If validation evidence is missing, state it explicitly.
 4. Prepare PR body with linked Issue, approved Plan, approval ID, verification evidence, validation evidence, and known holds.
 
-Codex Hooks are optional Phase 2 controls. This file is guidance, not a complete enforcement mechanism.
+After merge or release completion:
+1. Use `kc finalize` to replace pending refs with final PR/release/package refs.
+2. Keep finalized bundles under `.kc/archive/` and update `.kc/current.yaml`.
+3. Use `kc check --mode current` when validating the main-branch ledger.
 
+Codex Hooks are optional Phase 2 controls. This file is guidance, not a complete enforcement mechanism.
