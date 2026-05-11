@@ -1,22 +1,19 @@
 agent_plan:
-  plan_id: PLAN-KC-LIFECYCLE-001
-  issue_ref: github:sawadari/KC/issues/31-35
+  plan_id: PLAN-KC-ACTION-RUNTIME-001
+  issue_ref: github:sawadari/KC/issues/38
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Implement KC artifact lifecycle support: current state, finalize, close-work, current-mode checks, archive support, and release evidence verification."
+  interpreted_requirement: "Fix the KC GitHub Action runtime failure caused by CommonJS bundle execution under a root ESM package."
   scope:
     allowed_files:
+      - .github/**
       - .kc/**
-      - README.md
-      - README.ja.md
-      - dist/action/index.js
+      - dist/action/**
       - package.json
       - package-lock.json
       - reports/validation/**
-      - src/**
-      - templates/**
       - tests/**
     prohibited_files:
       - .env
@@ -28,86 +25,51 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not publish to npm."
-    - "Do not move GitHub Action tags."
-    - "Do not commit local editor configuration."
+    - "Do not change rule engine behavior."
+    - "Do not publish to npm before a release PR."
+    - "Do not move GitHub Action tags before a release PR."
   plan_items:
     - id: P1
-      action: "Add lifecycle core support for current state, finalization, archiving, and optional evidence verification."
+      action: "Mark dist/action/index.js as CommonJS for GitHub Actions runtime."
       expected_files:
-        - src/core/lifecycle.ts
-        - src/core/artifacts.ts
-        - src/core/types.ts
+        - dist/action/**
+        - package.json
       actual_files:
-        - src/core/lifecycle.ts
-        - src/core/artifacts.ts
-        - src/core/types.ts
+        - dist/action/package.json
+        - package.json
       status: implemented
     - id: P2
-      action: "Expose lifecycle commands and check mode selection in the CLI."
+      action: "Add CI and test coverage for Action runtime package metadata."
       expected_files:
-        - src/cli/index.ts
+        - .github/**
+        - tests/**
       actual_files:
-        - src/cli/index.ts
+        - .github/workflows/ci.yml
+        - tests/core.test.mjs
       status: implemented
     - id: P3
-      action: "Add current-mode lifecycle rules KC-AE-017 through KC-AE-020."
-      expected_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - tests/**
-      actual_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - tests/core.test.mjs
-      status: implemented
-    - id: P4
-      action: "Add lifecycle templates and documentation."
-      expected_files:
-        - README.md
-        - README.ja.md
-        - templates/AGENTS.md
-        - templates/.kc/current.example.yaml
-      actual_files:
-        - README.md
-        - README.ja.md
-        - templates/AGENTS.md
-        - templates/.kc/current.example.yaml
-      status: implemented
-    - id: P5
-      action: "Add lifecycle tests and validation evidence."
-      expected_files:
-        - tests/**
-        - reports/validation/**
-        - dist/action/index.js
-      actual_files:
-        - tests/core.test.mjs
-        - reports/validation/VAL-KC-LIFECYCLE-001.md
-        - dist/action/index.js
-      status: implemented
-    - id: P6
-      action: "Update KC self-governance artifacts for the lifecycle implementation PR."
+      action: "Record validation and KC self-governance evidence."
       expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-ACTION-RUNTIME-001.md
       status: implemented
   verification_plan:
     - "Run npm.cmd run check."
     - "Run npm.cmd test."
     - "Run npm.cmd run pack:dry."
-    - "Run npm.cmd run build and verify dist/action/index.js has no diff afterward."
-    - "Run KC self-check against the lifecycle change set."
+    - "Run npm.cmd run build and verify dist/action/index.js and dist/action/package.json have no diff afterward."
+    - "Run KC self-check."
   validation_evidence_plan:
-    - "Record reports/validation/VAL-KC-LIFECYCLE-001.md."
-    - "Use GitHub Actions CI on the PR as remote validation."
+    - "Record reports/validation/VAL-KC-ACTION-RUNTIME-001.md."
+    - "Use GitHub Actions CI on the KC PR."
+    - "Use sample repository PR checks for sawadari/KC@main."
   questions_for_human:
-    - "Do you approve PLAN-KC-LIFECYCLE-001 for implementation?"
+    - "Do you approve PLAN-KC-ACTION-RUNTIME-001 for implementation?"
   status: approved

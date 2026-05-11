@@ -358,6 +358,8 @@ describe("workspace init and action build", () => {
 
   it("builds the GitHub Action bundle", () => {
     assert.ok(fs.statSync(path.join(root, "dist", "action", "index.js")).size > 0);
+    const actionPackage = JSON.parse(fs.readFileSync(path.join(root, "dist", "action", "package.json"), "utf8"));
+    assert.equal(actionPackage.type, "commonjs");
   });
 });
 

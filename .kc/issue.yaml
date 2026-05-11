@@ -1,29 +1,18 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/31-35
-  problem_statement: KC can gate PR-time artifacts, but completed work remains
-    stale on main because .kc artifacts do not have a lifecycle model, current
-    state file, finalization command, or current-mode checks.
-  expected_outcome: KC distinguishes active work from finalized evidence, can
-    finalize completed work, can archive active artifacts, and can detect stale
-    current ledger state.
+  issue_ref: github:sawadari/KC/issues/38
+  problem_statement: "GitHub Actions executes dist/action/index.js as ESM because the repository root package.json has type=module, but the bundled Action contains CommonJS require calls."
+  expected_outcome: "KC JavaScript Action runs successfully as a consumer action while preserving npm CLI behavior."
   acceptance_criteria:
-    - Define and document .kc artifact lifecycle states and .kc/current.yaml.
-    - Implement kc finalize for completed KC work.
-    - Implement kc check --mode current and lifecycle rules KC-AE-017 through
-      KC-AE-020.
-    - Implement kc close-work for archiving completed active artifacts.
-    - Add optional release evidence verification helpers for finalize.
-    - Update templates, README, README.ja, tests, and KC self-governance
-      artifacts.
+    - "Add an Action runtime compatibility fix for dist/action/index.js."
+    - "Add CI/test coverage that the Action bundle is treated as CommonJS."
+    - "Verify local tests and package dry-run."
+    - "Verify the sample repository PR passes with sawadari/KC@main."
   validation_scenario:
-    statement: Run typecheck, unit tests, package dry-run, bundle freshness check,
-      and KC self-check for the lifecycle implementation.
-  risk_tier: medium
+    statement: "Run local checks and rerun the sample repository GitHub Actions workflow against sawadari/KC@main."
+  risk_tier: high
+  exception_basis: "The fix affects Action packaging/runtime only and is validated through a real consumer repository before release."
   non_goals:
-    - Do not replace GitHub Issues, PRs, Releases, or npm as durable external
-      evidence.
-    - Do not require network access for deterministic checks.
-    - Do not publish a new npm version in the implementation PR.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: https://github.com/sawadari/KC/pull/36
+    - "Do not change KC rule behavior."
+    - "Do not publish npm or move v0 in the implementation PR."
+    - "Do not require users to change their workflow YAML."
+  issue_state: ready_for_plan
