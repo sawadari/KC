@@ -1,19 +1,19 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/13
-  problem_statement: "KC accepts agent-written approval YAML as sufficient, so KC's own development flow has no real human judgment point."
-  expected_outcome: "Approved plans require explicit human approval evidence, and KC documentation clarifies what humans judge versus what KC checks."
+  issue_ref: github:sawadari/KC/issues/15
+  problem_statement: "The human approval evidence rule and numbered Codex approval flow are merged on main, but npm and the GitHub Action v0 tag still distribute v0.2.1."
+  expected_outcome: "Publish v0.3.0 so npx @sawadari/kc and uses: sawadari/KC@v0 include the human approval flow."
   acceptance_criteria:
-    - "Add a deterministic rule that blocks approved plans without human approval evidence."
-    - "Update approval templates to include human approval source, actor, and reference."
-    - "Document human judgment points in README.md and README.ja.md."
-    - "Provide a Codex-friendly numbered approval brief flow so humans can approve, approve with conditions, request changes, or reject without manually composing YAML."
-    - "Add tests for missing and present human approval evidence."
-    - "Update KC self-governance artifacts without self-approving the work."
+    - "Bump package metadata from 0.2.1 to 0.3.0."
+    - "Build dist/action/index.js from the current source."
+    - "Run TypeScript check, unit tests, npm pack dry run, and KC self-check."
+    - "Merge the release PR through GitHub."
+    - "Publish @sawadari/kc@0.3.0 with public access."
+    - "Create GitHub release v0.3.0 and move major tag v0 to the same commit."
   validation_scenario:
-    statement: "Codex presents a numbered approval brief, the human replies with a decision number, the decision is mirrored to durable approval evidence, and kc check blocks approved plans without that evidence."
+    statement: "After release, users can install @sawadari/kc@0.3.0 and the v0 action points at the commit containing KC-AE-013 and approval-brief commands."
   risk_tier: medium
   non_goals:
-    - "Cryptographic identity verification"
-    - "Replacing GitHub required reviewers"
-    - "Treating AI output as approval"
+    - "No new product behavior beyond distributing the already merged human approval flow."
+    - "No changes to npm account security or GitHub repository settings."
+    - "No secrets or local token files committed."
   issue_state: ready_for_plan
