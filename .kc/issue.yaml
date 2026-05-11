@@ -1,19 +1,29 @@
 issue_packet:
   issue_ref: github:sawadari/KC/issues/31-35
-  problem_statement: "KC can gate PR-time artifacts, but completed work remains stale on main because .kc artifacts do not have a lifecycle model, current state file, finalization command, or current-mode checks."
-  expected_outcome: "KC distinguishes active work from finalized evidence, can finalize completed work, can archive active artifacts, and can detect stale current ledger state."
+  problem_statement: KC can gate PR-time artifacts, but completed work remains
+    stale on main because .kc artifacts do not have a lifecycle model, current
+    state file, finalization command, or current-mode checks.
+  expected_outcome: KC distinguishes active work from finalized evidence, can
+    finalize completed work, can archive active artifacts, and can detect stale
+    current ledger state.
   acceptance_criteria:
-    - "Define and document .kc artifact lifecycle states and .kc/current.yaml."
-    - "Implement kc finalize for completed KC work."
-    - "Implement kc check --mode current and lifecycle rules KC-AE-017 through KC-AE-020."
-    - "Implement kc close-work for archiving completed active artifacts."
-    - "Add optional release evidence verification helpers for finalize."
-    - "Update templates, README, README.ja, tests, and KC self-governance artifacts."
+    - Define and document .kc artifact lifecycle states and .kc/current.yaml.
+    - Implement kc finalize for completed KC work.
+    - Implement kc check --mode current and lifecycle rules KC-AE-017 through
+      KC-AE-020.
+    - Implement kc close-work for archiving completed active artifacts.
+    - Add optional release evidence verification helpers for finalize.
+    - Update templates, README, README.ja, tests, and KC self-governance
+      artifacts.
   validation_scenario:
-    statement: "Run typecheck, unit tests, package dry-run, bundle freshness check, and KC self-check for the lifecycle implementation."
+    statement: Run typecheck, unit tests, package dry-run, bundle freshness check,
+      and KC self-check for the lifecycle implementation.
   risk_tier: medium
   non_goals:
-    - "Do not replace GitHub Issues, PRs, Releases, or npm as durable external evidence."
-    - "Do not require network access for deterministic checks."
-    - "Do not publish a new npm version in the implementation PR."
-  issue_state: ready_for_plan
+    - Do not replace GitHub Issues, PRs, Releases, or npm as durable external
+      evidence.
+    - Do not require network access for deterministic checks.
+    - Do not publish a new npm version in the implementation PR.
+  issue_state: closed
+  final_status: completed
+  final_pr_ref: https://github.com/sawadari/KC/pull/36
