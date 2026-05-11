@@ -1,18 +1,18 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/38
-  problem_statement: "GitHub Actions executes dist/action/index.js as ESM because the repository root package.json has type=module, but the bundled Action contains CommonJS require calls."
-  expected_outcome: "KC JavaScript Action runs successfully as a consumer action while preserving npm CLI behavior."
+  issue_ref: github:sawadari/KC/issues/40
+  problem_statement: "The fixed Action runtime is available on main but not yet distributed through npm latest or the v0 GitHub Action tag."
+  expected_outcome: "KC v0.5.0 is released so users of npm and sawadari/KC@v0 receive the lifecycle features and Action runtime fix."
   acceptance_criteria:
-    - "Add an Action runtime compatibility fix for dist/action/index.js."
-    - "Add CI/test coverage that the Action bundle is treated as CommonJS."
-    - "Verify local tests and package dry-run."
-    - "Verify the sample repository PR passes with sawadari/KC@main."
+    - "Bump package metadata to 0.5.0."
+    - "Verify tests, pack dry-run, Action bundle metadata, and KC self-check."
+    - "Publish @sawadari/kc@0.5.0."
+    - "Create v0.5.0 and move v0 to the release commit."
+    - "Re-run the sample repository PR and verify both KC@v0 and KC@main jobs pass."
   validation_scenario:
-    statement: "Run local checks and rerun the sample repository GitHub Actions workflow against sawadari/KC@main."
+    statement: "Run local release checks, publish 0.5.0, move tags, and validate the sample repository pull request."
   risk_tier: high
-  exception_basis: "The fix affects Action packaging/runtime only and is validated through a real consumer repository before release."
+  exception_basis: "The release fixes a broken GitHub Action runtime path and is validated against a consumer repository."
   non_goals:
-    - "Do not change KC rule behavior."
-    - "Do not publish npm or move v0 in the implementation PR."
-    - "Do not require users to change their workflow YAML."
+    - "Do not change KC behavior beyond the already merged runtime fix."
+    - "Do not create a new product feature in this release PR."
   issue_state: ready_for_plan
