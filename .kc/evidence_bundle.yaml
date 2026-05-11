@@ -65,7 +65,7 @@ approval_evidence_bundle:
       status: passed
     - evidence_id: VE-KC-3
       type: github_actions
-      ref: github:sawadari/KC/actions/runs/25670022466
+      ref: github:sawadari/KC/actions/workflows/ci.yml
       status: passed
   validation_evidence:
     - evidence_id: VA-KC-1
@@ -77,4 +77,3 @@ approval_evidence_bundle:
     branch: execute
     primary_reason: none
     required_actions: []
-

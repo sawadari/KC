@@ -25,7 +25,8 @@ Repository-level verification was also executed:
 |---|---:|
 | `npm test` | passed |
 | `npm audit --audit-level=moderate` | passed |
-| GitHub Actions run `25670022466` | passed |
+| GitHub Actions CI on `main` | passed |
+| `actions/checkout@v5` and `actions/setup-node@v5` tag check | passed |
 | `node lib/cli/index.js check --workspace . --changed-files <initial-release-list>` | PASS |
 
 ## Validation Result
