@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: test -s dist/action/index.js
+      - run: |
+          node -e "const pkg = require('./dist/action/package.json'); if (pkg.type !== 'commonjs') process.exit(1);"
       - run: npm run build
-      - run: git diff --exit-code dist/action/index.js
+      - run: git diff --exit-code dist/action/index.js dist/action/package.json
       - run: npm run pack:dry

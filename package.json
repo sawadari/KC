@@ -18,6 +18,7 @@
   "files": [
     "action.yml",
     "dist/action/index.js",
+    "dist/action/package.json",
     "lib/",
     "templates/",
     "README.md",

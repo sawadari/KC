@@ -1,146 +1,86 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-LIFECYCLE-001
-  issue_ref: github:sawadari/KC/issues/31-35
-  plan_ref: PLAN-KC-LIFECYCLE-001
-  approval_ref: APR-KC-LIFECYCLE-001
-  pr_ref: https://github.com/sawadari/KC/pull/36
+  bundle_id: AEB-KC-ACTION-RUNTIME-001
+  issue_ref: github:sawadari/KC/issues/38
+  plan_ref: PLAN-KC-ACTION-RUNTIME-001
+  approval_ref: APR-KC-ACTION-RUNTIME-001
+  pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
+      - .github/workflows/ci.yml
       - .kc/approval.yaml
       - .kc/current.yaml
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - .kc/ruleset.yaml
-      - README.ja.md
-      - README.md
-      - dist/action/index.js
-      - reports/validation/VAL-KC-LIFECYCLE-001.md
-      - src/cli/index.ts
-      - src/core/artifacts.ts
-      - src/core/check.ts
-      - src/core/lifecycle.ts
-      - src/core/rules.ts
-      - src/core/types.ts
-      - templates/AGENTS.md
-      - templates/.kc/current.example.yaml
-      - templates/.kc/ruleset.yaml
+      - dist/action/package.json
+      - package.json
+      - reports/validation/VAL-KC-ACTION-RUNTIME-001.md
       - tests/core.test.mjs
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - src/core/lifecycle.ts
-        - src/core/artifacts.ts
-        - src/core/types.ts
+        - dist/action/**
+        - package.json
       actual_files:
-        - src/core/lifecycle.ts
-        - src/core/artifacts.ts
-        - src/core/types.ts
+        - dist/action/package.json
+        - package.json
       status: implemented
     - plan_item_id: P2
       expected_files:
-        - src/cli/index.ts
+        - .github/**
+        - tests/**
       actual_files:
-        - src/cli/index.ts
+        - .github/workflows/ci.yml
+        - tests/core.test.mjs
       status: implemented
     - plan_item_id: P3
       expected_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - tests/**
-      actual_files:
-        - src/core/check.ts
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - tests/core.test.mjs
-      status: implemented
-    - plan_item_id: P4
-      expected_files:
-        - README.md
-        - README.ja.md
-        - templates/AGENTS.md
-        - templates/.kc/current.example.yaml
-      actual_files:
-        - README.md
-        - README.ja.md
-        - templates/AGENTS.md
-        - templates/.kc/current.example.yaml
-      status: implemented
-    - plan_item_id: P5
-      expected_files:
-        - tests/**
-        - reports/validation/**
-        - dist/action/index.js
-      actual_files:
-        - tests/core.test.mjs
-        - reports/validation/VAL-KC-LIFECYCLE-001.md
-        - dist/action/index.js
-      status: implemented
-    - plan_item_id: P6
-      expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-ACTION-RUNTIME-001.md
       status: implemented
   verification_evidence:
-    - evidence_id: VE-LIFECYCLE-1
+    - evidence_id: VE-ACTION-RUNTIME-1
+      type: deterministic_check
+      ref: "No npm publish or Action tag movement is performed in this implementation PR."
+      status: passed
+    - evidence_id: VE-ACTION-RUNTIME-2
       type: typecheck
       ref: npm.cmd run check
       status: passed
-    - evidence_id: VE-LIFECYCLE-2
+    - evidence_id: VE-ACTION-RUNTIME-3
       type: unit_test
       ref: npm.cmd test
       status: passed
-    - evidence_id: VE-LIFECYCLE-3
-      type: action_bundle_build
-      ref: npm.cmd run build; git diff --exit-code -- dist/action/index.js
-      status: passed
-    - evidence_id: VE-LIFECYCLE-4
+    - evidence_id: VE-ACTION-RUNTIME-4
       type: package_dry_run
       ref: npm.cmd run pack:dry
       status: passed
-    - evidence_id: VE-LIFECYCLE-5
-      type: deterministic_check
-      ref: No npm publish or Action tag movement is performed in this implementation
-        PR.
+    - evidence_id: VE-ACTION-RUNTIME-5
+      type: action_bundle_build
+      ref: "npm.cmd run build; git diff --exit-code -- dist/action/index.js dist/action/package.json"
       status: passed
-    - evidence_id: VE-LIFECYCLE-6
+    - evidence_id: VE-ACTION-RUNTIME-6
       type: test_run
-      ref: npm.cmd run check; npm.cmd test; npm.cmd run pack:dry
-      status: passed
-    - evidence_id: VE-LIFECYCLE-7
-      type: kc_self_check
-      ref: node lib/cli/index.js check --workspace . --changed-file ...
+      ref: "npm.cmd run check; npm.cmd test; npm.cmd run pack:dry"
       status: passed
   validation_status: passed
   validation_evidence:
-    - evidence_id: VA-LIFECYCLE-1
+    - evidence_id: VA-ACTION-RUNTIME-1
       type: validation_report
-      ref: reports/validation/VAL-KC-LIFECYCLE-001.md
+      ref: reports/validation/VAL-KC-ACTION-RUNTIME-001.md
       status: passed
   findings: []
   decision:
     branch: execute
-    primary_reason: work_completed
-    required_actions: []
-    status: completed
-  lifecycle_state: finalized
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/KC-LIFECYCLE-001.final.yaml
-  completed_actions:
-    - "Open a PR linked to issues #31 through #35."
-  post_merge_evidence:
-    - type: github_pr
-      ref: https://github.com/sawadari/KC/pull/36
-      status: recorded
-    - type: github_issue
-      ref: github:sawadari/KC/issues/31-35
-      status: recorded
+    primary_reason: action_runtime_fix_approved
+    required_actions:
+      - "Re-run sample repository Action validation."
