@@ -1,0 +1,11 @@
+issue_packet:
+  issue_ref: github:org/repo/issues/124
+  problem_statement: "Retry export upload on transient 503."
+  expected_outcome: "Manual reruns are reduced."
+  acceptance_criteria:
+    - "Retry HTTP 503 only."
+  validation_status: pending
+  risk_tier: medium
+  non_goals:
+    - "Authentication changes"
+

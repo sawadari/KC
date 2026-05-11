@@ -1,0 +1,33 @@
+agent_plan:
+  plan_id: PLAN-123
+  issue_ref: github:org/repo/issues/123
+  agent:
+    agent_id: codex-cli
+    role_class: execution_agent
+    owner_role: developer
+  interpreted_requirement: "Retry transient HTTP 503 failures for CSV export upload."
+  scope:
+    allowed_files:
+      - src/report/upload.ts
+      - tests/uploadRetry.test.ts
+    prohibited_files:
+      - src/auth/**
+      - src/schema/**
+  non_goals:
+    - "Do not change authentication flow."
+    - "Do not change CSV schema."
+  plan_items:
+    - id: P1
+      action: "Add retry wrapper to upload flow."
+      expected_files:
+        - src/report/upload.ts
+    - id: P2
+      action: "Add retry unit tests."
+      expected_files:
+        - tests/uploadRetry.test.ts
+  verification_plan:
+    - "Unit test confirms HTTP 503 retries up to three times."
+  validation_evidence_plan:
+    - "Use VAL-123 to simulate 503 in a production-like export job."
+  status: approved
+

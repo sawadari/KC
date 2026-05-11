@@ -1,0 +1,18 @@
+approval_evidence_bundle:
+  bundle_id: AEB-123
+  issue_ref: github:org/repo/issues/123
+  plan_ref: PLAN-123
+  approval_ref: APR-123
+  diff_summary:
+    changed_files:
+      - src/report/upload.ts
+      - tests/uploadRetry.test.ts
+  verification_evidence:
+    - type: unit_test
+      ref: npm test
+      status: passed
+  validation_evidence:
+    - type: validation_report
+      ref: reports/validation/VAL-123.md
+      status: passed
+

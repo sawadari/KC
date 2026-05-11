@@ -1,0 +1,14 @@
+approval_evidence_bundle:
+  bundle_id: AEB-126
+  issue_ref: github:org/repo/issues/126
+  plan_ref: PLAN-126
+  approval_ref: APR-126
+  diff_summary:
+    changed_files:
+      - src/report/upload.ts
+  verification_evidence:
+    - type: unit_test
+      ref: npm test
+      status: passed
+  validation_status: passed
+

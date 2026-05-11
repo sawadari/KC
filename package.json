@@ -1,0 +1,49 @@
+{
+  "name": "@sawadari/kc",
+  "version": "0.1.0",
+  "description": "Knowledge Convergence guard for Codex and GitHub workflows.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sawadari/KC.git"
+  },
+  "homepage": "https://github.com/sawadari/KC#readme",
+  "bugs": {
+    "url": "https://github.com/sawadari/KC/issues"
+  },
+  "bin": {
+    "kc": "./lib/cli/index.js"
+  },
+  "files": [
+    "action.yml",
+    "dist/action/index.js",
+    "lib/",
+    "templates/",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && esbuild lib/action/index.js --bundle --platform=node --target=node24 --outfile=dist/action/index.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "pack:dry": "npm pack --dry-run",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@actions/artifact": "^6.2.1",
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
+    "minimatch": "^10.0.3",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

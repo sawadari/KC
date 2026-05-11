@@ -1,0 +1,23 @@
+plan_approval:
+  approval_id: APR-123
+  target_plan_id: PLAN-123
+  decision: approved_with_conditions
+  approver_role: tech_lead
+  timestamp: "2026-05-11T12:00:00+09:00"
+  approved_scope:
+    - src/report/upload.ts
+    - tests/uploadRetry.test.ts
+  conditions:
+    - id: COND-1
+      statement: "Do not change authentication flow."
+      evidence_required: diff_scope_check
+    - id: COND-2
+      statement: "Do not change CSV schema."
+      evidence_required: diff_scope_check
+    - id: COND-3
+      statement: "Retry only HTTP 503."
+      evidence_required: unit_test
+    - id: COND-4
+      statement: "Attach validation evidence before merge."
+      evidence_required: validation_report
+

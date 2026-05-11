@@ -1,0 +1,10 @@
+plan_approval:
+  approval_id: APR-126
+  target_plan_id: PLAN-126
+  decision: approved
+  approved_scope:
+    - src/report/upload.ts
+  conditions:
+    - id: COND-1
+      evidence_required: unit_test
+

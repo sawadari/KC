@@ -1,0 +1,10 @@
+node_modules/
+lib/
+dist/*
+!dist/action/
+!dist/action/index.js
+coverage/
+.env
+.DS_Store
+*.log
+**/.kc/evidence_bundle.generated.yaml

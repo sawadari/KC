@@ -1,0 +1,18 @@
+issue_packet:
+  issue_ref: github:org/repo/issues/123
+  problem_statement: "Nightly CSV export upload fails on transient HTTP 503."
+  expected_outcome: "Transient HTTP 503 is retried automatically, avoiding manual reruns."
+  acceptance_criteria:
+    - "Retry HTTP 503 up to three times."
+    - "Do not retry non-503 failures."
+    - "Do not change CSV schema."
+    - "Do not change authentication flow."
+  validation_scenario:
+    statement: "In a production-like export job, a transient 503 still completes within 30 seconds."
+  risk_tier: medium
+  non_goals:
+    - "CSV schema changes"
+    - "Authentication flow changes"
+    - "UI changes"
+  issue_state: ready_for_plan
+

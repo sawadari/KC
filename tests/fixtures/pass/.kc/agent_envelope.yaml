@@ -1,0 +1,8 @@
+agent_execution_envelope:
+  agent_id: codex-cli
+  authority_envelope:
+    prohibited_paths:
+      - src/auth/**
+  rollback_path:
+    strategy: revert_pr
+

@@ -1,0 +1,15 @@
+plan_approval:
+  approval_id: APR-123
+  target_plan_id: PLAN-123
+  decision: approved_with_conditions
+  approved_scope:
+    - src/report/upload.ts
+    - tests/uploadRetry.test.ts
+  conditions:
+    - id: COND-1
+      evidence_required: diff_scope_check
+    - id: COND-2
+      evidence_required: unit_test
+    - id: COND-3
+      evidence_required: validation_report
+

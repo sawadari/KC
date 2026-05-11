@@ -1,0 +1,42 @@
+name: KC Guard
+description: Deterministic Knowledge Convergence guard for Codex + GitHub pull requests.
+author: sawadari
+inputs:
+  workspace:
+    description: Workspace path to check.
+    required: false
+    default: "."
+  ruleset:
+    description: Optional path to a KC ruleset YAML file.
+    required: false
+    default: ".kc/ruleset.yaml"
+  ai-assist:
+    description: Generate candidate explanatory text with OpenAI. This never changes the deterministic decision.
+    required: false
+    default: "false"
+  openai-api-key:
+    description: OpenAI API key used only when ai-assist is true.
+    required: false
+  model:
+    description: OpenAI model for AI assist.
+    required: false
+    default: "gpt-5.5"
+  comment-on-pr:
+    description: Post a KC summary comment on pull requests.
+    required: false
+    default: "true"
+outputs:
+  decision:
+    description: PASS, WARN, HOLD, or FAIL.
+  merge_ready:
+    description: true when the deterministic result is merge ready.
+  primary_reason:
+    description: Primary finding reason code.
+  findings_json:
+    description: JSON array of findings.
+  evidence_bundle_path:
+    description: Path to the generated evidence bundle.
+runs:
+  using: node24
+  main: dist/action/index.js
+

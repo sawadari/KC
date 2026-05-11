@@ -1,0 +1,13 @@
+approval_evidence_bundle:
+  bundle_id: AEB-125
+  issue_ref: github:org/repo/issues/125
+  plan_ref: PLAN-125
+  approval_ref: APR-125
+  diff_summary:
+    changed_files:
+      - src/auth/session.ts
+  verification_evidence:
+    - type: unit_test
+      ref: npm test
+      status: passed
+

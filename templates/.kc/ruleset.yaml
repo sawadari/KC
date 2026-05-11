@@ -1,0 +1,17 @@
+ruleset:
+  id: kc-default
+  version: 0.1.0
+  rules:
+    - KC-AE-001
+    - KC-AE-002
+    - KC-AE-003
+    - KC-AE-004
+    - KC-AE-005
+    - KC-AE-006
+    - KC-AE-007
+    - KC-AE-008
+    - KC-AE-009
+    - KC-AE-010
+    - KC-AE-011
+    - KC-AE-012
+

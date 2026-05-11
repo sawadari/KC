@@ -1,0 +1,34 @@
+agent_execution_envelope:
+  agent_id: codex-cli
+  role_class: execution_agent
+  owner_role: developer
+  capability_scope:
+    - create_branch
+    - edit_code
+    - run_tests
+    - create_pr
+  authority_envelope:
+    allowed_repositories:
+      - org/repo
+    allowed_paths:
+      - src/report/**
+      - tests/**
+    prohibited_paths:
+      - src/auth/**
+      - src/schema/**
+    allowed_commands:
+      - npm test
+      - npm run lint
+    network_access: false
+  audit_obligation:
+    required_refs:
+      - prompt_ref
+      - plan_ref
+      - diff_ref
+      - test_run_ref
+  human_review_gate:
+    required: true
+    reviewer_role: tech_lead
+  rollback_path:
+    strategy: revert_pr
+

@@ -1,0 +1,28 @@
+approval_evidence_bundle:
+  bundle_id: AEB-123
+  issue_ref: github:org/repo/issues/123
+  plan_ref: PLAN-123
+  approval_ref: APR-123
+  pr_ref: github:org/repo/pull/456
+  agent_ref: codex-cli
+  diff_summary:
+    changed_files:
+      - src/report/upload.ts
+      - tests/uploadRetry.test.ts
+    out_of_scope_files: []
+  verification_evidence:
+    - evidence_id: VE-1
+      type: github_actions
+      ref: github:org/repo/actions/runs/789
+      status: passed
+  validation_evidence:
+    - evidence_id: VA-1
+      type: validation_report
+      ref: github:org/repo/blob/main/reports/validation/VAL-123.md
+      status: passed
+  findings: []
+  decision:
+    branch: execute
+    primary_reason: none
+    required_actions: []
+

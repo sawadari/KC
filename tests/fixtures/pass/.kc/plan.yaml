@@ -1,0 +1,15 @@
+agent_plan:
+  plan_id: PLAN-123
+  issue_ref: github:org/repo/issues/123
+  agent:
+    agent_id: codex-cli
+    role_class: execution_agent
+    owner_role: developer
+  scope:
+    allowed_files:
+      - src/report/upload.ts
+      - tests/uploadRetry.test.ts
+    prohibited_files:
+      - src/auth/**
+  status: approved
+

@@ -1,0 +1,12 @@
+agent_plan:
+  plan_id: PLAN-124
+  issue_ref: github:org/repo/issues/124
+  agent:
+    agent_id: codex-cli
+  scope:
+    allowed_files:
+      - src/report/upload.ts
+    prohibited_files:
+      - src/auth/**
+  status: approved
+
