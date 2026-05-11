@@ -29,6 +29,18 @@ inputs:
     description: Post missing PR metadata findings to linked issues.
     required: false
     default: "false"
+  mode:
+    description: Check mode: pr for merge readiness or current for main-branch ledger freshness.
+    required: false
+    default: "pr"
+  artifact-name:
+    description: Optional evidence artifact name. Defaults to a unique per-run name.
+    required: false
+    default: ""
+  evidence-output:
+    description: Optional generated evidence bundle output path. Defaults to runner temp in GitHub Actions.
+    required: false
+    default: ""
 outputs:
   decision:
     description: PASS, WARN, HOLD, or FAIL.

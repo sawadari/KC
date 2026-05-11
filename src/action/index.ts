@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { DefaultArtifactClient } from "@actions/artifact";
@@ -16,6 +17,9 @@ async function main(): Promise<void> {
   const model = core.getInput("model") || defaultModel;
   const commentOnPr = core.getBooleanInput("comment-on-pr");
   const commentOnLinkedIssue = core.getBooleanInput("comment-on-linked-issue");
+  const mode = checkMode(core.getInput("mode"));
+  const evidenceOutput = core.getInput("evidence-output") || defaultEvidenceOutput();
+  const artifactName = core.getInput("artifact-name") || defaultArtifactName();
   const pullRequest = github.context.payload.pull_request;
   const prRef = pullRequest?.html_url;
   const token = process.env.GITHUB_TOKEN;
@@ -30,7 +34,7 @@ async function main(): Promise<void> {
     config
   }) ? validatePullRequestBody(pullRequest.body ?? "") : [];
 
-  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings });
+  const result = await runCheck({ workspace, rulesetPath: ruleset, prRef, changedFiles, additionalFindings: prBodyFindings, mode, evidenceBundlePath: evidenceOutput });
 
   core.setOutput("decision", result.decision);
   core.setOutput("merge_ready", String(result.mergeReady));
@@ -49,7 +53,7 @@ async function main(): Promise<void> {
     }
   }
 
-  await uploadBundle(result.evidenceBundlePath);
+  await uploadBundle(result.evidenceBundlePath, artifactName);
 
   let aiCandidate = "";
   if (aiAssist) {
@@ -92,12 +96,46 @@ async function fetchPullRequestFiles(octokit: ReturnType<typeof github.getOctoki
   return files.map((file) => file.filename);
 }
 
-async function uploadBundle(filePath: string): Promise<void> {
+async function uploadBundle(filePath: string, artifactName: string): Promise<void> {
   if (!fs.existsSync(filePath)) {
     return;
   }
   const artifactClient = new DefaultArtifactClient();
-  await artifactClient.uploadArtifact("kc-evidence-bundle", [filePath], process.cwd());
+  await artifactClient.uploadArtifact(artifactName, [filePath], path.dirname(filePath));
+}
+
+function checkMode(raw: string): "pr" | "current" {
+  if (!raw || raw === "pr") {
+    return "pr";
+  }
+  if (raw === "current") {
+    return "current";
+  }
+  throw new Error(`Unsupported KC mode: ${raw}. Expected pr or current.`);
+}
+
+function defaultEvidenceOutput(): string {
+  const temp = process.env.RUNNER_TEMP;
+  if (temp) {
+    return path.join(temp, "kc", "evidence_bundle.generated.yaml");
+  }
+  return ".kc/evidence_bundle.generated.yaml";
+}
+
+function defaultArtifactName(): string {
+  const parts = [
+    "kc-evidence-bundle",
+    process.env.GITHUB_RUN_ID,
+    process.env.GITHUB_JOB,
+    process.env.GITHUB_ACTION,
+    process.env.GITHUB_RUN_ATTEMPT,
+    String(Date.now())
+  ].filter((part): part is string => Boolean(part));
+  return sanitizeArtifactName(parts.join("-"));
+}
+
+function sanitizeArtifactName(name: string): string {
+  return name.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-").slice(0, 255) || "kc-evidence-bundle";
 }
 
 async function writeSummary(result: Awaited<ReturnType<typeof runCheck>>, aiCandidate: string): Promise<void> {

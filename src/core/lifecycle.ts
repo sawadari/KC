@@ -13,6 +13,7 @@ export interface FinalizeOptions {
   workId?: string;
   finalEvidenceBundleRef?: string;
   verifyExternal?: boolean;
+  verifyExternalMode?: "public" | "authenticated";
   expectedCommit?: string;
   tagRefs?: string[];
   force?: boolean;
@@ -61,7 +62,7 @@ export function finalizeWork(options: FinalizeOptions): LifecycleResult {
   const requiredActions = stringArray(originalDecision.required_actions);
   const postMergeEvidence = buildPostMergeEvidence(options);
   if (options.verifyExternal) {
-    postMergeEvidence.push(...verifyReleaseEvidence({ ...options, workspace }));
+    postMergeEvidence.push(...verifyReleaseEvidence({ ...options, workspace, verifyExternalMode: options.verifyExternalMode ?? "public" }));
   }
 
   const finalizedEvidence: Record<string, unknown> = {
@@ -207,43 +208,45 @@ function buildPostMergeEvidence(options: FinalizeOptions): Record<string, unknow
   return evidence;
 }
 
-function verifyReleaseEvidence(options: FinalizeOptions & { workspace: string }): Record<string, unknown>[] {
+function verifyReleaseEvidence(options: FinalizeOptions & { workspace: string; verifyExternalMode: "public" | "authenticated" }): Record<string, unknown>[] {
   const evidence: Record<string, unknown>[] = [];
   const issueNumber = extractNumber(options.issueRef, /(?:issues\/|issues:|#)(\d+)/);
   if (issueNumber) {
-    const result = run("gh", ["issue", "view", issueNumber, "--json", "state,url"], options.workspace);
-    evidence.push({ type: "github_issue", ref: options.issueRef, status: result.ok && result.stdout.includes("\"CLOSED\"") ? "closed" : "unverified", detail: result.detail });
+    const result = run("gh", ["issue", "view", issueNumber, "--json", "state,url"], options.workspace, options.verifyExternalMode);
+    evidence.push({ type: "github_issue", ref: options.issueRef, status: result.ok && result.stdout.includes("\"CLOSED\"") ? "passed" : "unverified", expected_status: "closed", detail: result.detail, verification_mode: options.verifyExternalMode });
   }
 
   const prNumber = extractNumber(options.prRef, /(?:pull\/|pulls\/|pr\/|#)(\d+)/);
   if (prNumber) {
-    const result = run("gh", ["pr", "view", prNumber, "--json", "state,mergeCommit,url"], options.workspace);
-    evidence.push({ type: "github_pr", ref: options.prRef, status: result.ok && result.stdout.includes("\"MERGED\"") ? "merged" : "unverified", detail: result.detail });
+    const result = run("gh", ["pr", "view", prNumber, "--json", "state,mergeCommit,url"], options.workspace, options.verifyExternalMode);
+    evidence.push({ type: "github_pr", ref: options.prRef, status: result.ok && result.stdout.includes("\"MERGED\"") ? "passed" : "unverified", expected_status: "merged", detail: result.detail, verification_mode: options.verifyExternalMode });
   }
 
   const releaseTag = extractReleaseTag(options.releaseRef);
   if (releaseTag) {
-    const result = run("gh", ["release", "view", releaseTag, "--json", "tagName,isDraft,url"], options.workspace);
-    evidence.push({ type: "github_release", ref: options.releaseRef, status: result.ok && result.stdout.includes("\"isDraft\":false") ? "published" : "unverified", detail: result.detail });
+    const result = run("gh", ["release", "view", releaseTag, "--json", "tagName,isDraft,url"], options.workspace, options.verifyExternalMode);
+    evidence.push({ type: "github_release", ref: options.releaseRef, status: result.ok && result.stdout.includes("\"isDraft\":false") ? "passed" : "unverified", expected_status: "published", detail: result.detail, verification_mode: options.verifyExternalMode });
   }
 
   for (const tag of options.tagRefs ?? []) {
-    const result = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${tag}`], options.workspace);
+    const result = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${tag}`], options.workspace, options.verifyExternalMode);
     const matchesCommit = options.expectedCommit ? result.stdout.includes(options.expectedCommit) : result.stdout.trim().length > 0;
-    evidence.push({ type: "git_tag", ref: tag, status: result.ok && matchesCommit ? "passed" : "unverified", detail: result.detail });
+    evidence.push({ type: "git_tag", ref: tag, status: result.ok && matchesCommit ? "passed" : "unverified", detail: result.detail, verification_mode: options.verifyExternalMode });
   }
 
   const npmPackage = parseNpmPackage(options.npmRef);
   if (npmPackage) {
-    const result = run(process.platform === "win32" ? "npm.cmd" : "npm", ["view", npmPackage.name, "version"], options.workspace);
-    evidence.push({ type: "npm_package", ref: options.npmRef, status: result.ok && result.stdout.trim() === npmPackage.version ? "passed" : "unverified", detail: result.detail });
+    const result = run(process.platform === "win32" ? "npm.cmd" : "npm", ["view", npmPackage.name, "version"], options.workspace, options.verifyExternalMode);
+    evidence.push({ type: "npm_package", ref: options.npmRef, status: result.ok && result.stdout.trim() === npmPackage.version ? "passed" : "unverified", detail: result.detail, verification_mode: options.verifyExternalMode });
   }
   return evidence;
 }
 
-function run(command: string, args: string[], cwd: string): { ok: boolean; stdout: string; detail: string } {
+function run(command: string, args: string[], cwd: string, verifyExternalMode: "public" | "authenticated"): { ok: boolean; stdout: string; detail: string } {
   const env = { ...process.env };
-  delete env.GITHUB_TOKEN;
+  if (verifyExternalMode === "public") {
+    delete env.GITHUB_TOKEN;
+  }
   const result = spawnSync(command, args, { cwd, encoding: "utf8", env });
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";

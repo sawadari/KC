@@ -1,26 +1,25 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/40
-  problem_statement: The fixed Action runtime is available on main but not yet
-    distributed through npm latest or the v0 GitHub Action tag.
-  expected_outcome: KC v0.5.0 is released so users of npm and sawadari/KC@v0
-    receive the lifecycle features and Action runtime fix.
+  issue_ref: github:sawadari/KC/issues/44
+  related_issue_refs:
+    - github:sawadari/KC/issues/42
+    - github:sawadari/KC/issues/45
+    - github:sawadari/KC/issues/46
+    - github:sawadari/KC/issues/47
+    - github:sawadari/KC/issues/48
+    - github:sawadari/KC/issues/50
+  problem_statement: KC can now finalize work, but PR mode can still accidentally reuse finalized inactive artifacts, Action artifact uploads can collide, and generated evidence output / external verification semantics need clearer operational controls.
+  expected_outcome: KC rejects PRs that do not establish fresh active artifacts after finalized work, supports unique Action evidence artifact names, makes generated evidence output explicit, and validates the main ledger in CI.
   acceptance_criteria:
-    - Bump package metadata to 0.5.0.
-    - Verify tests, pack dry-run, Action bundle metadata, and KC self-check.
-    - Publish @sawadari/kc@0.5.0.
-    - Create v0.5.0 and move v0 to the release commit.
-    - Re-run the sample repository PR and verify both KC@v0 and KC@main jobs
-      pass.
+    - Add KC-AE-021 for stale finalized artifact reuse in PR mode.
+    - Add configurable and unique Action evidence artifact names.
+    - Add explicit generated evidence output path handling.
+    - Add main-branch current-mode CI validation.
+    - Clarify recorded vs verified post-merge evidence semantics.
+    - Add deterministic GitHub Issue to `.kc/issue.yaml` sync.
   validation_scenario:
-    statement: Run local release checks, publish 0.5.0, move tags, and validate the
-      sample repository pull request.
-  risk_tier: high
-  exception_basis: The release fixes a broken GitHub Action runtime path and is
-    validated against a consumer repository.
+    statement: Run the unit suite, build the Action bundle, run package dry-run, and run KC self-check against this PR's changed files.
+  risk_tier: medium
   non_goals:
-    - Do not change KC behavior beyond the already merged runtime fix.
-    - Do not create a new product feature in this release PR.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: github:sawadari/KC/pull/41
-  final_release_ref: https://github.com/sawadari/KC/releases/tag/v0.5.0
+    - Do not publish a new npm version in this PR.
+    - Do not add AI-driven approval behavior.
+  issue_state: ready_for_plan

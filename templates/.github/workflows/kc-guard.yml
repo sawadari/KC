@@ -2,9 +2,13 @@ name: KC Guard
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   kc:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,4 +25,23 @@ jobs:
         with:
           ai-assist: false
           comment-on-pr: true
+          comment-on-linked-issue: false
+
+  kc-current:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: sawadari/KC@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          mode: current
+          ai-assist: false
+          comment-on-pr: false
           comment-on-linked-issue: false

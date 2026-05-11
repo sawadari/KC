@@ -23,3 +23,16 @@ jobs:
       - run: npm run build
       - run: git diff --exit-code dist/action/index.js dist/action/package.json
       - run: npm run pack:dry
+
+  kc-current:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node lib/cli/index.js check --workspace . --mode current

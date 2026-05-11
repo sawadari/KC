@@ -4,7 +4,7 @@ import path from "node:path";
 import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brief.js";
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { runCheck } from "../core/check.js";
-import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../core/issue.js";
+import { recordIssue, renderIssueBrief, syncIssueFromGitHub, validateIssueArtifact } from "../core/issue.js";
 import { closeWork, finalizeWork } from "../core/lifecycle.js";
 import { runPromote } from "../core/promote.js";
 import { initWorkspace } from "../core/templates.js";
@@ -44,7 +44,8 @@ async function main(): Promise<void> {
       rulesetPath: value(args, "ruleset") || ".kc/ruleset.yaml",
       changedFiles,
       prRef: value(args, "pr-ref"),
-      mode: checkMode(value(args, "mode"))
+      mode: checkMode(value(args, "mode")),
+      evidenceBundlePath: value(args, "output")
     });
     printCheckResult(result, args.values.has("json"));
     if (args.command === "check" && (result.decision === "HOLD" || result.decision === "FAIL")) {
@@ -93,6 +94,17 @@ async function main(): Promise<void> {
       force: args.values.has("force")
     });
     console.log(`KC issue recorded: ${issuePath}`);
+    return;
+  }
+
+  if (args.command === "issue-sync") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const issuePath = syncIssueFromGitHub({
+      workspace,
+      issueRef: requiredValue(args, "issue-ref"),
+      force: args.values.has("force")
+    });
+    console.log(`KC issue synced: ${issuePath}`);
     return;
   }
 
@@ -150,6 +162,7 @@ async function main(): Promise<void> {
       workId: value(args, "work-id"),
       finalEvidenceBundleRef: value(args, "final-evidence-bundle-ref"),
       verifyExternal: args.values.has("verify-external"),
+      verifyExternalMode: verifyExternalMode(value(args, "verify-external")),
       expectedCommit: value(args, "expected-commit"),
       tagRefs: args.values.get("tag-ref"),
       force: args.values.has("force")
@@ -238,6 +251,16 @@ function checkMode(raw: string | undefined): "pr" | "current" {
   throw new Error(`Unsupported --mode: ${raw}. Expected pr or current.`);
 }
 
+function verifyExternalMode(raw: string | undefined): "public" | "authenticated" | undefined {
+  if (!raw || raw === "true" || raw === "public") {
+    return raw ? "public" : undefined;
+  }
+  if (raw === "authenticated") {
+    return "authenticated";
+  }
+  throw new Error(`Unsupported --verify-external mode: ${raw}. Expected public or authenticated.`);
+}
+
 async function readChangedFiles(args: ParsedArgs): Promise<string[] | undefined> {
   const inline = args.values.get("changed-file") ?? [];
   const filePath = value(args, "changed-files");
@@ -313,15 +336,16 @@ function printHelp(): void {
 
 Usage:
   kc init [--workspace .] [--force]
-  kc check [--workspace .] [--mode pr|current] [--changed-files files.txt] [--changed-file path] [--json]
-  kc bundle [--workspace .] [--changed-files files.txt]
+  kc check [--workspace .] [--mode pr|current] [--changed-files files.txt] [--changed-file path] [--output file] [--json]
+  kc bundle [--workspace .] [--changed-files files.txt] [--output file]
   kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
   kc issue-brief [--input file] [--output file]
   kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text]
+  kc issue-sync --issue-ref URL [--workspace .] [--force]
   kc issue-check [--workspace .]
   kc approval-brief [--workspace .]
   kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]
-  kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version [--verify-external]
+  kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version [--verify-external[=public|authenticated]]
   kc close-work --workspace . [--archive]
   kc promote [--workspace .] [--output-dir reports/promotion]
 

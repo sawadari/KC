@@ -1,27 +1,30 @@
 plan_approval:
-  approval_id: APR-KC-RELEASE-0.5.0
-  target_plan_id: PLAN-KC-RELEASE-0.5.0
+  approval_id: APR-KC-FOLLOWUP-HARDENING-001
+  target_plan_id: PLAN-KC-FOLLOWUP-HARDENING-001
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T00:00:00+09:00
+  timestamp: 2026-05-12T08:35:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/40#issuecomment-4425911995
-    summary: "Approved KC v0.5.0 release preparation and validation."
+    ref: https://github.com/sawadari/KC/issues/44#issuecomment-4426092161
+    summary: Approved by user in Codex thread with proceed request.
     choice: "1"
   approved_scope:
     - .kc/**
-    - package.json
-    - package-lock.json
+    - .github/workflows/**
+    - action.yml
+    - dist/action/index.js
+    - src/**
+    - tests/**
+    - templates/**
+    - README.md
+    - README.ja.md
     - reports/validation/**
   conditions:
-    - id: COND-RELEASE-0.5.0-1
-      statement: "Run local release checks and KC self-check."
+    - id: COND-FOLLOWUP-HARDENING-1
+      statement: Unit, build, package dry-run, and KC self-check must pass before merge.
       evidence_required: test_run
-    - id: COND-RELEASE-0.5.0-2
-      statement: "Record release validation evidence."
+    - id: COND-FOLLOWUP-HARDENING-2
+      statement: Validation report must summarize implemented issues and residual scope.
       evidence_required: validation_report
-    - id: COND-RELEASE-0.5.0-3
-      statement: "Do not publish or move tags until after the release PR is merged."
-      evidence_required: deterministic_check

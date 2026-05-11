@@ -24,7 +24,8 @@ const knownRuleIds = [
   "KC-AE-017",
   "KC-AE-018",
   "KC-AE-019",
-  "KC-AE-020"
+  "KC-AE-020",
+  "KC-AE-021"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
@@ -107,6 +108,14 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     for (const finding of placeholderFindings({ issue, plan, approval, envelope, evidence })) {
       add(finding);
     }
+  }
+
+  if (options.mode !== "current" && isRuleEnabled(policy, "KC-AE-021") && hasReusableFinalizedArtifacts(current, evidence, changedFiles)) {
+    add(error(
+      "KC-AE-021",
+      "stale_active_artifact_for_pr",
+      "Current KC work is finalized and inactive. This PR changes files but does not establish a new active KC issue/plan/approval."
+    ));
   }
 
   const approvedScope = stringArray(approval?.approved_scope);
@@ -348,6 +357,23 @@ function isCompletedLifecycle(lifecycleState: string, finalStatus: string, curre
     return true;
   }
   return current?.active_work === false && Boolean(finalStatus || lifecycleState);
+}
+
+function hasReusableFinalizedArtifacts(current: Record<string, unknown> | undefined, evidence: Record<string, unknown> | undefined, changedFiles: string[]): boolean {
+  if (changedFiles.length === 0) {
+    return false;
+  }
+  const lifecycleState = stringValue(current?.lifecycle_state ?? evidence?.lifecycle_state).toLowerCase();
+  const finalStatus = stringValue(current?.final_status ?? evidence?.final_status).toLowerCase();
+  const inactiveFinalized = current?.active_work === false || ["completed", "finalized", "archived"].includes(lifecycleState) || ["completed", "finalized", "archived"].includes(finalStatus);
+  if (!inactiveFinalized) {
+    return false;
+  }
+  const nonKcChanged = changedFiles.some((file) => !file.startsWith(".kc/"));
+  if (!nonKcChanged) {
+    return false;
+  }
+  return ![".kc/issue.yaml", ".kc/plan.yaml", ".kc/approval.yaml"].every((file) => changedFiles.includes(file));
 }
 
 function placeholderFindings(artifacts: Record<string, Record<string, unknown> | undefined>): Finding[] {
