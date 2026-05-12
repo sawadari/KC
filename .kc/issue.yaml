@@ -9,12 +9,12 @@ issue_packet:
     need:
       need_id: NEED-1
       stakeholder: KC users and maintainers
-      situation: The repository has merged post-v0.5.0 changes, but npm latest
-        and the major Action tag still point to v0.5.0.
+      situation: The repository has merged post-v0.5.0 changes, but npm latest and the
+        major Action tag still point to v0.5.0.
       pain_or_risk: README behavior, templates, CLI behavior, and published
         distribution can drift out of sync if the release is not cut.
-      desired_operational_outcome: "@sawadari/kc@0.6.0, v0.6.0, v0, and the
-        GitHub Release all point to the same validated release commit."
+      desired_operational_outcome: "@sawadari/kc@0.6.0, v0.6.0, v0, and the GitHub
+        Release all point to the same validated release commit."
     requirements:
       - requirement_id: REQ-1
         statement: Bump package metadata from 0.5.0 to 0.6.0.
@@ -25,8 +25,8 @@ issue_packet:
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-3
-        statement: Run TypeScript, unit, KC PR-mode, KC current-mode, and npm
-          pack dry-run checks.
+        statement: Run TypeScript, unit, KC PR-mode, KC current-mode, and npm pack
+          dry-run checks.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-4
@@ -48,13 +48,12 @@ issue_packet:
         evidence_expected: diff inspection
       - requirement_ref: REQ-2
         method: build
-        success_criteria: npm.cmd run build succeeds and generated Action bundle
-          is consistent.
+        success_criteria: npm.cmd run build succeeds and generated Action bundle is consistent.
         evidence_expected: build log
       - requirement_ref: REQ-3
         method: test_run
-        success_criteria: npm.cmd run check, npm.cmd test, npm.cmd run pack:dry,
-          KC PR-mode, and KC current-mode checks pass.
+        success_criteria: npm.cmd run check, npm.cmd test, npm.cmd run pack:dry, KC
+          PR-mode, and KC current-mode checks pass.
         evidence_expected: validation report
       - requirement_ref: REQ-4
         method: external_check
@@ -62,19 +61,19 @@ issue_packet:
         evidence_expected: post-merge evidence
       - requirement_ref: REQ-5
         method: external_check
-        success_criteria: v0.6.0 and v0 tags resolve to the release commit and
-          GitHub Release v0.6.0 exists.
+        success_criteria: v0.6.0 and v0 tags resolve to the release commit and GitHub
+          Release v0.6.0 exists.
         evidence_expected: post-merge evidence
       - requirement_ref: REQ-6
         method: kc_current_check
-        success_criteria: kc finalize creates archive evidence and kc check
-          --mode current passes.
+        success_criteria: kc finalize creates archive evidence and kc check --mode
+          current passes.
         evidence_expected: finalized evidence bundle
     validation:
       validation_scenario_id: VAL-1
-      scenario: A fresh consumer can install @sawadari/kc@0.6.0 or use
-        sawadari/KC@v0, and the published tool/action corresponds to the
-        validated release commit.
+      scenario: A fresh consumer can install @sawadari/kc@0.6.0 or use sawadari/KC@v0,
+        and the published tool/action corresponds to the validated release
+        commit.
       intended_environment: Public GitHub repository sawadari/KC, npm package
         @sawadari/kc, and GitHub Actions Node runtime.
       success_criteria:
@@ -109,4 +108,7 @@ issue_packet:
     - Do not add new KC feature behavior beyond release metadata and evidence.
     - Do not publish a major v1 Action tag.
     - Do not change package scope or repository ownership.
-  issue_state: post_merge_pending
+  issue_state: closed
+  final_status: completed
+  final_pr_ref: https://github.com/sawadari/KC/pull/62
+  final_release_ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
