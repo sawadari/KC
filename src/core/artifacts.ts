@@ -10,6 +10,7 @@ const artifactFiles = {
   envelope: ".kc/agent_envelope.yaml",
   evidence: ".kc/evidence_bundle.yaml",
   current: ".kc/current.yaml",
+  changeRequest: ".kc/change_request.yaml",
   config: ".kc/config.yaml"
 } as const;
 
@@ -48,6 +49,8 @@ export function loadArtifacts(workspace: string, rulesetPath?: string): LoadedAr
           loaded.evidence = unwrapped;
         } else if (key === "current") {
           loaded.current = unwrapped;
+        } else if (key === "changeRequest") {
+          loaded.changeRequest = unwrapped;
         } else if (key === "config") {
           loaded.config = unwrapped;
         }
@@ -88,7 +91,8 @@ function unwrapRoot(kind: string, data: Record<string, unknown>): Record<string,
     approval: "plan_approval",
     envelope: "agent_execution_envelope",
     evidence: "approval_evidence_bundle",
-    current: "kc_current"
+    current: "kc_current",
+    changeRequest: "plan_change_request"
   };
   const root = roots[kind];
   const maybeWrapped = root ? data[root] : undefined;

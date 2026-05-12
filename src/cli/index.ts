@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brief.js";
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
+import { recordChangeRequest } from "../core/change-request.js";
 import { runCheck } from "../core/check.js";
 import { recordIssue, renderIssueBrief, syncIssueFromGitHub, validateIssueArtifact } from "../core/issue.js";
 import { closeWork, finalizeWork } from "../core/lifecycle.js";
@@ -134,6 +135,21 @@ async function main(): Promise<void> {
     console.log(`KC approval recorded: ${result.decision}`);
     console.log(`choice: ${result.choice.number} (${result.choice.label})`);
     console.log(`approval: ${result.approvalPath}`);
+    return;
+  }
+
+  if (args.command === "change-request") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const requestPath = recordChangeRequest({
+      workspace,
+      changeRequestId: value(args, "id"),
+      targetPlanId: requiredValue(args, "target-plan-id"),
+      reason: requiredValue(args, "reason"),
+      requestedScopeAddition: args.values.get("scope-addition") ?? [requiredValue(args, "scope-addition")],
+      status: value(args, "status"),
+      force: args.values.has("force")
+    });
+    console.log(`KC change request recorded: ${requestPath}`);
     return;
   }
 
@@ -345,6 +361,7 @@ Usage:
   kc issue-check [--workspace .]
   kc approval-brief [--workspace .]
   kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]
+  kc change-request --target-plan-id PLAN --reason text --scope-addition path [--id PCR-001] [--status pending_approval]
   kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version [--verify-external[=public|authenticated]]
   kc close-work --workspace . [--archive]
   kc promote [--workspace .] [--output-dir reports/promotion]

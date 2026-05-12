@@ -40,7 +40,8 @@ const activeArtifactFiles = [
   ".kc/plan.yaml",
   ".kc/approval.yaml",
   ".kc/evidence_bundle.yaml",
-  ".kc/agent_envelope.yaml"
+  ".kc/agent_envelope.yaml",
+  ".kc/change_request.yaml"
 ];
 
 export function finalizeWork(options: FinalizeOptions): LifecycleResult {

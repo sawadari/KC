@@ -101840,6 +101840,7 @@ var artifactFiles = {
   envelope: ".kc/agent_envelope.yaml",
   evidence: ".kc/evidence_bundle.yaml",
   current: ".kc/current.yaml",
+  changeRequest: ".kc/change_request.yaml",
   config: ".kc/config.yaml"
 };
 function readYamlFile(filePath) {
@@ -101874,6 +101875,8 @@ function loadArtifacts(workspace, rulesetPath) {
           loaded.evidence = unwrapped;
         } else if (key === "current") {
           loaded.current = unwrapped;
+        } else if (key === "changeRequest") {
+          loaded.changeRequest = unwrapped;
         } else if (key === "config") {
           loaded.config = unwrapped;
         }
@@ -101911,7 +101914,8 @@ function unwrapRoot(kind, data) {
     approval: "plan_approval",
     envelope: "agent_execution_envelope",
     evidence: "approval_evidence_bundle",
-    current: "kc_current"
+    current: "kc_current",
+    changeRequest: "plan_change_request"
   };
   const root = roots[kind];
   const maybeWrapped = root ? data[root] : void 0;
@@ -103819,7 +103823,8 @@ var knownRuleIds = [
   "KC-AE-018",
   "KC-AE-019",
   "KC-AE-020",
-  "KC-AE-021"
+  "KC-AE-021",
+  "KC-AE-022"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
 var placeholderValues = /* @__PURE__ */ new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
@@ -103835,6 +103840,7 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
   const envelope = artifacts.envelope;
   const evidence = artifacts.evidence;
   const current = artifacts.current;
+  const changeRequest = artifacts.changeRequest;
   if (isRuleEnabled(policy, "KC-AE-001")) {
     if (!issue2) {
       add(error2("KC-AE-001", "missing_issue", ".kc/issue.yaml is required."));
@@ -103889,7 +103895,7 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     }
   }
   if (isRuleEnabled(policy, "KC-AE-014")) {
-    for (const finding of placeholderFindings({ issue: issue2, plan, approval, envelope, evidence })) {
+    for (const finding of placeholderFindings({ issue: issue2, plan, approval, envelope, evidence, changeRequest })) {
       add(finding);
     }
   }
@@ -103897,7 +103903,23 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     add(error2("KC-AE-021", "stale_active_artifact_for_pr", "Current KC work is finalized and inactive. This PR changes files but does not establish a new active KC issue/plan/approval."));
   }
   const approvedScope = stringArray(approval?.approved_scope);
-  const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
+  const changeRequestScope = stringArray(changeRequest?.requested_scope_addition);
+  const changeRequestStatus = stringValue(changeRequest?.status);
+  const changeRequestApproved = approvedValues.has(changeRequestStatus);
+  if (isRuleEnabled(policy, "KC-AE-022") && changeRequest && changeRequestScope.length > 0) {
+    if (!hasValue(changeRequest.target_plan_id)) {
+      add(error2("KC-AE-022", "missing_change_request_target_plan", "Plan change requests require target_plan_id."));
+    }
+    const filesInRequestedScope = changedFiles.filter((file) => matchesAny(file, changeRequestScope));
+    if (filesInRequestedScope.length > 0 && !changeRequestApproved) {
+      add(error2("KC-AE-022", "pending_plan_change_request", "Requested scope additions require approved change_request.status before implementation is merge ready."));
+    }
+    if (changeRequestApproved && !hasHumanApprovalEvidence(changeRequest)) {
+      add(error2("KC-AE-022", "missing_change_request_approval_evidence", "Approved change requests require human_approval.actor, human_approval.source, and human_approval.ref."));
+    }
+  }
+  const baseAllowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
+  const allowedFiles = changeRequestApproved ? [...baseAllowedFiles, ...changeRequestScope] : baseAllowedFiles;
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
     for (const file of changedFiles) {
       if (!matchesAny(file, allowedFiles)) {
@@ -103925,7 +103947,10 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     if (expectedByItem.length > 0) {
       for (const file of changedFiles) {
         if (!expectedByItem.some((item) => matchesAny(file, item.expectedFiles))) {
-          add(error2("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+          const coveredByApprovedChangeRequest = changeRequestApproved && matchesAny(file, changeRequestScope);
+          if (!coveredByApprovedChangeRequest) {
+            add(error2("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+          }
         }
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
@@ -104089,6 +104114,10 @@ function conditionEvidenceSatisfied(evidenceRequired, findings, verification, va
 }
 function hasExceptionBasis(issue2, approval, evidence) {
   return hasValue(issue2.exception_basis) || hasValue(issue2.validation_exception_basis) || hasValue(approval?.exception_basis) || hasValue(evidence?.exception_basis) || hasValue(evidence?.validation_exception_basis);
+}
+function hasHumanApprovalEvidence(source) {
+  const humanApproval = recordValue(source.human_approval);
+  return Boolean(stringValue(humanApproval?.actor) && stringValue(humanApproval?.source) && stringValue(humanApproval?.ref));
 }
 function isCompletedLifecycle(lifecycleState, finalStatus, current) {
   if (["completed", "finalized", "archived"].includes(finalStatus) || ["completed", "finalized", "archived"].includes(lifecycleState)) {

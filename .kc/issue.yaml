@@ -1,33 +1,17 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/44
-  related_issue_refs:
-    - github:sawadari/KC/issues/42
-    - github:sawadari/KC/issues/45
-    - github:sawadari/KC/issues/46
-    - github:sawadari/KC/issues/47
-    - github:sawadari/KC/issues/48
-    - github:sawadari/KC/issues/50
-  problem_statement: KC can now finalize work, but PR mode can still accidentally
-    reuse finalized inactive artifacts, Action artifact uploads can collide, and
-    generated evidence output / external verification semantics need clearer
-    operational controls.
-  expected_outcome: KC rejects PRs that do not establish fresh active artifacts
-    after finalized work, supports unique Action evidence artifact names, makes
-    generated evidence output explicit, and validates the main ledger in CI.
+  issue_ref: github:sawadari/KC/issues/49
+  problem_statement: KC can block out-of-scope changes, but it does not yet provide a first-class Plan Change Request artifact for agents to request scope expansion without directly editing the approved plan.
+  expected_outcome: KC supports a deterministic Plan Change Request flow with a template, CLI helper, rule coverage for pending versus approved requests, and documentation.
   acceptance_criteria:
-    - Add KC-AE-021 for stale finalized artifact reuse in PR mode.
-    - Add configurable and unique Action evidence artifact names.
-    - Add explicit generated evidence output path handling.
-    - Add main-branch current-mode CI validation.
-    - Clarify recorded vs verified post-merge evidence semantics.
-    - Add deterministic GitHub Issue to `.kc/issue.yaml` sync.
+    - Add `.kc/change_request.yaml` loading and template support.
+    - Add a rule that blocks pending change requests and allows approved scope additions.
+    - Add a CLI helper for creating change request artifacts.
+    - Document the change request flow.
+    - Add focused tests.
   validation_scenario:
-    statement: Run the unit suite, build the Action bundle, run package dry-run, and
-      run KC self-check against this PR's changed files.
+    statement: Run the unit suite, package dry-run, build, and KC self-check for the change request implementation.
   risk_tier: medium
   non_goals:
-    - Do not publish a new npm version in this PR.
-    - Do not add AI-driven approval behavior.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: github:sawadari/KC/pull/51
+    - Do not add AI approval behavior.
+    - Do not publish a new npm release in this PR.
+  issue_state: ready_for_plan

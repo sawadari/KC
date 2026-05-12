@@ -1,22 +1,20 @@
 agent_plan:
-  plan_id: PLAN-KC-FOLLOWUP-HARDENING-001
-  issue_ref: github:sawadari/KC/issues/44
+  plan_id: PLAN-KC-CHANGE-REQUEST-001
+  issue_ref: github:sawadari/KC/issues/49
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Implement KC follow-up hardening for finalized artifact reuse, Action artifact naming, generated output handling, current-mode CI, and evidence verification semantics.
+  interpreted_requirement: Add deterministic Plan Change Request artifact support for scope expansion.
   scope:
     allowed_files:
       - .kc/**
-      - .github/workflows/**
-      - action.yml
-      - dist/action/index.js
       - src/**
       - tests/**
       - templates/**
       - README.md
       - README.ja.md
+      - dist/action/index.js
       - reports/validation/**
     prohibited_files:
       - .env
@@ -28,89 +26,59 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
+    - Do not add AI approval behavior.
     - Do not publish or tag a new release in this PR.
-    - Do not commit local editor configuration.
-    - Do not add AI authority or AI approval behavior.
   plan_items:
     - id: P1
-      action: Add stale finalized artifact protection in PR mode.
+      action: Load and template Plan Change Request artifacts.
       expected_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
-        - tests/**
-      actual_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
-        - tests/core.test.mjs
-      status: implemented
-    - id: P2
-      action: Make generated evidence output explicit and Action artifact names unique.
-      expected_files:
-        - src/core/check.ts
+        - src/core/artifacts.ts
         - src/core/types.ts
-        - src/action/index.ts
-        - src/cli/index.ts
-        - action.yml
-        - dist/action/index.js
-        - tests/**
-      actual_files:
-        - src/core/check.ts
-        - src/core/types.ts
-        - src/action/index.ts
-        - src/cli/index.ts
-        - action.yml
-        - dist/action/index.js
-        - tests/core.test.mjs
-      status: implemented
-    - id: P3
-      action: Add current-mode CI and document operational semantics.
-      expected_files:
-        - .github/workflows/**
+        - src/core/change-request.ts
+        - src/core/lifecycle.ts
         - templates/**
-        - README.md
-        - README.ja.md
+        - tests/**
       actual_files:
-        - .github/workflows/ci.yml
-        - templates/.github/workflows/kc-guard.yml
+        - src/core/artifacts.ts
+        - src/core/types.ts
+        - src/core/change-request.ts
+        - src/core/lifecycle.ts
+        - templates/.kc/change_request.example.yaml
+        - tests/core.test.mjs
+      status: completed
+    - id: P2
+      action: Add deterministic rule behavior for pending and approved change requests.
+      expected_files:
+        - src/core/rules.ts
+        - .kc/ruleset.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/**
+      actual_files:
+        - src/core/rules.ts
+        - .kc/ruleset.yaml
+        - templates/.kc/ruleset.yaml
+        - tests/core.test.mjs
+      status: completed
+    - id: P3
+      action: Add CLI helper and documentation.
+      expected_files:
+        - src/cli/index.ts
         - README.md
         - README.ja.md
-      status: implemented
+        - templates/AGENTS.md
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - templates/AGENTS.md
+        - tests/core.test.mjs
+      status: completed
     - id: P4
-      action: Clarify external verification and post-merge evidence statuses.
-      expected_files:
-        - src/core/lifecycle.ts
-        - src/cli/index.ts
-        - README.md
-        - README.ja.md
-        - tests/**
-      actual_files:
-        - src/core/lifecycle.ts
-        - src/cli/index.ts
-        - README.md
-        - README.ja.md
-        - tests/core.test.mjs
-      status: implemented
-    - id: P5
-      action: Add deterministic GitHub Issue sync for issue artifacts.
-      expected_files:
-        - src/core/issue.ts
-        - src/cli/index.ts
-        - README.md
-        - README.ja.md
-        - tests/**
-      actual_files:
-        - src/core/issue.ts
-        - src/cli/index.ts
-        - README.md
-        - README.ja.md
-        - tests/core.test.mjs
-      status: implemented
-    - id: P6
       action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
+        - dist/action/index.js
         - reports/validation/**
       actual_files:
         - .kc/approval.yaml
@@ -118,17 +86,19 @@ agent_plan:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md
-      status: implemented
+        - .kc/ruleset.yaml
+        - dist/action/index.js
+        - reports/validation/VAL-KC-CHANGE-REQUEST-001.md
+      status: completed
   verification_plan:
     - Run npm.cmd run check.
     - Run npm.cmd test.
     - Run npm.cmd run pack:dry.
-    - Run npm.cmd run build and include the updated dist/action/index.js bundle.
+    - Run npm.cmd run build.
     - Run KC self-check.
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md.
+    - Record reports/validation/VAL-KC-CHANGE-REQUEST-001.md.
     - Use GitHub Actions CI on the implementation PR.
   questions_for_human:
-    - Do you approve PLAN-KC-FOLLOWUP-HARDENING-001?
+    - Do you approve PLAN-KC-CHANGE-REQUEST-001?
   status: approved

@@ -199,6 +199,7 @@ kc issue-sync --issue-ref URL --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
+kc change-request --target-plan-id PLAN-123 --reason "Need one extra file" --scope-addition src/new-path/**
 kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version --verify-external=public
 kc close-work --workspace . --archive
 kc check --workspace . --mode current
@@ -217,6 +218,7 @@ Command summary:
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
 - `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.
+- `kc change-request`: create `.kc/change_request.yaml` when implementation needs files outside the approved plan scope.
 - `kc finalize`: turn PR-time evidence into finalized evidence after merge or release. Use `--verify-external=public` for unauthenticated public checks, or `--verify-external=authenticated` when an authenticated `gh` session is intentionally available.
 - `kc close-work`: archive active `.kc` artifacts and mark current work inactive.
 - `kc check --mode current`: detect stale main-branch lifecycle state.
@@ -231,6 +233,7 @@ KC reads these files from the target repository:
 - `.kc/issue.yaml`: problem, expected outcome, acceptance criteria, risk tier, non-goals
 - `.kc/plan.yaml`: interpreted requirement, implementation plan, allowed files, prohibited files
 - `.kc/approval.yaml`: human approval evidence and approval conditions
+- `.kc/change_request.yaml`: proposed or approved scope expansion for the current plan
 - `.kc/agent_envelope.yaml`: agent identity and execution boundaries
 - `.kc/evidence_bundle.yaml`: verification, validation, PR, and audit evidence
 - `.kc/current.yaml`: active/finalized lifecycle state for the current work item
@@ -276,6 +279,19 @@ kc check --workspace . --mode current
 In PR mode, KC also protects against reusing a previous finalized work item. If `.kc/current.yaml` says `active_work: false` or `lifecycle_state: finalized`, a new PR that changes non-`.kc` files must establish fresh `.kc/issue.yaml`, `.kc/plan.yaml`, and `.kc/approval.yaml` artifacts.
 
 Use `kc close-work --archive` when active artifacts should be copied into `.kc/archive/<work-id>/` and `.kc/current.yaml` should show `active_work: false`.
+
+## Plan Change Requests
+
+When implementation reveals a necessary file outside the approved scope, do not silently edit the plan. Create a Plan Change Request and ask for human approval:
+
+```bash
+kc change-request --workspace . \
+  --target-plan-id PLAN-123 \
+  --reason "The approved API change also requires a generated client fixture." \
+  --scope-addition tests/fixtures/client/**
+```
+
+While `.kc/change_request.yaml` is `pending_approval`, changes that rely on its requested scope return `HOLD`. After a human approves the request, update the artifact with `status: approved` and durable `human_approval.actor`, `human_approval.source`, and `human_approval.ref`. KC then treats the approved scope additions as part of the merge gate, while still keeping the original plan and the scope expansion auditable.
 
 ## Enforcement Scope
 

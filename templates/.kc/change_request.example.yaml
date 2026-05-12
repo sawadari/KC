@@ -1,0 +1,11 @@
+plan_change_request:
+  change_request_id: PCR-001
+  target_plan_id: PLAN-123
+  reason: "Explain why the approved plan scope must change."
+  requested_scope_addition:
+    - src/new-scope/**
+  status: pending_approval
+  human_approval:
+    actor: ""
+    source: ""
+    ref: ""

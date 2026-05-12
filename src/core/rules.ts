@@ -25,7 +25,8 @@ const knownRuleIds = [
   "KC-AE-018",
   "KC-AE-019",
   "KC-AE-020",
-  "KC-AE-021"
+  "KC-AE-021",
+  "KC-AE-022"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
@@ -43,6 +44,7 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   const envelope = artifacts.envelope;
   const evidence = artifacts.evidence;
   const current = artifacts.current;
+  const changeRequest = artifacts.changeRequest;
 
   if (isRuleEnabled(policy, "KC-AE-001")) {
     if (!issue) {
@@ -105,7 +107,7 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   }
 
   if (isRuleEnabled(policy, "KC-AE-014")) {
-    for (const finding of placeholderFindings({ issue, plan, approval, envelope, evidence })) {
+    for (const finding of placeholderFindings({ issue, plan, approval, envelope, evidence, changeRequest })) {
       add(finding);
     }
   }
@@ -119,7 +121,23 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   }
 
   const approvedScope = stringArray(approval?.approved_scope);
-  const allowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
+  const changeRequestScope = stringArray(changeRequest?.requested_scope_addition);
+  const changeRequestStatus = stringValue(changeRequest?.status);
+  const changeRequestApproved = approvedValues.has(changeRequestStatus);
+  if (isRuleEnabled(policy, "KC-AE-022") && changeRequest && changeRequestScope.length > 0) {
+    if (!hasValue(changeRequest.target_plan_id)) {
+      add(error("KC-AE-022", "missing_change_request_target_plan", "Plan change requests require target_plan_id."));
+    }
+    const filesInRequestedScope = changedFiles.filter((file) => matchesAny(file, changeRequestScope));
+    if (filesInRequestedScope.length > 0 && !changeRequestApproved) {
+      add(error("KC-AE-022", "pending_plan_change_request", "Requested scope additions require approved change_request.status before implementation is merge ready."));
+    }
+    if (changeRequestApproved && !hasHumanApprovalEvidence(changeRequest)) {
+      add(error("KC-AE-022", "missing_change_request_approval_evidence", "Approved change requests require human_approval.actor, human_approval.source, and human_approval.ref."));
+    }
+  }
+  const baseAllowedFiles = approvedScope.length > 0 ? approvedScope : stringArray(readPath(plan, ["scope", "allowed_files"]));
+  const allowedFiles = changeRequestApproved ? [...baseAllowedFiles, ...changeRequestScope] : baseAllowedFiles;
   if (isRuleEnabled(policy, "KC-AE-005") && changedFiles.length > 0 && allowedFiles.length > 0) {
     for (const file of changedFiles) {
       if (!matchesAny(file, allowedFiles)) {
@@ -149,7 +167,10 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     if (expectedByItem.length > 0) {
       for (const file of changedFiles) {
         if (!expectedByItem.some((item) => matchesAny(file, item.expectedFiles))) {
-          add(error("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+          const coveredByApprovedChangeRequest = changeRequestApproved && matchesAny(file, changeRequestScope);
+          if (!coveredByApprovedChangeRequest) {
+            add(error("KC-AE-016", "unmapped_plan_item_change", `${file} is not mapped to any plan_items[].expected_files entry.`, file));
+          }
         }
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
@@ -350,6 +371,11 @@ function hasExceptionBasis(issue: Record<string, unknown>, approval: Record<stri
     || hasValue(approval?.exception_basis)
     || hasValue(evidence?.exception_basis)
     || hasValue(evidence?.validation_exception_basis);
+}
+
+function hasHumanApprovalEvidence(source: Record<string, unknown>): boolean {
+  const humanApproval = recordValue(source.human_approval);
+  return Boolean(stringValue(humanApproval?.actor) && stringValue(humanApproval?.source) && stringValue(humanApproval?.ref));
 }
 
 function isCompletedLifecycle(lifecycleState: string, finalStatus: string, current: Record<string, unknown> | undefined): boolean {
