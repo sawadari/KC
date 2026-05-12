@@ -1,25 +1,79 @@
 issue_packet:
-  issue_ref: https://github.com/sawadari/KC/issues/49
-  problem_statement: KC can block out-of-scope changes, but it does not yet
-    provide a first-class Plan Change Request artifact for agents to request
-    scope expansion without directly editing the approved plan.
-  expected_outcome: KC supports a deterministic Plan Change Request flow with a
-    template, CLI helper, rule coverage for pending versus approved requests,
-    and documentation.
+  issue_ref: github:sawadari/KC/issues/56
+  problem_statement: KC Issues have problem, acceptance, and validation fields, but they do not explicitly separate Need, Requirement, Verification, and Validation. This makes it easy for agents or reviewers to treat passing tests as validation.
+  expected_outcome: KC supports optional NRVV structure in Issue artifacts, templates, deterministic issue-sync parsing, warning-level NRVV checks, generated nrvv_trace evidence, documentation, and tests.
+  nrvv:
+    need:
+      need_id: NEED-1
+      stakeholder: KC users reviewing AI-assisted pull requests
+      situation: AI coding agents can produce implementation PRs quickly, but reviewers still need to distinguish the original need, requirements, verification, and validation.
+      pain_or_risk: Verification evidence can be mistaken for validation evidence, and Issue context can be too weak for safe planning.
+      desired_operational_outcome: KC Issues guide humans and agents to preserve Need -> Requirement -> Verification -> Validation trace without turning KC into a heavy requirements tool.
+    requirements:
+      - requirement_id: REQ-1
+        statement: Add NRVV fields to KC Issue templates and example artifacts without breaking existing Issue fields.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-2
+        statement: Parse NRVV sections from GitHub Issue markdown deterministically during issue-sync.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-3
+        statement: Add warning-level NRVV checks that surface missing Need, Requirement, Verification, and Validation structure.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-4
+        statement: Generate an Evidence Bundle nrvv_trace entry from Issue NRVV and existing evidence.
+        source_need_ref: NEED-1
+        risk_tier: medium
+    verification:
+      - requirement_ref: REQ-1
+        method: template_inspection
+        success_criteria: Templates and examples include optional NRVV fields while legacy fields remain.
+        evidence_expected: diff inspection and tests
+      - requirement_ref: REQ-2
+        method: unit_test
+        success_criteria: issueFromMarkdown parses NRVV headings into .kc/issue.yaml structure.
+        evidence_expected: node test output
+      - requirement_ref: REQ-3
+        method: unit_test
+        success_criteria: NRVV rules emit warnings and do not block merge by default.
+        evidence_expected: node test output
+      - requirement_ref: REQ-4
+        method: unit_test
+        success_criteria: generated Evidence Bundle contains nrvv_trace when Issue NRVV exists.
+        evidence_expected: node test output
+    validation:
+      validation_scenario_id: VAL-1
+      scenario: A maintainer can create or sync a KC Issue that keeps Need, Requirement, Verification, and Validation separate before planning an AI-assisted PR.
+      intended_environment: KC repository and repositories initialized with KC templates
+      success_criteria:
+        - Issue templates prompt humans for NRVV information.
+        - issue-sync preserves NRVV sections in .kc/issue.yaml.
+        - kc check surfaces NRVV gaps as warnings.
+        - Verification evidence is not treated as Validation passed.
+      evidence_expected:
+        - validation report
+        - test run
+      validation_status: pending
+    gaps:
+      verification_to_validation_gap:
+        - Unit tests confirm parsing and rules, but real workflow value still needs dogfooding on future KC issues.
   acceptance_criteria:
-    - Add `.kc/change_request.yaml` loading and template support.
-    - Add a rule that blocks pending change requests and allows approved scope
-      additions.
-    - Add a CLI helper for creating change request artifacts.
-    - Document the change request flow.
+    - Add NRVV block to Issue Template.
+    - Add optional nrvv block to .kc/issue.example.yaml.
+    - Add NRVV Issue Discipline to AGENTS.md.
+    - Add README and README.ja NRVV explanation.
+    - Extend issue-sync to parse NRVV headings deterministically.
+    - Add minimal warning-level NRVV lint rules.
+    - Add Evidence Bundle nrvv_trace generation.
     - Add focused tests.
   validation_scenario:
-    statement: Run the unit suite, package dry-run, build, and KC self-check for the
-      change request implementation.
+    statement: Run unit tests, package dry-run, build, KC self-check, and validation report for NRVV implementation.
   risk_tier: medium
   non_goals:
-    - Do not add AI approval behavior.
+    - Do not turn KC into a heavy MBSE or requirements management tool.
+    - Do not remove existing Issue fields or Acceptance Criteria.
+    - Do not let AI mark validation passed.
     - Do not publish a new npm release in this PR.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: https://github.com/sawadari/KC/pull/53
+  issue_state: ready_for_plan

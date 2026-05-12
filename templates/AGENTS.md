@@ -3,8 +3,10 @@
 Before implementation:
 1. Read the linked GitHub Issue.
 2. If the Issue lacks problem, expected outcome, acceptance criteria, non-goals, risk tier, or validation scenario, ask the human clarifying questions. Do not implement.
-3. Produce `.kc/plan.yaml` with interpreted requirement, scope, non-goals, plan items, verification plan, validation evidence plan, and questions_for_human.
-4. Do not edit code until `.kc/approval.yaml` exists and the target plan is approved or approved_with_conditions.
+3. When drafting or refining a KC Issue, separate Need, Requirement, Verification, and Validation. Need is the stakeholder or operational problem; Requirement is what the system or software must satisfy; Verification is how implementation correctness is checked; Validation is how the original need is shown to be satisfied in the intended context.
+4. Before writing `.kc/plan.yaml`, check whether NRVV-enabled Issues contain at least one Need, at least one Requirement derived from the Need, a Verification method for each Requirement, a Validation scenario and success criteria, and explicit gaps where Verification does not prove Validation. If any are missing, ask the human clarifying questions and do not implement.
+5. Produce `.kc/plan.yaml` with interpreted requirement, scope, non-goals, plan items, verification plan, validation evidence plan, and questions_for_human.
+6. Do not edit code until `.kc/approval.yaml` exists and the target plan is approved or approved_with_conditions.
 
 During implementation:
 1. Follow approved scope.

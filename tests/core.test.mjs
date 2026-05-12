@@ -325,6 +325,86 @@ describe("KC rule engine", () => {
     assert.equal(generated.approval_evidence_bundle.decision.status, "PASS");
   });
 
+  it("emits warning-level NRVV findings for incomplete NRVV issue structure", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.nrvv = {
+      requirements: [
+        {
+          requirement_id: "REQ-1",
+          statement: "Upload flow retries transient failures."
+        }
+      ],
+      validation: {
+        scenario: "Transient upload failure recovers."
+      }
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "WARN");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-001" && finding.severity === "warning"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-003" && finding.severity === "warning"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-004" && finding.severity === "warning"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-006" && finding.severity === "warning"));
+  });
+
+  it("generates NRVV trace entries from Issue NRVV and evidence", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.nrvv = {
+      need: {
+        need_id: "NEED-1",
+        stakeholder: "Operations user",
+        situation: "Transient uploads fail.",
+        pain_or_risk: "Manual reruns are required.",
+        desired_operational_outcome: "Uploads recover without manual reruns."
+      },
+      requirements: [
+        {
+          requirement_id: "REQ-1",
+          statement: "Upload flow retries transient failures.",
+          source_need_ref: "NEED-1"
+        }
+      ],
+      verification: [
+        {
+          requirement_ref: "REQ-1",
+          method: "unit_test",
+          success_criteria: "Retries are tested."
+        }
+      ],
+      validation: {
+        validation_scenario_id: "VAL-1",
+        scenario: "Transient upload failure recovers.",
+        intended_environment: "production-like export job",
+        validation_status: "pending"
+      },
+      gaps: {
+        verification_to_validation_gap: ["Unit tests do not prove operational recovery."]
+      }
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "PASS");
+    assert.equal(result.evidenceBundle.nrvv_trace.needs[0].need_id, "NEED-1");
+    assert.equal(result.evidenceBundle.nrvv_trace.requirements[0].requirement_id, "REQ-1");
+    assert.equal(result.evidenceBundle.nrvv_trace.requirements[0].status, "verified");
+    assert.equal(result.evidenceBundle.nrvv_trace.validation_summary.status, "pending");
+    assert.equal(result.evidenceBundle.nrvv_trace.unresolved_gaps[0].type, "verification_to_validation_gap");
+  });
+
   it("holds changed files that rely on a pending plan change request", async () => {
     const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
     fs.writeFileSync(path.join(workspace, ".kc", "change_request.yaml"), YAML.stringify({
@@ -678,6 +758,72 @@ describe("KC issue intake", () => {
     assert.deepEqual(issue.nonGoals, ["AI approval."]);
     assert.equal(issue.riskTier, "medium");
     assert.equal(issue.validationScenario, "Run parser fixture tests.");
+  });
+
+  it("parses GitHub Issue markdown into optional NRVV fields", () => {
+    const issue = issueFromMarkdown({
+      issueRef: "https://github.com/sawadari/KC/issues/56",
+      title: "Add NRVV issue structure",
+      body: [
+        "## Problem",
+        "Issue context mixes verification and validation.",
+        "",
+        "## Need",
+        "Clear issue discipline for AI-assisted PRs.",
+        "",
+        "### Stakeholder / User",
+        "KC maintainer",
+        "",
+        "### Situation",
+        "Codex can produce PRs before the human has separated intent and evidence.",
+        "",
+        "### Pain / Risk",
+        "Tests may be mistaken for validation.",
+        "",
+        "### Desired Operational Outcome",
+        "Reviewers see Need, Requirement, Verification, and Validation separately.",
+        "",
+        "## Requirement",
+        "- REQ-1: Parse NRVV headings.",
+        "",
+        "## Verification",
+        "- REQ-1 verification method: unit_test|Parser maps headings to nrvv fields.|test report",
+        "",
+        "## Validation",
+        "",
+        "### Validation Scenario",
+        "A synced issue preserves NRVV fields.",
+        "",
+        "### Success Criteria",
+        "- nrvv.need exists.",
+        "- nrvv.requirements includes REQ-1.",
+        "",
+        "### Intended Environment",
+        "KC issue-sync",
+        "",
+        "## NRVV Notes",
+        "- Verification-to-Validation gap: Unit tests do not prove future workflow adoption.",
+        "",
+        "## Acceptance Criteria",
+        "- Parse headings.",
+        "",
+        "## Non-goals",
+        "- Full MBSE tool.",
+        "",
+        "## Risk Tier",
+        "medium"
+      ].join("\n")
+    });
+
+    assert.equal(issue.nrvv.need.stakeholder, "KC maintainer");
+    assert.equal(issue.nrvv.need.desired_operational_outcome, "Reviewers see Need, Requirement, Verification, and Validation separately.");
+    assert.equal(issue.nrvv.requirements[0].requirement_id, "REQ-1");
+    assert.equal(issue.nrvv.requirements[0].source_need_ref, "NEED-1");
+    assert.equal(issue.nrvv.verification[0].requirement_ref, "REQ-1");
+    assert.equal(issue.nrvv.verification[0].success_criteria, "Parser maps headings to nrvv fields.");
+    assert.equal(issue.nrvv.validation.scenario, "A synced issue preserves NRVV fields.");
+    assert.deepEqual(issue.nrvv.validation.success_criteria, ["nrvv.need exists.", "nrvv.requirements includes REQ-1."]);
+    assert.equal(issue.nrvv.gaps.verification_to_validation_gap[0], "Unit tests do not prove future workflow adoption.");
   });
 });
 

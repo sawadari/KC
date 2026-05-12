@@ -230,7 +230,7 @@ AI assist is optional. It uses `OPENAI_API_KEY` or `--openai-api-key` only when 
 
 KC reads these files from the target repository:
 
-- `.kc/issue.yaml`: problem, expected outcome, acceptance criteria, risk tier, non-goals
+- `.kc/issue.yaml`: problem, expected outcome, acceptance criteria, optional NRVV structure, risk tier, non-goals
 - `.kc/plan.yaml`: interpreted requirement, implementation plan, allowed files, prohibited files
 - `.kc/approval.yaml`: human approval evidence and approval conditions
 - `.kc/change_request.yaml`: proposed or approved scope expansion for the current plan
@@ -243,6 +243,25 @@ KC reads these files from the target repository:
 The examples created by `kc init` are intentionally explicit and pending. Active artifacts containing common example placeholders are blocked by KC.
 
 `kc check` writes generated evidence separately from the canonical `.kc/evidence_bundle.yaml`. The default local path is `.kc/evidence_bundle.generated.yaml`, which is ignored by the KC template. Use `--output` when you want a different path. The GitHub Action writes generated evidence under runner temp unless `evidence-output` is set.
+
+## NRVV in Issues
+
+KC Issues can optionally use an NRVV structure:
+
+- Need: the stakeholder or operational problem
+- Requirement: what the system or software must satisfy
+- Verification: how each requirement is checked
+- Validation: how the original need is shown to be satisfied in the intended context
+
+KC keeps Verification and Validation separate. Passing tests may support Verification, but it does not automatically prove Validation.
+
+When NRVV fields are present, KC can trace:
+
+```text
+Need -> Requirement -> Verification evidence -> Validation evidence
+```
+
+This is useful when Codex or another coding agent produces a PR quickly, but reviewers still need to know whether the change addresses the original need and not only whether it passes tests. NRVV is optional by default; when an Issue includes `nrvv` or sets `nrvv_required: true`, KC emits warning-level `KC-NRVV-*` findings for missing trace information.
 
 ## Artifact Lifecycle
 

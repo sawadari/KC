@@ -230,7 +230,7 @@ AI assist は任意です。`OPENAI_API_KEY` または `--openai-api-key` があ
 
 KC は対象 repo から次のファイルを読みます。
 
-- `.kc/issue.yaml`: problem、expected outcome、acceptance criteria、risk tier、non-goals
+- `.kc/issue.yaml`: problem、expected outcome、acceptance criteria、任意のNRVV構造、risk tier、non-goals
 - `.kc/plan.yaml`: 解釈した要求、実装 plan、allowed files、prohibited files
 - `.kc/approval.yaml`: 人間の承認 evidence と承認条件
 - `.kc/change_request.yaml`: 現在の plan に対する scope 追加の提案または承認
@@ -243,6 +243,25 @@ KC は対象 repo から次のファイルを読みます。
 `kc init` で作る example は明示的かつ pending 状態です。active artifact に common placeholder が残っている場合、KC は merge-ready にしません。
 
 `kc check` は canonical な `.kc/evidence_bundle.yaml` とは別に、生成 Evidence Bundle を書きます。ローカル既定値は `.kc/evidence_bundle.generated.yaml` で、KC template では ignore されます。別の場所へ出したい場合は `--output` を使います。GitHub Action では `evidence-output` を指定しない限り runner temp に出力します。
+
+## IssueにおけるNRVV
+
+KC Issueでは、必要に応じてNRVV構造を使えます。
+
+- Need: 誰が、どの状況で、何に困っているか
+- Requirement: システムまたはソフトウェアが満たすべき条件
+- Verification: 各Requirementをどう確認するか
+- Validation: 元のNeedが意図した文脈で満たされたことをどう確認するか
+
+KCはVerificationとValidationを分けて扱います。テストが通ることはVerification evidenceにはなりますが、Validation passedを自動的には意味しません。
+
+NRVVを使うと、KCは次を追跡できます。
+
+```text
+Need -> Requirement -> Verification evidence -> Validation evidence
+```
+
+これは、CodexなどのAIコーディングエージェントが素早くPRを作る場合に、変更が単にテストを通るだけでなく、元のNeedを満たしているかをレビューするために使います。NRVVはデフォルトでは任意です。Issueに`nrvv`がある場合、または`nrvv_required: true`を設定した場合、KCは不足しているtrace情報をwarning levelの`KC-NRVV-*` findingとして出します。
 
 ## Artifact Lifecycle
 
