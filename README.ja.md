@@ -99,7 +99,9 @@ npx -y @sawadari/kc --help
 npx -y @sawadari/kc init --workspace .
 ```
 
-これで `.kc` の example、GitHub templates、`AGENTS.md` のスターター、任意の Codex hook templates が配置されます。既存ファイルは `--force` を付けない限り上書きしません。
+これで `.kc` の example、GitHub templates、`AGENTS.md` のスターター、`docs/KC_AGENTS_GUIDANCE.md` のマージ用snippet、任意の Codex hook templates が配置されます。既存ファイルは `--force` を付けない限り上書きしません。
+
+既存repoにすでに `AGENTS.md` がある場合、KCはそのファイルを触らず、CLIに `skipped AGENTS.md` と表示します。既存の指示を残したまま、必要なKC向け指示だけを `docs/KC_AGENTS_GUIDANCE.md` から手で取り込んでください。`--force` は、既存ファイルをKCテンプレートで置き換える意図がある場合だけ使います。
 
 実際の PR では、example を有効な artifact にコピーして中身を埋めます。
 
@@ -249,6 +251,7 @@ kc bundle --workspace . --output .kc/evidence_bundle.generated.yaml
 kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
 kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text --nrvv-file .kc/nrvv.yaml
+kc nrvv-candidate --workspace . --input issue.md
 kc issue-sync --issue-ref URL --workspace .
 kc issue-sync --issue-ref URL --check --issue-file issue.md --workspace .
 kc issue-check --workspace .
@@ -269,6 +272,7 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc assist`: candidate artifact を下書きする。AI 出力は最終判定を変えない
 - `kc issue-brief`: issue の元メモを人間が埋める brief にする
 - `kc issue-record`: 明示された issue 項目から `.kc/issue.yaml` を作る。`--nrvv-file` を使うと、構造化されたNRVV YAMLを `issue_packet.nrvv` に読み込める
+- `kc nrvv-candidate`: 不足しているNRVV項目のdraft候補を出す。APIキーがなければ決定的なtemplateを出し、`OPENAI_API_KEY` があればAI assistを使える。出力はcandidate専用で、`.kc/issue.yaml` は更新しない
 - `kc issue-sync`: GitHub Issue body の見出しを決定的に解析し、`.kc/issue.yaml` の下書きを作る。`--check` でsource Issue候補と現在の `.kc/issue.yaml` のdriftを確認できる。`--issue-file` を使うとlocal Markdown sampleで比較できる
 - `kc issue-check`: planning 前に issue artifact を検査する
 - `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
@@ -301,7 +305,7 @@ KC は対象 repo から次のファイルを読みます。
 
 ## IssueにおけるNRVV
 
-KC Issueでは、必要に応じてNRVV構造を使えます。
+KCは、agent-governed workのIssueではNRVVを標準的な構造として扱います。
 
 - Need: 誰が、どの状況で、何に困っているか
 - Requirement: システムまたはソフトウェアが満たすべき条件
@@ -316,7 +320,17 @@ NRVVを使うと、KCは次を追跡できます。
 Need -> Requirement -> Verification evidence -> Validation evidence
 ```
 
-これは、CodexなどのAIコーディングエージェントが素早くPRを作る場合に、変更が単にテストを通るだけでなく、元のNeedを満たしているかをレビューするために使います。NRVVはデフォルトでは任意です。Issueに`nrvv`がある場合、または`nrvv_required: true`を設定した場合、KCは不足しているtrace情報をwarning levelの`KC-NRVV-*` findingとして出します。
+これは、CodexなどのAIコーディングエージェントが素早くPRを作る場合に、変更が単にテストを通るだけでなく、元のNeedを満たしているかをレビューするために使います。
+
+新しいKCテンプレートでは `nrvv_profile: required` を設定し、不足または不完全なNRVVをblocking findingにします。既存repoでは移行期間として `warning` や `optional` を使えますが、新しいKC管理対象の作業では `required` が推奨です。
+
+IssueのNRVVが不足している場合、最終情報をAIに決めさせるのではなく、review用のdraft候補を出します。
+
+```bash
+kc nrvv-candidate --workspace . --input issue.md
+```
+
+APIキーがない場合は決定的なtemplateを表示します。`OPENAI_API_KEY` がある場合はAI assistでより具体的な候補を下書きできます。どちらの場合も出力は `candidate_status: draft` として扱い、Issue承認、Validation passed、deterministicな `kc check` 判定は変更しません。
 
 parserが読みやすいIssueにする場合は、RequirementとVerificationを次の形で書きます。
 
@@ -430,10 +444,10 @@ NRVV enforcementは、`ruleset.nrvv_profile` または `.kc/config.yaml` の `kc
 
 ```yaml
 ruleset:
-  nrvv_profile: optional # optional | warning | strict
+  nrvv_profile: required # required | warning | optional | strict
 ```
 
-`optional` は既定互換です。`warning` はNRVVがない場合もwarning findingを出します。`strict` は不足または不完全なNRVVをblocking findingにします。
+`required` は推奨profileで、不足または不完全なNRVVをblocking findingにします。`warning` は移行中にwarningとして表示します。`optional` は既存互換です。`strict` はblocking modeのalias互換として受け付けます。
 
 現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence、placeholder 検出、risk-aware validation pending、plan item trace、current mode の lifecycle stale-state 検出、PR mode での過去 finalized artifact 誤用防止を扱います。
 

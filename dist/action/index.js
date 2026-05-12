@@ -101652,6 +101652,7 @@ function systemPrompt() {
 function buildPrompt(kind, input) {
   const header = {
     "issue-packet": "Draft a parseable .kc/issue.yaml candidate.",
+    "nrvv-candidate": "Draft a parseable NRVV candidate for missing or incomplete Issue fields.",
     plan: "Draft a parseable .kc/plan.yaml candidate with status pending_approval.",
     "evidence-bundle": "Draft a parseable .kc/evidence_bundle.yaml candidate with no passed validation unless evidence is explicit.",
     "decision-ledger": "Draft a DecisionLedger candidate in Markdown with source references.",
@@ -101680,6 +101681,62 @@ function structuredTemplate(kind, input) {
         risk_tier: "medium",
         non_goals: ["TBD"],
         issue_state: "draft"
+      }
+    });
+  }
+  if (kind === "nrvv-candidate") {
+    return import_yaml.default.stringify({
+      nrvv_candidate: {
+        candidate_status: "draft",
+        source_summary: sourceSummary || "TBD",
+        proposed_nrvv: {
+          need: {
+            need_id: "NEED-1",
+            stakeholder: "TBD",
+            situation: sourceSummary || "TBD",
+            pain_or_risk: "TBD",
+            desired_operational_outcome: "TBD"
+          },
+          requirements: [
+            {
+              requirement_id: "REQ-1",
+              statement: "TBD",
+              source_need_ref: "NEED-1",
+              risk_tier: "medium"
+            }
+          ],
+          verification: [
+            {
+              requirement_ref: "REQ-1",
+              method: "TBD",
+              success_criteria: "TBD",
+              evidence_expected: "TBD"
+            }
+          ],
+          validation: {
+            validation_scenario_id: "VAL-1",
+            scenario: "TBD",
+            intended_environment: "TBD",
+            success_criteria: ["TBD"],
+            evidence_expected: ["validation report"],
+            validation_status: "pending"
+          },
+          gaps: {
+            verification_to_validation_gap: [
+              "Verification evidence does not automatically prove the original Need is satisfied."
+            ]
+          }
+        },
+        missing_field_questions: [
+          "Who has the Need?",
+          "What operational outcome should improve?",
+          "Which Requirements must be verified?",
+          "What Validation scenario proves the Need is satisfied?"
+        ],
+        safety: {
+          human_review_required: true,
+          deterministic_decision_unchanged: true
+        }
       }
     });
   }
@@ -103886,16 +103943,16 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
   const nrvvGaps = recordValue(nrvv?.gaps);
   if (nrvvActive) {
     if (isRuleEnabled(policy, "KC-NRVV-001") && (riskyTiers.has(riskTier) || policy.nrvvProfile !== "optional") && !hasValue(nrvv?.need)) {
-      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled issues should include nrvv.need."));
+      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "Need: NRVV-enabled issues should include nrvv.need."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
-      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "Requirement: NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-003")) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id) || "requirement";
         if (!hasValue(requirement.source_need_ref)) {
-          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `Requirement: ${requirementId} should include source_need_ref.`));
         }
       }
     }
@@ -103904,21 +103961,21 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id);
         if (requirementId && !verifiedRefs.has(requirementId)) {
-          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `Verification: ${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
         }
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-005")) {
       const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
       if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
-        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "Validation: NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
-      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "Validation: NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
-      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
+      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "Validation: High/critical NRVV issues should include validation.intended_environment."));
     }
   }
   if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
@@ -104151,7 +104208,10 @@ function resolveNrvvProfile(ruleset, config, findings) {
   if (raw === "optional" || raw === "warning" || raw === "strict") {
     return raw;
   }
-  findings.push(error2("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, or strict.`));
+  if (raw === "required") {
+    return "strict";
+  }
+  findings.push(error2("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, strict, or required.`));
   return "optional";
 }
 function unwrapRuleset(ruleset) {

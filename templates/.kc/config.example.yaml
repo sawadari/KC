@@ -13,7 +13,8 @@ kc:
         - tests/**
       pr_body_marker: "KC: required"
   nrvv:
+    # required: missing/incomplete NRVV emits blocking findings.
+    # warning: missing/incomplete NRVV emits warning findings during migration.
     # optional: NRVV absent is ignored; incomplete NRVV warns when present.
-    # warning: missing/incomplete NRVV emits warning findings.
-    # strict: missing/incomplete NRVV emits blocking findings.
-    mode: optional
+    # strict: alias-compatible blocking mode; required is the recommended name.
+    mode: required

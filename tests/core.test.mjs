@@ -559,6 +559,23 @@ describe("KC rule engine", () => {
     assert.equal(strict.decision, "HOLD");
     assert.ok(strict.findings.some((finding) => finding.ruleId === "KC-NRVV-001" && finding.severity === "error"));
     assert.ok(strict.findings.some((finding) => finding.ruleId === "KC-NRVV-002" && finding.severity === "error"));
+
+    const requiredWorkspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(requiredWorkspace, ".kc", "ruleset.yaml"), YAML.stringify({
+      ruleset: {
+        nrvv_profile: "required"
+      }
+    }), "utf8");
+
+    const required = await runCheck({
+      workspace: requiredWorkspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(required.decision, "HOLD");
+    assert.ok(required.findings.some((finding) => finding.ruleId === "KC-NRVV-001" && finding.severity === "error"));
+    assert.ok(required.findings.some((finding) => finding.message.startsWith("Need:")));
   });
 
   it("flags missing Requirement-to-plan and Requirement-to-evidence mappings when NRVV profile requires traceability", async () => {
@@ -832,6 +849,36 @@ describe("KC CLI", () => {
     assert.equal(issue.issue_packet.nrvv.requirements[0].requirement_id, "REQ-1");
   });
 
+  it("prints deterministic NRVV draft candidates without an API key", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-nrvv-candidate-"));
+    fs.writeFileSync(path.join(workspace, "issue.md"), [
+      "## Problem",
+      "Users forgot to fill NRVV fields.",
+      "",
+      "## Expected Outcome",
+      "KC provides a draft candidate."
+    ].join("\n"), "utf8");
+
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "nrvv-candidate",
+      "--workspace",
+      workspace,
+      "--input",
+      path.join(workspace, "issue.md")
+    ], {
+      encoding: "utf8",
+      env: { ...process.env, OPENAI_API_KEY: "" }
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /KC NRVV Candidate/);
+    assert.match(result.stdout, /candidate_status: draft/);
+    assert.match(result.stdout, /validation_status: pending/);
+    assert.match(result.stdout, /deterministic_decision_unchanged: true/);
+    assert.equal(fs.existsSync(path.join(workspace, ".kc", "issue.yaml")), false);
+  });
+
   it("reports user-facing drift for issue-sync --check against a local Markdown sample", () => {
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-sync-check-cli-"));
     fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
@@ -922,6 +969,33 @@ describe("workspace init and action build", () => {
     assert.ok(result.skipped.includes("AGENTS.md"));
     assert.equal(fs.readFileSync(path.join(workspace, "AGENTS.md"), "utf8"), "existing");
     assert.ok(fs.existsSync(path.join(workspace, ".kc", "plan.example.yaml")));
+    assert.ok(fs.existsSync(path.join(workspace, "docs", "KC_AGENTS_GUIDANCE.md")));
+  });
+
+  it("overwrites existing template files only when force is explicit", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-init-force-"));
+    fs.writeFileSync(path.join(workspace, "AGENTS.md"), "existing", "utf8");
+
+    const result = initWorkspace({ workspace, force: true });
+
+    assert.ok(result.created.includes("AGENTS.md"));
+    assert.notEqual(fs.readFileSync(path.join(workspace, "AGENTS.md"), "utf8"), "existing");
+  });
+
+  it("prints skipped AGENTS.md when init preserves existing agent guidance", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-init-cli-"));
+    fs.writeFileSync(path.join(workspace, "AGENTS.md"), "existing", "utf8");
+
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "init",
+      "--workspace",
+      workspace
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /skipped AGENTS\.md/);
+    assert.equal(fs.readFileSync(path.join(workspace, "AGENTS.md"), "utf8"), "existing");
   });
 
   it("builds the GitHub Action bundle", () => {
@@ -946,6 +1020,16 @@ describe("KC assist and promotion", () => {
     assert.equal(result.skipped, false);
     assert.equal(parsed.issue_packet.candidate_status, "draft");
     assert.equal(parsed.issue_packet.validation_status, "pending");
+  });
+
+  it("emits draft-only offline NRVV candidates", async () => {
+    const result = await runAssist({ kind: "nrvv-candidate", input: "Problem: NRVV is missing.", offlineTemplate: true });
+    const parsed = YAML.parse(result.output);
+
+    assert.equal(result.skipped, false);
+    assert.equal(parsed.nrvv_candidate.candidate_status, "draft");
+    assert.equal(parsed.nrvv_candidate.proposed_nrvv.validation.validation_status, "pending");
+    assert.equal(parsed.nrvv_candidate.safety.deterministic_decision_unchanged, true);
   });
 
   it("keeps prompt guardrails explicit", () => {
@@ -987,6 +1071,16 @@ describe("KC assist and promotion", () => {
         decision: {
           branch: "execute",
           merge_ready: true
+        }
+      }
+    })), /attempted to claim/);
+    assert.throws(() => validateStructuredOutput("nrvv-candidate", YAML.stringify({
+      nrvv_candidate: {
+        candidate_status: "draft",
+        proposed_nrvv: {
+          validation: {
+            validation_status: "passed"
+          }
         }
       }
     })), /attempted to claim/);

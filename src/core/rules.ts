@@ -94,16 +94,16 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   const nrvvGaps = recordValue(nrvv?.gaps);
   if (nrvvActive) {
     if (isRuleEnabled(policy, "KC-NRVV-001") && (riskyTiers.has(riskTier) || policy.nrvvProfile !== "optional") && !hasValue(nrvv?.need)) {
-      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled issues should include nrvv.need."));
+      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "Need: NRVV-enabled issues should include nrvv.need."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
-      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "Requirement: NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-003")) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id) || "requirement";
         if (!hasValue(requirement.source_need_ref)) {
-          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `Requirement: ${requirementId} should include source_need_ref.`));
         }
       }
     }
@@ -112,21 +112,21 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id);
         if (requirementId && !verifiedRefs.has(requirementId)) {
-          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `Verification: ${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
         }
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-005")) {
       const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
       if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
-        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "Validation: NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
-      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "Validation: NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
-      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
+      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "Validation: High/critical NRVV issues should include validation.intended_environment."));
     }
   }
 
@@ -408,7 +408,10 @@ function resolveNrvvProfile(ruleset: Record<string, unknown> | undefined, config
   if (raw === "optional" || raw === "warning" || raw === "strict") {
     return raw;
   }
-  findings.push(error("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, or strict.`));
+  if (raw === "required") {
+    return "strict";
+  }
+  findings.push(error("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, strict, or required.`));
   return "optional";
 }
 
