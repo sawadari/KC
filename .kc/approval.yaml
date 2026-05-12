@@ -1,24 +1,29 @@
 plan_approval:
-  approval_id: APR-KC-KC-RELATIONSHIP-001
-  target_plan_id: PLAN-KC-KC-RELATIONSHIP-001
+  approval_id: APR-KC-RELEASE-0.6.0
+  target_plan_id: PLAN-KC-RELEASE-0.6.0
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T10:45:00+09:00
+  timestamp: 2026-05-12T11:51:36+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/55#issuecomment-4426897645
-    summary: Approved KC README relationship clarification from Codex thread proceed request.
+    ref: https://github.com/sawadari/KC/issues/61#issuecomment-4426938429
+    summary: Approved KC v0.6.0 release preparation and post-merge release tasks.
     choice: "1"
   approved_scope:
     - .kc/**
-    - README.md
-    - README.ja.md
+    - package.json
+    - package-lock.json
+    - dist/action/index.js
+    - dist/action/package.json
     - reports/validation/**
   conditions:
-    - id: COND-KC-REL-1
-      statement: README wording must not present KC as the full or normative Knowledge Convergence specification.
-      evidence_required: validation_report
-    - id: COND-KC-REL-2
-      statement: KC self-check and git diff check must pass.
+    - id: COND-KC-RELEASE-1
+      statement: Do not add new feature behavior in the release branch.
+      evidence_required: diff_inspection
+    - id: COND-KC-RELEASE-2
+      statement: Local checks and PR CI must pass before post-merge publish and tag operations.
       evidence_required: test_run
+    - id: COND-KC-RELEASE-3
+      statement: If npm requires OTP or re-authentication, the human must complete that step.
+      evidence_required: human_approval_evidence
