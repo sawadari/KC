@@ -55,8 +55,9 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
   const plan = input.artifacts.plan;
   const approval = input.artifacts.approval;
   const evidence = input.artifacts.evidence ?? {};
+  const nrvvTrace = buildNrvvTrace(input.artifacts.issue, evidence);
 
-  return {
+  const bundle: Record<string, unknown> = {
     bundle_id: stringValue(evidence.bundle_id) || "AEB-GENERATED",
     issue_ref: evidence.issue_ref ?? input.artifacts.issue?.issue_ref ?? plan?.issue_ref,
     plan_ref: evidence.plan_ref ?? plan?.plan_id,
@@ -85,6 +86,10 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
     },
     generated_at: new Date().toISOString()
   };
+  if (nrvvTrace) {
+    bundle.nrvv_trace = nrvvTrace;
+  }
+  return bundle;
 }
 
 function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFiles: string[]): Record<string, unknown>[] {
@@ -126,6 +131,83 @@ function matchesExpected(file: string, expectedFiles: string[]): boolean {
   return matchesAny(file, expectedFiles);
 }
 
+function buildNrvvTrace(issue: Record<string, unknown> | undefined, evidence: Record<string, unknown>): Record<string, unknown> | undefined {
+  const nrvv = recordValue(issue?.nrvv);
+  if (!nrvv) {
+    return recordValue(evidence.nrvv_trace);
+  }
+
+  const verificationEvidence = arrayRecords(evidence.verification_evidence);
+  const validationEvidence = arrayRecords(evidence.validation_evidence);
+  const verificationRefs = evidenceRefs(verificationEvidence);
+  const validationRefs = evidenceRefs(validationEvidence);
+  const verificationEntries = arrayRecords(nrvv.verification);
+  const verificationByRequirement = new Set(verificationEntries.map((item) => stringValue(item.requirement_ref)).filter(Boolean));
+  const gaps = recordValue(nrvv.gaps);
+  const validation = recordValue(nrvv.validation);
+  const validationStatus = stringValue(evidence.validation_status) || stringValue(validation?.validation_status) || "pending";
+
+  const trace: Record<string, unknown> = {
+    needs: buildNeedTrace(nrvv, validationRefs),
+    requirements: arrayRecords(nrvv.requirements).map((requirement) => {
+      const requirementId = stringValue(requirement.requirement_id) || "requirement";
+      const hasVerification = verificationByRequirement.has(requirementId);
+      return {
+        requirement_id: requirementId,
+        status: verificationRefs.length > 0 && hasVerification ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
+        verification_evidence_refs: hasVerification ? verificationRefs : []
+      };
+    }),
+    verification_summary: {
+      status: verificationRefs.length > 0 ? "passed" : verificationEntries.length > 0 ? "planned" : "missing",
+      evidence_refs: verificationRefs
+    },
+    validation_summary: {
+      status: validationStatus,
+      evidence_refs: validationRefs,
+      gap: firstString(readPath(gaps, ["verification_to_validation_gap"]))
+    },
+    unresolved_gaps: buildNrvvGaps(gaps)
+  };
+  return trace;
+}
+
+function buildNeedTrace(nrvv: Record<string, unknown>, validationRefs: string[]): Record<string, unknown>[] {
+  const need = recordValue(nrvv.need);
+  if (!need) {
+    return [];
+  }
+  return [{
+    need_id: stringValue(need.need_id) || "NEED-1",
+    status: validationRefs.length > 0 ? "addressed" : "validation_pending",
+    evidence_refs: validationRefs
+  }];
+}
+
+function buildNrvvGaps(gaps: Record<string, unknown> | undefined): Record<string, unknown>[] {
+  if (!gaps) {
+    return [];
+  }
+  const entries: Record<string, unknown>[] = [];
+  for (const [key, value] of Object.entries(gaps)) {
+    for (const statement of stringArray(value)) {
+      entries.push({ type: key, statement });
+    }
+  }
+  return entries;
+}
+
+function evidenceRefs(items: Record<string, unknown>[]): string[] {
+  return items.map((item) => stringValue(item.evidence_id) || stringValue(item.ref)).filter(Boolean);
+}
+
+function firstString(value: unknown): string {
+  if (Array.isArray(value)) {
+    return stringValue(value[0]);
+  }
+  return stringValue(value);
+}
+
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -142,6 +224,13 @@ function arrayRecords(value: unknown): Record<string, unknown>[] {
     return [];
   }
   return value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item));
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
 }
 
 function readPath(source: unknown, pathParts: string[]): unknown {

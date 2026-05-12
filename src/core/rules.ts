@@ -26,7 +26,15 @@ const knownRuleIds = [
   "KC-AE-019",
   "KC-AE-020",
   "KC-AE-021",
-  "KC-AE-022"
+  "KC-AE-022",
+  "KC-NRVV-001",
+  "KC-NRVV-002",
+  "KC-NRVV-003",
+  "KC-NRVV-004",
+  "KC-NRVV-005",
+  "KC-NRVV-006",
+  "KC-NRVV-007",
+  "KC-NRVV-008"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
@@ -73,6 +81,50 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     const validationStatus = stringValue(issue.validation_status).toLowerCase();
     if (validationStatus === "pending" && !hasExceptionBasis(issue, approval, evidence)) {
       add(error("KC-AE-015", "high_risk_validation_pending", "High/critical risk issues cannot keep validation_status=pending without exception_basis."));
+    }
+  }
+
+  const nrvv = recordValue(issue?.nrvv);
+  const nrvvActive = Boolean(issue && (hasValue(nrvv) || booleanValue(issue.nrvv_required)));
+  const nrvvRequirements = arrayRecords(nrvv?.requirements);
+  const nrvvVerification = arrayRecords(nrvv?.verification);
+  const nrvvValidation = recordValue(nrvv?.validation);
+  const nrvvGaps = recordValue(nrvv?.gaps);
+  if (nrvvActive) {
+    if (isRuleEnabled(policy, "KC-NRVV-001") && riskyTiers.has(riskTier) && !hasValue(nrvv?.need)) {
+      add(warn("KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled medium/high/critical issues should include nrvv.need."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
+      add(warn("KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-003")) {
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id) || "requirement";
+        if (!hasValue(requirement.source_need_ref)) {
+          add(warn("KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+        }
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-004")) {
+      const verifiedRefs = new Set(nrvvVerification.map((item) => stringValue(item.requirement_ref)).filter(Boolean));
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id);
+        if (requirementId && !verifiedRefs.has(requirementId)) {
+          add(warn("KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+        }
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-005")) {
+      const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
+      if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
+        add(warn("KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
+      add(warn("KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
+      add(warn("KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
     }
   }
 
@@ -150,6 +202,9 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     ...stringArray(readPath(plan, ["scope", "prohibited_files"])),
     ...stringArray(readPath(envelope, ["authority_envelope", "prohibited_paths"]))
   ];
+  if (nrvvActive && isRuleEnabled(policy, "KC-NRVV-008") && stringArray(issue?.non_goals).length > 0 && prohibitedFiles.length === 0) {
+    add(warn("KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
+  }
   if (isRuleEnabled(policy, "KC-AE-006")) {
     for (const file of changedFiles) {
       if (matchesAny(file, prohibitedFiles)) {
@@ -466,6 +521,13 @@ function hasValue(value: unknown): boolean {
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function booleanValue(value: unknown): boolean {
+  if (value === true) {
+    return true;
+  }
+  return typeof value === "string" && value.trim().toLowerCase() === "true";
 }
 
 function stringArray(value: unknown): string[] {

@@ -103824,7 +103824,15 @@ var knownRuleIds = [
   "KC-AE-019",
   "KC-AE-020",
   "KC-AE-021",
-  "KC-AE-022"
+  "KC-AE-022",
+  "KC-NRVV-001",
+  "KC-NRVV-002",
+  "KC-NRVV-003",
+  "KC-NRVV-004",
+  "KC-NRVV-005",
+  "KC-NRVV-006",
+  "KC-NRVV-007",
+  "KC-NRVV-008"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
 var placeholderValues = /* @__PURE__ */ new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
@@ -103866,6 +103874,49 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     const validationStatus2 = stringValue(issue2.validation_status).toLowerCase();
     if (validationStatus2 === "pending" && !hasExceptionBasis(issue2, approval, evidence)) {
       add(error2("KC-AE-015", "high_risk_validation_pending", "High/critical risk issues cannot keep validation_status=pending without exception_basis."));
+    }
+  }
+  const nrvv = recordValue(issue2?.nrvv);
+  const nrvvActive = Boolean(issue2 && (hasValue(nrvv) || booleanValue(issue2.nrvv_required)));
+  const nrvvRequirements = arrayRecords(nrvv?.requirements);
+  const nrvvVerification = arrayRecords(nrvv?.verification);
+  const nrvvValidation = recordValue(nrvv?.validation);
+  const nrvvGaps = recordValue(nrvv?.gaps);
+  if (nrvvActive) {
+    if (isRuleEnabled(policy, "KC-NRVV-001") && riskyTiers.has(riskTier) && !hasValue(nrvv?.need)) {
+      add(warn("KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled medium/high/critical issues should include nrvv.need."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
+      add(warn("KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-003")) {
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id) || "requirement";
+        if (!hasValue(requirement.source_need_ref)) {
+          add(warn("KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+        }
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-004")) {
+      const verifiedRefs = new Set(nrvvVerification.map((item) => stringValue(item.requirement_ref)).filter(Boolean));
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id);
+        if (requirementId && !verifiedRefs.has(requirementId)) {
+          add(warn("KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+        }
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-005")) {
+      const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
+      if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
+        add(warn("KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
+      add(warn("KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
+      add(warn("KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
     }
   }
   if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
@@ -103931,6 +103982,9 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     ...stringArray(readPath(plan, ["scope", "prohibited_files"])),
     ...stringArray(readPath(envelope, ["authority_envelope", "prohibited_paths"]))
   ];
+  if (nrvvActive && isRuleEnabled(policy, "KC-NRVV-008") && stringArray(issue2?.non_goals).length > 0 && prohibitedFiles.length === 0) {
+    add(warn("KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
+  }
   if (isRuleEnabled(policy, "KC-AE-006")) {
     for (const file of changedFiles) {
       if (matchesAny(file, prohibitedFiles)) {
@@ -104197,6 +104251,12 @@ function hasValue(value) {
 function stringValue(value) {
   return typeof value === "string" ? value.trim() : "";
 }
+function booleanValue(value) {
+  if (value === true) {
+    return true;
+  }
+  return typeof value === "string" && value.trim().toLowerCase() === "true";
+}
 function stringArray(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -104264,7 +104324,8 @@ function buildEvidenceBundle(input) {
   const plan = input.artifacts.plan;
   const approval = input.artifacts.approval;
   const evidence = input.artifacts.evidence ?? {};
-  return {
+  const nrvvTrace = buildNrvvTrace(input.artifacts.issue, evidence);
+  const bundle = {
     bundle_id: stringValue2(evidence.bundle_id) || "AEB-GENERATED",
     issue_ref: evidence.issue_ref ?? input.artifacts.issue?.issue_ref ?? plan?.issue_ref,
     plan_ref: evidence.plan_ref ?? plan?.plan_id,
@@ -104293,6 +104354,10 @@ function buildEvidenceBundle(input) {
     },
     generated_at: (/* @__PURE__ */ new Date()).toISOString()
   };
+  if (nrvvTrace) {
+    bundle.nrvv_trace = nrvvTrace;
+  }
+  return bundle;
 }
 function buildPlanDiffTrace(plan, changedFiles) {
   const planItems = arrayRecords2(plan?.plan_items).map((item) => ({
@@ -104328,6 +104393,76 @@ function buildPlanDiffTrace(plan, changedFiles) {
 function matchesExpected(file, expectedFiles) {
   return matchesAny(file, expectedFiles);
 }
+function buildNrvvTrace(issue2, evidence) {
+  const nrvv = recordValue2(issue2?.nrvv);
+  if (!nrvv) {
+    return recordValue2(evidence.nrvv_trace);
+  }
+  const verificationEvidence = arrayRecords2(evidence.verification_evidence);
+  const validationEvidence = arrayRecords2(evidence.validation_evidence);
+  const verificationRefs = evidenceRefs(verificationEvidence);
+  const validationRefs = evidenceRefs(validationEvidence);
+  const verificationEntries = arrayRecords2(nrvv.verification);
+  const verificationByRequirement = new Set(verificationEntries.map((item) => stringValue2(item.requirement_ref)).filter(Boolean));
+  const gaps = recordValue2(nrvv.gaps);
+  const validation = recordValue2(nrvv.validation);
+  const validationStatus = stringValue2(evidence.validation_status) || stringValue2(validation?.validation_status) || "pending";
+  const trace = {
+    needs: buildNeedTrace(nrvv, validationRefs),
+    requirements: arrayRecords2(nrvv.requirements).map((requirement) => {
+      const requirementId = stringValue2(requirement.requirement_id) || "requirement";
+      const hasVerification = verificationByRequirement.has(requirementId);
+      return {
+        requirement_id: requirementId,
+        status: verificationRefs.length > 0 && hasVerification ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
+        verification_evidence_refs: hasVerification ? verificationRefs : []
+      };
+    }),
+    verification_summary: {
+      status: verificationRefs.length > 0 ? "passed" : verificationEntries.length > 0 ? "planned" : "missing",
+      evidence_refs: verificationRefs
+    },
+    validation_summary: {
+      status: validationStatus,
+      evidence_refs: validationRefs,
+      gap: firstString(readPath2(gaps, ["verification_to_validation_gap"]))
+    },
+    unresolved_gaps: buildNrvvGaps(gaps)
+  };
+  return trace;
+}
+function buildNeedTrace(nrvv, validationRefs) {
+  const need = recordValue2(nrvv.need);
+  if (!need) {
+    return [];
+  }
+  return [{
+    need_id: stringValue2(need.need_id) || "NEED-1",
+    status: validationRefs.length > 0 ? "addressed" : "validation_pending",
+    evidence_refs: validationRefs
+  }];
+}
+function buildNrvvGaps(gaps) {
+  if (!gaps) {
+    return [];
+  }
+  const entries = [];
+  for (const [key, value] of Object.entries(gaps)) {
+    for (const statement of stringArray2(value)) {
+      entries.push({ type: key, statement });
+    }
+  }
+  return entries;
+}
+function evidenceRefs(items) {
+  return items.map((item) => stringValue2(item.evidence_id) || stringValue2(item.ref)).filter(Boolean);
+}
+function firstString(value) {
+  if (Array.isArray(value)) {
+    return stringValue2(value[0]);
+  }
+  return stringValue2(value);
+}
 function stringValue2(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -104342,6 +104477,12 @@ function arrayRecords2(value) {
     return [];
   }
   return value.filter((item) => typeof item === "object" && item !== null && !Array.isArray(item));
+}
+function recordValue2(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return void 0;
 }
 function readPath2(source, pathParts) {
   let cursor = source;
@@ -104426,10 +104567,10 @@ function readSection(body2, heading) {
   return content.join("\n");
 }
 function readEnforcement(config) {
-  const root = recordValue2(config?.kc) ?? config;
-  const enforcement = recordValue2(root?.enforcement);
+  const root = recordValue3(config?.kc) ?? config;
+  const enforcement = recordValue3(root?.enforcement);
   const mode = stringValue3(enforcement?.mode) || "strict";
-  const requireWhen = recordValue2(enforcement?.require_when);
+  const requireWhen = recordValue3(enforcement?.require_when);
   return {
     mode,
     requireWhen: {
@@ -104439,7 +104580,7 @@ function readEnforcement(config) {
     }
   };
 }
-function recordValue2(value) {
+function recordValue3(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value;
   }

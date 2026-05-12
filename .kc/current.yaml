@@ -1,14 +1,14 @@
 kc_current:
-  lifecycle_state: finalized
-  active_work: false
-  work_id: AEB-KC-CHANGE-REQUEST-001
-  issue_ref: https://github.com/sawadari/KC/issues/49
-  plan_ref: PLAN-KC-CHANGE-REQUEST-001
-  approval_ref: APR-KC-CHANGE-REQUEST-001
-  pr_ref: https://github.com/sawadari/KC/pull/53
+  lifecycle_state: executing
+  active_work: true
+  work_id: KC-NRVV-ISSUE-001
+  issue_ref: github:sawadari/KC/issues/56
+  plan_ref: PLAN-KC-NRVV-ISSUE-001
+  approval_ref: APR-KC-NRVV-ISSUE-001
+  pr_ref: pending
   release_ref: ""
   npm_ref: ""
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/AEB-KC-CHANGE-REQUEST-001.final.yaml
-  next_action: none
-  updated_at: 2026-05-12T00:15:24.635Z
+  final_status: ""
+  final_evidence_bundle_ref: ""
+  next_action: implement_nrvv_issue_structure
+  updated_at: 2026-05-12T09:30:00+09:00

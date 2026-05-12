@@ -24,5 +24,13 @@ ruleset:
     - KC-AE-020
     - KC-AE-021
     - KC-AE-022
+    - KC-NRVV-001
+    - KC-NRVV-002
+    - KC-NRVV-003
+    - KC-NRVV-004
+    - KC-NRVV-005
+    - KC-NRVV-006
+    - KC-NRVV-007
+    - KC-NRVV-008
   severity_overrides: {}
 

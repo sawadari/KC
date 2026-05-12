@@ -14,6 +14,7 @@ export interface IssueRecordOptions {
   riskTier: string;
   validationScenario?: string;
   validationStatus?: string;
+  nrvv?: Record<string, unknown>;
   force?: boolean;
 }
 
@@ -42,12 +43,24 @@ export function renderIssueBrief(input: string): string {
     "",
     "## Required Human Inputs",
     "",
-    "1. Problem statement",
-    "2. Expected outcome",
-    "3. Acceptance criteria",
-    "4. Non-goals",
-    "5. Risk tier",
-    "6. Validation scenario, or explicit validation_status=pending",
+    "### Need",
+    "1. Who has the need?",
+    "2. What situation creates the problem?",
+    "3. What pain, risk, delay, cost, or failure is caused?",
+    "4. What operational outcome should improve?",
+    "",
+    "### Requirement",
+    "5. What must the system or software satisfy?",
+    "6. Which requirements are constraints or non-goals?",
+    "",
+    "### Verification",
+    "7. How will each requirement be checked?",
+    "8. Which evidence should be attached?",
+    "",
+    "### Validation",
+    "9. What scenario proves that the original need is satisfied?",
+    "10. What success criteria distinguish validation from passing tests?",
+    "11. What environment is required for validation?",
     "",
     "## Record Command",
     "",
@@ -78,6 +91,9 @@ export function recordIssue(options: IssueRecordOptions): string {
   } else {
     issuePacket.validation_status = options.validationStatus || "pending";
   }
+  if (options.nrvv && hasValue(options.nrvv)) {
+    issuePacket.nrvv = options.nrvv;
+  }
 
   writeYamlFile(issuePath, { issue_packet: issuePacket });
   return issuePath;
@@ -105,6 +121,7 @@ export function syncIssueFromGitHub(options: IssueSyncOptions): string {
     riskTier: issue.riskTier,
     validationScenario: issue.validationScenario,
     validationStatus: issue.validationScenario ? undefined : "pending",
+    nrvv: issue.nrvv,
     force: options.force
   });
 }
@@ -117,6 +134,7 @@ export function issueFromMarkdown(source: IssueSyncSource): Omit<IssueRecordOpti
   const nonGoals = pickList(sections, ["non-goals", "non goals", "out of scope"]);
   const riskTier = normalizeRiskTier(pickText(sections, ["risk tier", "risk"]) || "medium");
   const validationScenario = pickText(sections, ["validation scenario", "validation"]);
+  const nrvv = parseNrvv(sections);
   return {
     issueRef: source.issueRef,
     problem,
@@ -124,7 +142,8 @@ export function issueFromMarkdown(source: IssueSyncSource): Omit<IssueRecordOpti
     acceptanceCriteria: acceptanceCriteria.length > 0 ? acceptanceCriteria : ["Review the synced GitHub Issue and define acceptance criteria."],
     nonGoals: nonGoals.length > 0 ? nonGoals : ["Review the synced GitHub Issue and define non-goals."],
     riskTier,
-    validationScenario
+    validationScenario,
+    nrvv
   };
 }
 
@@ -229,6 +248,102 @@ function pickList(sections: Map<string, string>, keys: string[]): string[] {
     }
   }
   return [];
+}
+
+function parseNrvv(sections: Map<string, string>): Record<string, unknown> | undefined {
+  const need = compactRecord({
+    need_id: "NEED-1",
+    statement: pickText(sections, ["need"]),
+    stakeholder: pickText(sections, ["stakeholder / user", "stakeholder", "user"]),
+    situation: pickText(sections, ["situation"]),
+    pain_or_risk: pickText(sections, ["pain / risk", "pain", "risk"]),
+    desired_operational_outcome: pickText(sections, ["desired operational outcome", "desired outcome"])
+  });
+  const requirements = parseRequirements(pickList(sections, ["requirement", "requirements"]));
+  const verification = parseVerification(pickList(sections, ["verification"]));
+  const validation = compactRecord({
+    validation_scenario_id: "VAL-1",
+    scenario: pickText(sections, ["validation scenario", "validation"]),
+    intended_environment: pickText(sections, ["intended environment", "environment"]),
+    success_criteria: pickList(sections, ["validation success criteria", "success criteria"]),
+    evidence_expected: pickList(sections, ["validation evidence expected", "validation evidence"]),
+    validation_status: pickText(sections, ["validation status"])
+  });
+  const gaps = parseGaps(pickList(sections, ["nrvv notes", "gaps"]));
+
+  const nrvv = compactRecord({
+    need: hasValue(need) ? need : undefined,
+    requirements: requirements.length > 0 ? requirements : undefined,
+    verification: verification.length > 0 ? verification : undefined,
+    validation: hasValue(validation) ? validation : undefined,
+    gaps: hasValue(gaps) ? gaps : undefined
+  });
+  return hasValue(nrvv) ? nrvv : undefined;
+}
+
+function parseRequirements(lines: string[]): Record<string, unknown>[] {
+  return lines.map((line, index) => {
+    const match = line.match(/^(REQ-[A-Za-z0-9_.-]+)\s*[:|-]\s*(.+)$/i);
+    const requirementId = match?.[1] ?? `REQ-${index + 1}`;
+    const statement = match?.[2] ?? line;
+    return {
+      requirement_id: requirementId,
+      statement,
+      source_need_ref: "NEED-1"
+    };
+  }).filter((item) => hasValue(item.statement));
+}
+
+function parseVerification(lines: string[]): Record<string, unknown>[] {
+  return lines.map((line, index) => {
+    const match = line.match(/^(REQ-[A-Za-z0-9_.-]+)(?:\s+verification method)?\s*[:|-]\s*(.+)$/i);
+    const requirementRef = match?.[1] ?? `REQ-${index + 1}`;
+    const rest = match?.[2] ?? line;
+    const parts = rest.split("|").map((part) => part.trim()).filter(Boolean);
+    return compactRecord({
+      requirement_ref: requirementRef,
+      method: parts[0] || rest,
+      success_criteria: parts[1],
+      evidence_expected: parts[2]
+    });
+  }).filter((item) => hasValue(item.method));
+}
+
+function parseGaps(lines: string[]): Record<string, unknown> {
+  const result: Record<string, string[]> = {
+    need_to_requirement_gap: [],
+    requirement_to_verification_gap: [],
+    verification_to_validation_gap: [],
+    open_questions_for_human: []
+  };
+  for (const line of lines) {
+    const [rawKey, ...rest] = line.split(":");
+    const value = rest.join(":").trim();
+    const key = rawKey.trim().toLowerCase();
+    if (!value) {
+      continue;
+    }
+    if (key.includes("need-to-requirement")) {
+      result.need_to_requirement_gap.push(value);
+    } else if (key.includes("requirement-to-verification")) {
+      result.requirement_to_verification_gap.push(value);
+    } else if (key.includes("verification-to-validation")) {
+      result.verification_to_validation_gap.push(value);
+    } else if (key.includes("open question")) {
+      result.open_questions_for_human.push(value);
+    }
+  }
+  return compactRecord(result);
+}
+
+function compactRecord(source: Record<string, unknown>): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (hasValue(value)) {
+      output[key] = value;
+    }
+  }
+  return output;
 }
 
 function stripListMarkers(value: string): string[] {

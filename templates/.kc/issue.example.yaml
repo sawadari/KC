@@ -1,6 +1,44 @@
 issue_packet:
   issue_ref: github:org/repo/issues/123
   problem_statement: "Nightly CSV export upload fails on transient HTTP 503."
+  nrvv:
+    need:
+      need_id: NEED-1
+      stakeholder: "Operations user"
+      situation: "Nightly CSV export job fails during transient upload failures."
+      pain_or_risk: "Manual reruns are required and operational work is delayed."
+      desired_operational_outcome: "Transient upload failures recover automatically without manual rerun."
+    requirements:
+      - requirement_id: REQ-1
+        statement: "The upload flow shall retry transient HTTP 503 failures up to three times."
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-2
+        statement: "The upload flow shall not retry non-503 failures."
+        source_need_ref: NEED-1
+        risk_tier: medium
+    verification:
+      - requirement_ref: REQ-1
+        method: unit_test
+        success_criteria: "HTTP 503 is retried up to three times."
+        evidence_expected: "test report or CI run"
+      - requirement_ref: REQ-2
+        method: unit_test
+        success_criteria: "Non-503 failures are not retried."
+        evidence_expected: "test report or CI run"
+    validation:
+      validation_scenario_id: VAL-1
+      scenario: "In a production-like export job, a transient 503 still completes within 30 seconds."
+      intended_environment: "production-like export job"
+      success_criteria:
+        - "Export completes within 30 seconds under transient 503."
+        - "No manual rerun is required."
+      evidence_expected:
+        - "validation report"
+      validation_status: pending
+    gaps:
+      verification_to_validation_gap:
+        - "Unit tests do not prove operational recovery in production-like batch context."
   expected_outcome: "Transient HTTP 503 is retried automatically, avoiding manual reruns."
   acceptance_criteria:
     - "Retry HTTP 503 up to three times."
@@ -15,4 +53,3 @@ issue_packet:
     - "Authentication flow changes"
     - "UI changes"
   issue_state: ready_for_plan
-

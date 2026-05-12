@@ -1,14 +1,14 @@
 plan_approval:
-  approval_id: APR-KC-CHANGE-REQUEST-001
-  target_plan_id: PLAN-KC-CHANGE-REQUEST-001
+  approval_id: APR-KC-NRVV-ISSUE-001
+  target_plan_id: PLAN-KC-NRVV-ISSUE-001
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T09:10:00+09:00
+  timestamp: 2026-05-12T09:30:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/49#issuecomment-4426159644
-    summary: Approved Plan Change Request implementation from Codex thread proceed request.
+    ref: https://github.com/sawadari/KC/issues/56#issuecomment-4426422765
+    summary: Approved NRVV Issue structure implementation from Codex thread proceed request.
     choice: "1"
   approved_scope:
     - .kc/**
@@ -20,9 +20,9 @@ plan_approval:
     - dist/action/index.js
     - reports/validation/**
   conditions:
-    - id: COND-CHANGE-REQUEST-1
-      statement: Tests, build, package dry-run, and KC self-check must pass.
+    - id: COND-NRVV-1
+      statement: Tests, build, package dry-run, git diff check, and KC self-check must pass.
       evidence_required: test_run
-    - id: COND-CHANGE-REQUEST-2
-      statement: Validation report must describe remaining limits.
+    - id: COND-NRVV-2
+      statement: Validation report must describe remaining limits and confirm Verification is not treated as Validation.
       evidence_required: validation_report
