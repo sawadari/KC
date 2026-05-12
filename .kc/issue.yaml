@@ -7,8 +7,13 @@ issue_packet:
     - github:sawadari/KC/issues/47
     - github:sawadari/KC/issues/48
     - github:sawadari/KC/issues/50
-  problem_statement: KC can now finalize work, but PR mode can still accidentally reuse finalized inactive artifacts, Action artifact uploads can collide, and generated evidence output / external verification semantics need clearer operational controls.
-  expected_outcome: KC rejects PRs that do not establish fresh active artifacts after finalized work, supports unique Action evidence artifact names, makes generated evidence output explicit, and validates the main ledger in CI.
+  problem_statement: KC can now finalize work, but PR mode can still accidentally
+    reuse finalized inactive artifacts, Action artifact uploads can collide, and
+    generated evidence output / external verification semantics need clearer
+    operational controls.
+  expected_outcome: KC rejects PRs that do not establish fresh active artifacts
+    after finalized work, supports unique Action evidence artifact names, makes
+    generated evidence output explicit, and validates the main ledger in CI.
   acceptance_criteria:
     - Add KC-AE-021 for stale finalized artifact reuse in PR mode.
     - Add configurable and unique Action evidence artifact names.
@@ -17,9 +22,12 @@ issue_packet:
     - Clarify recorded vs verified post-merge evidence semantics.
     - Add deterministic GitHub Issue to `.kc/issue.yaml` sync.
   validation_scenario:
-    statement: Run the unit suite, build the Action bundle, run package dry-run, and run KC self-check against this PR's changed files.
+    statement: Run the unit suite, build the Action bundle, run package dry-run, and
+      run KC self-check against this PR's changed files.
   risk_tier: medium
   non_goals:
     - Do not publish a new npm version in this PR.
     - Do not add AI-driven approval behavior.
-  issue_state: ready_for_plan
+  issue_state: closed
+  final_status: completed
+  final_pr_ref: github:sawadari/KC/pull/51
