@@ -1,14 +1,14 @@
 kc_current:
-  lifecycle_state: post_merge_pending
-  active_work: true
-  work_id: KC-RELEASE-0.6.0
+  lifecycle_state: finalized
+  active_work: false
+  work_id: AEB-KC-RELEASE-0.6.0
   issue_ref: https://github.com/sawadari/KC/issues/61
   plan_ref: PLAN-KC-RELEASE-0.6.0
   approval_ref: APR-KC-RELEASE-0.6.0
   pr_ref: https://github.com/sawadari/KC/pull/62
-  release_ref: pending
+  release_ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
   npm_ref: "@sawadari/kc@0.6.0"
-  final_status: pending
-  final_evidence_bundle_ref: ""
-  next_action: authenticate_npm_and_publish
-  updated_at: 2026-05-12T02:58:45Z
+  final_status: completed
+  final_evidence_bundle_ref: .kc/archive/AEB-KC-RELEASE-0.6.0.final.yaml
+  next_action: none
+  updated_at: 2026-05-12T09:53:32.860Z

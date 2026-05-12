@@ -20,15 +20,13 @@ Release `@sawadari/kc@0.6.0` so npm, GitHub Action tags, GitHub Release, and KC 
 - PR #62 merged into main at `ab74a2235c7e82bfd38b964ec79414e2162f04fe`.
 - main CI passed: https://github.com/sawadari/KC/actions/runs/25710523925
 - `npm.cmd whoami`: blocked with `E401 Unauthorized` in the local environment.
+- `npm.cmd publish --access public`: completed by the human.
+- `npm.cmd view @sawadari/kc version`: passed, returned `0.6.0`.
+- `git ls-remote --tags origin v0.6.0 v0`: passed, both resolve to `a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879`.
+- GitHub Release `v0.6.0`: published at https://github.com/sawadari/KC/releases/tag/v0.6.0
+- Issue #61: closed.
 
-Pending until npm authentication is restored:
-
-- `npm.cmd publish --access public`
-- `npm.cmd view @sawadari/kc version`
-- `v0.6.0` tag creation
-- `v0` tag move
-- GitHub Release `v0.6.0`
-- KC finalize
+Finalization is recorded in `.kc/archive/AEB-KC-RELEASE-0.6.0.final.yaml`.
 
 ## Notes
 
