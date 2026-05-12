@@ -109,4 +109,4 @@ issue_packet:
     - Do not add new KC feature behavior beyond release metadata and evidence.
     - Do not publish a major v1 Action tag.
     - Do not change package scope or repository ownership.
-  issue_state: ready_for_plan
+  issue_state: post_merge_pending
