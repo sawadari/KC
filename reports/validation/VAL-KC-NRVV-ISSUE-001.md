@@ -25,6 +25,9 @@ Local verification on 2026-05-12:
 | `npm.cmd run build` | passed |
 | `git diff --check` | passed |
 | KC self-check with explicit changed files | passed, `PASS` |
+| GitHub Actions on PR #57 | passed |
+| GitHub Actions on main commit `7f7ddea432f00c3d2bf6f9e619b0a0de23b8373c` | passed, run https://github.com/sawadari/KC/actions/runs/25707322854 |
+| `node lib/cli/index.js check --workspace . --mode current` after finalize | passed |
 
 `npm.cmd run pack:dry` confirmed the npm package includes the updated README files, Issue template, `.kc/issue.example.yaml`, ruleset template, AGENTS template, and rebuilt Action bundle.
 
@@ -43,6 +46,7 @@ Focused tests cover:
 - The first rules are warning-level guardrails, not a complete requirements-management system.
 - `nrvv_trace` is generated from repository-local artifacts and does not independently validate domain truth.
 - Workflow validation should continue through dogfooding on future KC Issues.
+- GitHub Actions validation passed on PR #57 and on the merged main commit.
 
 ## Validation Status
 
