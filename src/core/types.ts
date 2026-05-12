@@ -37,6 +37,7 @@ export interface LoadedArtifacts {
   envelope?: Record<string, unknown>;
   evidence?: Record<string, unknown>;
   current?: Record<string, unknown>;
+  changeRequest?: Record<string, unknown>;
   config?: Record<string, unknown>;
   ruleset?: Record<string, unknown>;
   loadFindings: Finding[];

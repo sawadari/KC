@@ -199,6 +199,7 @@ kc issue-sync --issue-ref URL --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
+kc change-request --target-plan-id PLAN-123 --reason "Need one extra file" --scope-addition src/new-path/**
 kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version --verify-external=public
 kc close-work --workspace . --archive
 kc check --workspace . --mode current
@@ -217,6 +218,7 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc issue-check`: planning 前に issue artifact を検査する
 - `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
 - `kc approval-record`: 番号式の人間判断を `.kc/approval.yaml` に記録する
+- `kc change-request`: 実装に承認済み plan scope 外のファイルが必要になったとき、`.kc/change_request.yaml` を作る
 - `kc finalize`: merge / release 後に PR 時点の evidence を final 状態にする。public repo を認証なしで確認するなら `--verify-external=public`、意図的に認証済み `gh` を使うなら `--verify-external=authenticated`
 - `kc close-work`: active な `.kc` artifact を archive し、現在作業を inactive にする
 - `kc check --mode current`: main 上の stale な lifecycle 状態を検出する
@@ -231,6 +233,7 @@ KC は対象 repo から次のファイルを読みます。
 - `.kc/issue.yaml`: problem、expected outcome、acceptance criteria、risk tier、non-goals
 - `.kc/plan.yaml`: 解釈した要求、実装 plan、allowed files、prohibited files
 - `.kc/approval.yaml`: 人間の承認 evidence と承認条件
+- `.kc/change_request.yaml`: 現在の plan に対する scope 追加の提案または承認
 - `.kc/agent_envelope.yaml`: agent の識別子と実行境界
 - `.kc/evidence_bundle.yaml`: verification、validation、PR、audit evidence
 - `.kc/current.yaml`: 現在作業が active か finalized かを表す lifecycle 状態
@@ -276,6 +279,19 @@ kc check --workspace . --mode current
 PR mode では、過去の finalized work item の誤用も防ぎます。`.kc/current.yaml` が `active_work: false` または `lifecycle_state: finalized` の場合、`.kc` 以外を変更する新しい PR は、新しい `.kc/issue.yaml`、`.kc/plan.yaml`、`.kc/approval.yaml` を同じ PR で確立する必要があります。
 
 active artifact を `.kc/archive/<work-id>/` に退避し、`.kc/current.yaml` に `active_work: false` を明示したい場合は `kc close-work --archive` を使います。
+
+## Plan Change Request
+
+実装中に、承認済み scope 外のファイル変更が必要だと分かった場合は、plan を黙って書き換えません。Plan Change Request を作り、人間の承認を取ります。
+
+```bash
+kc change-request --workspace . \
+  --target-plan-id PLAN-123 \
+  --reason "The approved API change also requires a generated client fixture." \
+  --scope-addition tests/fixtures/client/**
+```
+
+`.kc/change_request.yaml` が `pending_approval` の間、その追加 scope に依存する変更は `HOLD` になります。人間が承認したら、artifact に `status: approved` と、durable な `human_approval.actor`、`human_approval.source`、`human_approval.ref` を記録します。その後 KC は、承認済み scope 追加を merge gate の対象として扱います。元の plan と scope 拡張の証跡は分けて残ります。
 
 ## Enforcement Scope
 

@@ -1,14 +1,14 @@
 kc_current:
-  lifecycle_state: finalized
-  active_work: false
-  work_id: AEB-KC-FOLLOWUP-HARDENING-001
-  issue_ref: github:sawadari/KC/issues/44
-  plan_ref: PLAN-KC-FOLLOWUP-HARDENING-001
-  approval_ref: APR-KC-FOLLOWUP-HARDENING-001
-  pr_ref: github:sawadari/KC/pull/51
+  lifecycle_state: executing
+  active_work: true
+  work_id: KC-CHANGE-REQUEST-001
+  issue_ref: github:sawadari/KC/issues/49
+  plan_ref: PLAN-KC-CHANGE-REQUEST-001
+  approval_ref: APR-KC-CHANGE-REQUEST-001
+  pr_ref: pending
   release_ref: ""
   npm_ref: ""
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/AEB-KC-FOLLOWUP-HARDENING-001.final.yaml
-  next_action: none
-  updated_at: 2026-05-12T00:02:44.195Z
+  final_status: ""
+  final_evidence_bundle_ref: ""
+  next_action: implement_change_request_flow
+  updated_at: 2026-05-12T09:10:00+09:00

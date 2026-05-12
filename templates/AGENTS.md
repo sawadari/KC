@@ -9,8 +9,9 @@ Before implementation:
 During implementation:
 1. Follow approved scope.
 2. Do not touch prohibited paths.
-3. If scope expansion seems necessary, stop and create a Plan Change Request.
-4. Do not infer validation passed from tests passed.
+3. If scope expansion seems necessary, stop and create `.kc/change_request.yaml` with `target_plan_id`, `reason`, and `requested_scope_addition`.
+4. Do not use the requested scope until a human approves the change request and records `human_approval.actor`, `human_approval.source`, and `human_approval.ref`.
+5. Do not infer validation passed from tests passed.
 
 Before finishing:
 1. Run verification commands.

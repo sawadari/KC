@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-brief.js";
 import { runAssist, systemPrompt, validateStructuredOutput } from "../lib/core/assist.js";
+import { recordChangeRequest } from "../lib/core/change-request.js";
 import { runCheck } from "../lib/core/check.js";
 import { issueFromMarkdown, recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
 import { closeWork, finalizeWork } from "../lib/core/lifecycle.js";
@@ -323,6 +324,75 @@ describe("KC rule engine", () => {
     const generated = YAML.parse(fs.readFileSync(outputPath, "utf8"));
     assert.equal(generated.approval_evidence_bundle.decision.status, "PASS");
   });
+
+  it("holds changed files that rely on a pending plan change request", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "change_request.yaml"), YAML.stringify({
+      plan_change_request: {
+        change_request_id: "PCR-KC-FIXTURE-1",
+        target_plan_id: "PLAN-KC-FIXTURE-789",
+        reason: "Need an additional report file.",
+        requested_scope_addition: ["src/report/new.ts"],
+        status: "pending_approval"
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/new.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-022" && finding.reasonCode === "pending_plan_change_request"));
+  });
+
+  it("allows approved plan change requests to extend approved scope", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "change_request.yaml"), YAML.stringify({
+      plan_change_request: {
+        change_request_id: "PCR-KC-FIXTURE-1",
+        target_plan_id: "PLAN-KC-FIXTURE-789",
+        reason: "Need an additional report file.",
+        requested_scope_addition: ["src/report/new.ts"],
+        status: "approved",
+        human_approval: {
+          actor: "sawadari",
+          source: "github_issue_comment",
+          ref: "https://github.com/sawadari/KC-fixture/issues/789#issuecomment-999"
+        }
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/new.ts"]
+    });
+
+    assert.equal(result.decision, "PASS");
+    assert.equal(result.findings.some((finding) => finding.ruleId === "KC-AE-005"), false);
+    assert.equal(result.findings.some((finding) => finding.ruleId === "KC-AE-016"), false);
+  });
+
+  it("holds approved plan change requests that lack human approval evidence", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "change_request.yaml"), YAML.stringify({
+      plan_change_request: {
+        change_request_id: "PCR-KC-FIXTURE-1",
+        target_plan_id: "PLAN-KC-FIXTURE-789",
+        reason: "Need an additional report file.",
+        requested_scope_addition: ["src/report/new.ts"],
+        status: "approved"
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/new.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-022" && finding.reasonCode === "missing_change_request_approval_evidence"));
+  });
 });
 
 describe("KC CLI", () => {
@@ -416,6 +486,29 @@ describe("KC CLI", () => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.ok(fs.existsSync(outputPath));
+  });
+
+  it("records change request artifacts from the CLI helper", () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "change-request",
+      "--workspace",
+      workspace,
+      "--id",
+      "PCR-KC-FIXTURE-CLI",
+      "--target-plan-id",
+      "PLAN-KC-FIXTURE-789",
+      "--reason",
+      "Need a new report file.",
+      "--scope-addition",
+      "src/report/new.ts"
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    const request = YAML.parse(fs.readFileSync(path.join(workspace, ".kc", "change_request.yaml"), "utf8"));
+    assert.equal(request.plan_change_request.change_request_id, "PCR-KC-FIXTURE-CLI");
+    assert.deepEqual(request.plan_change_request.requested_scope_addition, ["src/report/new.ts"]);
   });
 });
 
