@@ -1,17 +1,25 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/49
-  problem_statement: KC can block out-of-scope changes, but it does not yet provide a first-class Plan Change Request artifact for agents to request scope expansion without directly editing the approved plan.
-  expected_outcome: KC supports a deterministic Plan Change Request flow with a template, CLI helper, rule coverage for pending versus approved requests, and documentation.
+  issue_ref: https://github.com/sawadari/KC/issues/49
+  problem_statement: KC can block out-of-scope changes, but it does not yet
+    provide a first-class Plan Change Request artifact for agents to request
+    scope expansion without directly editing the approved plan.
+  expected_outcome: KC supports a deterministic Plan Change Request flow with a
+    template, CLI helper, rule coverage for pending versus approved requests,
+    and documentation.
   acceptance_criteria:
     - Add `.kc/change_request.yaml` loading and template support.
-    - Add a rule that blocks pending change requests and allows approved scope additions.
+    - Add a rule that blocks pending change requests and allows approved scope
+      additions.
     - Add a CLI helper for creating change request artifacts.
     - Document the change request flow.
     - Add focused tests.
   validation_scenario:
-    statement: Run the unit suite, package dry-run, build, and KC self-check for the change request implementation.
+    statement: Run the unit suite, package dry-run, build, and KC self-check for the
+      change request implementation.
   risk_tier: medium
   non_goals:
     - Do not add AI approval behavior.
     - Do not publish a new npm release in this PR.
-  issue_state: ready_for_plan
+  issue_state: closed
+  final_status: completed
+  final_pr_ref: https://github.com/sawadari/KC/pull/53
