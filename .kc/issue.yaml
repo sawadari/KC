@@ -1,17 +1,27 @@
 issue_packet:
-  issue_ref: github:sawadari/KC/issues/55
-  problem_statement: KC and knowledge-convergence are related, but the KC README does not explain that KC is a focused GitHub/Codex implementation experiment rather than the full Knowledge Convergence specification.
-  expected_outcome: KC README.md and README.ja.md explain the relationship to Knowledge Convergence clearly, without implying that KC is the official or complete implementation of the broader framework.
+  issue_ref: https://github.com/sawadari/KC/issues/55
+  problem_statement: KC and knowledge-convergence are related, but the KC README
+    does not explain that KC is a focused GitHub/Codex implementation experiment
+    rather than the full Knowledge Convergence specification.
+  expected_outcome: KC README.md and README.ja.md explain the relationship to
+    Knowledge Convergence clearly, without implying that KC is the official or
+    complete implementation of the broader framework.
   nrvv:
     need:
       need_id: NEED-1
       stakeholder: KC users and Knowledge Convergence readers
-      situation: Readers may encounter KC without understanding its narrower relationship to the knowledge-convergence repository.
-      pain_or_risk: KC could be mistaken for the normative Knowledge Convergence specification or for a replacement for requirements, PLM, ALM, or Systems Engineering tools.
-      desired_operational_outcome: Readers understand that knowledge-convergence is the broader theory/specification repository and KC is a practical GitHub/Codex guard implementation of selected concepts.
+      situation: Readers may encounter KC without understanding its narrower
+        relationship to the knowledge-convergence repository.
+      pain_or_risk: KC could be mistaken for the normative Knowledge Convergence
+        specification or for a replacement for requirements, PLM, ALM, or
+        Systems Engineering tools.
+      desired_operational_outcome: Readers understand that knowledge-convergence is
+        the broader theory/specification repository and KC is a practical
+        GitHub/Codex guard implementation of selected concepts.
     requirements:
       - requirement_id: REQ-1
-        statement: Add a concise Relationship to Knowledge Convergence section to README.md.
+        statement: Add a concise Relationship to Knowledge Convergence section to
+          README.md.
         source_need_ref: NEED-1
         risk_tier: low
       - requirement_id: REQ-2
@@ -19,46 +29,58 @@ issue_packet:
         source_need_ref: NEED-1
         risk_tier: low
       - requirement_id: REQ-3
-        statement: Make clear that KC is not the full or normative Knowledge Convergence specification.
+        statement: Make clear that KC is not the full or normative Knowledge Convergence
+          specification.
         source_need_ref: NEED-1
         risk_tier: low
     verification:
       - requirement_ref: REQ-1
         method: diff_inspection
-        success_criteria: README.md contains relationship text after Why KC and before Where Humans Decide.
+        success_criteria: README.md contains relationship text after Why KC and before
+          Where Humans Decide.
         evidence_expected: diff inspection
       - requirement_ref: REQ-2
         method: diff_inspection
-        success_criteria: README.ja.md contains relationship text after KC が解く問題 and before 人間が判断する場所.
+        success_criteria: README.ja.md contains relationship text after KC が解く問題 and
+          before 人間が判断する場所.
         evidence_expected: diff inspection
       - requirement_ref: REQ-3
         method: text_review
-        success_criteria: The text explicitly says KC is not the full Knowledge Convergence specification.
+        success_criteria: The text explicitly says KC is not the full Knowledge
+          Convergence specification.
         evidence_expected: validation report
     validation:
       validation_scenario_id: VAL-1
-      scenario: A reader can distinguish knowledge-convergence as the broader theory/specification repository and KC as a focused GitHub/Codex guard implementation.
+      scenario: A reader can distinguish knowledge-convergence as the broader
+        theory/specification repository and KC as a focused GitHub/Codex guard
+        implementation.
       intended_environment: KC README readers
       success_criteria:
         - Relationship is described in both English and Japanese.
-        - KC is not presented as a PLM, ALM, requirements, SE platform, or full KC specification replacement.
+        - KC is not presented as a PLM, ALM, requirements, SE platform, or full
+          KC specification replacement.
       evidence_expected:
         - validation report
       validation_status: pending
     gaps:
       verification_to_validation_gap:
-        - Text review supports clarity, but reader comprehension still depends on future feedback.
+        - Text review supports clarity, but reader comprehension still depends
+          on future feedback.
   acceptance_criteria:
     - Add Relationship to Knowledge Convergence section to README.md.
     - Add Knowledge Convergence との関係 section to README.ja.md.
-    - Avoid making KC look like the official or complete implementation of Knowledge Convergence.
+    - Avoid making KC look like the official or complete implementation of
+      Knowledge Convergence.
     - Cross-reference the knowledge-convergence issue.
   validation_scenario:
     statement: Review README wording and run KC self-check for the documentation update.
   risk_tier: low
   non_goals:
     - Do not move Knowledge Convergence specifications into KC.
-    - Do not present KC as a PLM, ALM, requirements, or Systems Engineering replacement.
+    - Do not present KC as a PLM, ALM, requirements, or Systems Engineering
+      replacement.
     - Do not add runtime behavior changes.
     - Do not publish a new npm release in this PR.
-  issue_state: ready_for_plan
+  issue_state: closed
+  final_status: completed
+  final_pr_ref: https://github.com/sawadari/KC/pull/59
