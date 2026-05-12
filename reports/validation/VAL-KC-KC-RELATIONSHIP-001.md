@@ -18,6 +18,9 @@ Local verification on 2026-05-12:
 | README wording review | passed |
 | `git diff --check` | passed |
 | KC self-check | passed |
+| GitHub Actions on PR #59 | passed |
+| GitHub Actions on main commit `32943e9defe89da1e914ec9ed50b4ef825f3bf07` | passed, run https://github.com/sawadari/KC/actions/runs/25710098757 |
+| `node lib/cli/index.js check --workspace . --mode current` after finalize | passed |
 
 ## Behavioral Validation
 
