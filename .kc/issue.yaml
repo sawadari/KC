@@ -1,114 +1,113 @@
 issue_packet:
-  issue_ref: https://github.com/sawadari/KC/issues/61
-  problem_statement: KC main contains unreleased improvements after v0.5.0,
-    including README relationship documentation, NRVV issue discipline, plan
-    change request handling, and lifecycle evidence updates.
-  expected_outcome: KC v0.6.0 is publicly available through npm and GitHub
-    Actions, with finalized KC evidence on main.
+  issue_ref: https://github.com/sawadari/KC/issues/65
+  related_issue_refs:
+    - https://github.com/sawadari/KC/issues/66
+    - https://github.com/sawadari/KC/issues/67
+    - https://github.com/sawadari/KC/issues/68
+    - https://github.com/sawadari/KC/issues/69
+  problem_statement: NRVV is now present across KC artifacts, but follow-up
+    issues identified gaps in Need trace consistency, profile-based
+    enforcement, structured CLI intake, parser-friendly examples, and explicit
+    Requirement-to-plan/evidence traceability.
+  expected_outcome: KC can keep NRVV trace status consistent, load structured
+    NRVV from a file, configure NRVV enforcement profiles, document
+    parser-friendly examples, and trace Requirements through plan items and
+    verification evidence.
   nrvv:
     need:
       need_id: NEED-1
-      stakeholder: KC users and maintainers
-      situation: The repository has merged post-v0.5.0 changes, but npm latest and the
-        major Action tag still point to v0.5.0.
-      pain_or_risk: README behavior, templates, CLI behavior, and published
-        distribution can drift out of sync if the release is not cut.
-      desired_operational_outcome: "@sawadari/kc@0.6.0, v0.6.0, v0, and the GitHub
-        Release all point to the same validated release commit."
+      stakeholder: KC maintainers and reviewers
+      situation: Reviewers rely on KC Evidence Bundles and Issue artifacts to
+        understand whether AI-assisted PRs satisfy the original Need.
+      pain_or_risk: Inconsistent trace status, weak profile controls, and
+        missing explicit Requirement links make NRVV evidence harder to trust
+        and use.
+      desired_operational_outcome: Reviewers can follow Need, Requirement,
+        Verification, and Validation through KC artifacts with predictable
+        enforcement strength.
     requirements:
       - requirement_id: REQ-1
-        statement: Bump package metadata from 0.5.0 to 0.6.0.
+        statement: Align Need trace status and evidence_refs with passed
+          validation evidence.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-2
-        statement: Build and verify the GitHub Action bundle for the release commit.
+        statement: Add parse-friendly NRVV examples to Issue template and README files.
         source_need_ref: NEED-1
-        risk_tier: medium
+        risk_tier: low
       - requirement_id: REQ-3
-        statement: Run TypeScript, unit, KC PR-mode, KC current-mode, and npm pack
-          dry-run checks.
+        statement: Add NRVV enforcement profiles while preserving default
+          compatibility.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-4
-        statement: Publish @sawadari/kc@0.6.0 with public access after merge.
+        statement: Add issue-record --nrvv-file for structured NRVV YAML input.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-5
-        statement: Create v0.6.0, move v0, and create a GitHub Release after merge.
-        source_need_ref: NEED-1
-        risk_tier: medium
-      - requirement_id: REQ-6
-        statement: Finalize KC release evidence after post-merge release tasks complete.
+        statement: Trace Requirements through plan_items[].requirement_refs and
+          verification_evidence[].requirement_refs.
         source_need_ref: NEED-1
         risk_tier: medium
     verification:
       - requirement_ref: REQ-1
-        method: diff_inspection
-        success_criteria: package.json and package-lock.json show version 0.6.0.
-        evidence_expected: diff inspection
+        method: unit_test
+        success_criteria: Need status becomes addressed when validation passed
+          evidence is present.
+        evidence_expected: npm test
       - requirement_ref: REQ-2
-        method: build
-        success_criteria: npm.cmd run build succeeds and generated Action bundle is consistent.
-        evidence_expected: build log
+        method: diff_inspection
+        success_criteria: Issue template and README files contain parse-friendly
+          NRVV examples.
+        evidence_expected: review diff
       - requirement_ref: REQ-3
-        method: test_run
-        success_criteria: npm.cmd run check, npm.cmd test, npm.cmd run pack:dry, KC
-          PR-mode, and KC current-mode checks pass.
-        evidence_expected: validation report
+        method: unit_test
+        success_criteria: optional, warning, and strict NRVV profiles behave
+          deterministically.
+        evidence_expected: npm test
       - requirement_ref: REQ-4
-        method: external_check
-        success_criteria: npm view @sawadari/kc version returns 0.6.0 after publish.
-        evidence_expected: post-merge evidence
+        method: cli_integration_test
+        success_criteria: issue-record accepts valid nrvv-file and rejects
+          non-object YAML.
+        evidence_expected: npm test
       - requirement_ref: REQ-5
-        method: external_check
-        success_criteria: v0.6.0 and v0 tags resolve to the release commit and GitHub
-          Release v0.6.0 exists.
-        evidence_expected: post-merge evidence
-      - requirement_ref: REQ-6
-        method: kc_current_check
-        success_criteria: kc finalize creates archive evidence and kc check --mode
-          current passes.
-        evidence_expected: finalized evidence bundle
+        method: unit_test
+        success_criteria: explicit requirement_refs drive generated NRVV trace.
+        evidence_expected: npm test
     validation:
       validation_scenario_id: VAL-1
-      scenario: A fresh consumer can install @sawadari/kc@0.6.0 or use sawadari/KC@v0,
-        and the published tool/action corresponds to the validated release
-        commit.
-      intended_environment: Public GitHub repository sawadari/KC, npm package
-        @sawadari/kc, and GitHub Actions Node runtime.
+      scenario: A reviewer checks the PR and can see consistent NRVV trace,
+        profile behavior, file-based NRVV intake, and Requirement evidence
+        mapping without treating KC as a full ALM tool.
+      intended_environment: KC CLI, GitHub Action, templates, and repository
+        evidence bundle.
       success_criteria:
-        - npm latest resolves to 0.6.0.
-        - v0 resolves to the same release commit as v0.6.0.
-        - GitHub Release v0.6.0 exists.
-        - KC current ledger is finalized and not stale.
+        - Need trace status is not contradictory with passed validation evidence.
+        - Default NRVV behavior remains backward compatible.
+        - Strict NRVV profile can make missing traceability blocking.
+        - Issue authors have a clear Requirement and Verification format.
       evidence_expected:
-        - validation report
-        - post-merge evidence
-      validation_status: pending
+        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+      validation_status: passed
     gaps:
       verification_to_validation_gap:
-        - Local tests prove build behavior, while consumer-level validation
-          requires post-merge npm, tag, and release resolution.
+        - Unit and CLI tests verify behavior, while real reviewer usefulness
+          should continue to be evaluated through future dogfooding.
   acceptance_criteria:
-    - package.json and package-lock.json show version 0.6.0.
-    - npm.cmd run check passes.
+    - Need trace status aligns with validation evidence.
+    - NRVV profile optional, warning, and strict behavior is implemented and tested.
+    - kc issue-record supports --nrvv-file and rejects invalid NRVV YAML.
+    - Issue template and README files include parse-friendly NRVV examples.
+    - Plan items and verification evidence can reference Requirements.
     - npm.cmd test passes.
-    - npm.cmd run pack:dry passes.
-    - KC PR-mode check passes for the release PR changes.
-    - KC current-mode check passes after finalization.
-    - npm latest is 0.6.0 after publish.
-    - v0.6.0 and v0 tags point to the release commit.
-    - GitHub Release v0.6.0 exists.
+    - KC self-check passes.
   validation_scenario:
-    statement: A fresh consumer can install @sawadari/kc@0.6.0 or use
-      sawadari/KC@v0, and the published tool/action corresponds to the validated
-      release commit.
+    statement: Run tests and KC self-check, then inspect the generated NRVV trace
+      and documentation updates.
   risk_tier: medium
   non_goals:
-    - Do not add new KC feature behavior beyond release metadata and evidence.
-    - Do not publish a major v1 Action tag.
-    - Do not change package scope or repository ownership.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: https://github.com/sawadari/KC/pull/62
-  final_release_ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
+    - Do not make strict NRVV the default.
+    - Do not introduce full requirement baseline or versioning.
+    - Do not add PLM or ALM integration.
+    - Do not publish a new npm release in this PR.
+  issue_state: ready_for_plan

@@ -28,6 +28,11 @@ assignees: ""
 - REQ-1:
 - REQ-2:
 
+Recommended format:
+
+- REQ-1: The system shall ...
+- REQ-2: The system shall not ...
+
 
 ## Expected Outcome
 
@@ -38,8 +43,8 @@ assignees: ""
 
 ## Verification
 
-- REQ-1 verification method:
-- REQ-2 verification method:
+- REQ-1: unit_test | success criteria | evidence expected
+- REQ-2: diff_inspection | success criteria | evidence expected
 
 
 ## Validation

@@ -1,29 +1,31 @@
 plan_approval:
-  approval_id: APR-KC-RELEASE-0.6.0
-  target_plan_id: PLAN-KC-RELEASE-0.6.0
+  approval_id: APR-KC-NRVV-FOLLOWUPS-001
+  target_plan_id: PLAN-KC-NRVV-FOLLOWUPS-001
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T11:51:36+09:00
+  timestamp: 2026-05-12T20:16:59+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/61#issuecomment-4426938429
-    summary: Approved KC v0.6.0 release preparation and post-merge release tasks.
+    ref: https://github.com/sawadari/KC/issues/65#issuecomment-4429896286
+    summary: Approved combined implementation for NRVV follow-up issues #65 through #69.
     choice: "1"
   approved_scope:
     - .kc/**
-    - package.json
-    - package-lock.json
+    - README.md
+    - README.ja.md
+    - src/**
+    - tests/**
+    - templates/**
     - dist/action/index.js
-    - dist/action/package.json
     - reports/validation/**
   conditions:
-    - id: COND-KC-RELEASE-1
-      statement: Do not add new feature behavior in the release branch.
-      evidence_required: diff_inspection
-    - id: COND-KC-RELEASE-2
-      statement: Local checks and PR CI must pass before post-merge publish and tag operations.
+    - id: COND-KC-NRVV-1
+      statement: Keep default NRVV behavior backward compatible.
       evidence_required: test_run
-    - id: COND-KC-RELEASE-3
-      statement: If npm requires OTP or re-authentication, the human must complete that step.
-      evidence_required: human_approval_evidence
+    - id: COND-KC-NRVV-2
+      statement: Do not make strict NRVV the default.
+      evidence_required: diff_inspection
+    - id: COND-KC-NRVV-3
+      statement: Do not add package release operations in this PR.
+      evidence_required: diff_scope_check

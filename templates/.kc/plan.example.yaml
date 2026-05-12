@@ -18,10 +18,15 @@ agent_plan:
     - "Do not change CSV schema."
   plan_items:
     - id: P1
+      requirement_refs:
+        - REQ-1
       action: "Add retry wrapper to upload flow."
       expected_files:
         - src/report/upload.ts
     - id: P2
+      requirement_refs:
+        - REQ-1
+        - REQ-2
       action: "Add retry unit tests."
       expected_files:
         - tests/uploadRetry.test.ts

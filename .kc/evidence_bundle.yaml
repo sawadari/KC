@@ -1,9 +1,14 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-RELEASE-0.6.0
-  issue_ref: github:sawadari/KC/issues/61
-  plan_ref: PLAN-KC-RELEASE-0.6.0
-  approval_ref: APR-KC-RELEASE-0.6.0
-  pr_ref: https://github.com/sawadari/KC/pull/62
+  bundle_id: AEB-KC-NRVV-FOLLOWUPS-001
+  issue_ref: github:sawadari/KC/issues/65
+  related_issue_refs:
+    - github:sawadari/KC/issues/66
+    - github:sawadari/KC/issues/67
+    - github:sawadari/KC/issues/68
+    - github:sawadari/KC/issues/69
+  plan_ref: PLAN-KC-NRVV-FOLLOWUPS-001
+  approval_ref: APR-KC-NRVV-FOLLOWUPS-001
+  pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
@@ -12,174 +17,179 @@ approval_evidence_bundle:
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - package.json
-      - package-lock.json
-      - reports/validation/VAL-KC-RELEASE-0.6.0.md
+      - .kc/ruleset.yaml
+      - README.md
+      - README.ja.md
+      - src/cli/index.ts
+      - src/core/issue.ts
+      - src/core/check.ts
+      - src/core/rules.ts
+      - templates/.github/ISSUE_TEMPLATE/kc_issue.md
+      - templates/.kc/config.example.yaml
+      - templates/.kc/evidence_bundle.example.yaml
+      - templates/.kc/plan.example.yaml
+      - templates/.kc/ruleset.yaml
+      - templates/AGENTS.md
+      - tests/core.test.mjs
+      - dist/action/index.js
+      - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
+      requirement_refs:
+        - REQ-1
+        - REQ-5
       expected_files:
-        - package.json
-        - package-lock.json
+        - src/core/check.ts
+        - dist/action/index.js
+        - tests/**
       actual_files:
-        - package.json
-        - package-lock.json
+        - src/core/check.ts
+        - dist/action/index.js
+        - tests/core.test.mjs
       status: completed
     - plan_item_id: P2
+      requirement_refs:
+        - REQ-3
+        - REQ-5
       expected_files:
-        - dist/action/index.js
-        - dist/action/package.json
-        - reports/validation/**
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/**
       actual_files:
-        - reports/validation/VAL-KC-RELEASE-0.6.0.md
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/core.test.mjs
       status: completed
     - plan_item_id: P3
+      requirement_refs:
+        - REQ-4
+      expected_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - tests/core.test.mjs
+      status: completed
+    - plan_item_id: P4
+      requirement_refs:
+        - REQ-2
+        - REQ-5
+      expected_files:
+        - README.md
+        - README.ja.md
+        - templates/**
+      actual_files:
+        - README.md
+        - README.ja.md
+        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
+        - templates/.kc/config.example.yaml
+        - templates/.kc/evidence_bundle.example.yaml
+        - templates/.kc/plan.example.yaml
+        - templates/.kc/ruleset.yaml
+        - templates/AGENTS.md
+      status: completed
+    - plan_item_id: P5
+      requirement_refs:
+        - REQ-1
+        - REQ-2
+        - REQ-3
+        - REQ-4
+        - REQ-5
       expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
+        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
       status: completed
   nrvv_trace:
     needs:
       - need_id: NEED-1
-        status: planned
-        evidence_refs: []
+        status: addressed
+        evidence_refs:
+          - VA-KC-NRVV-FOLLOWUPS-001
     requirements:
       - requirement_id: REQ-1
         status: verified
         verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-1
+          - VE-KC-NRVV-FOLLOWUPS-TEST
       - requirement_id: REQ-2
         status: verified
         verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-2
+          - VE-KC-NRVV-FOLLOWUPS-DIFF
       - requirement_id: REQ-3
         status: verified
         verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-3
+          - VE-KC-NRVV-FOLLOWUPS-TEST
       - requirement_id: REQ-4
         status: verified
         verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-5
+          - VE-KC-NRVV-FOLLOWUPS-TEST
       - requirement_id: REQ-5
         status: verified
         verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-6
-          - VE-KC-RELEASE-0.6.0-7
-      - requirement_id: REQ-6
-        status: verified
-        verification_evidence_refs:
-          - VE-KC-RELEASE-0.6.0-8
+          - VE-KC-NRVV-FOLLOWUPS-TEST
     verification_summary:
       status: passed
       evidence_refs:
-        - VE-KC-RELEASE-0.6.0-1
-        - VE-KC-RELEASE-0.6.0-2
-        - VE-KC-RELEASE-0.6.0-3
+        - VE-KC-NRVV-FOLLOWUPS-CHECK
+        - VE-KC-NRVV-FOLLOWUPS-TEST
+        - VE-KC-NRVV-FOLLOWUPS-DIFF
     validation_summary:
       status: passed
       evidence_refs:
-        - VA-KC-RELEASE-0.6.0-1
-      gap: ""
-    unresolved_gaps: []
+        - VA-KC-NRVV-FOLLOWUPS-001
+      gap: Unit and CLI tests verify behavior, while reviewer usefulness should
+        continue to be evaluated through dogfooding.
+    unresolved_gaps:
+      - type: verification_to_validation_gap
+        statement: Reviewer ergonomics should continue to be assessed after this PR.
   verification_evidence:
-    - evidence_id: VE-KC-RELEASE-0.6.0-1
-      type: diff_inspection
-      ref: package.json and package-lock.json version 0.6.0
-      status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-2
-      type: build
-      ref: npm.cmd test generated dist/action/index.js successfully
-      status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-3
+    - evidence_id: VE-KC-NRVV-FOLLOWUPS-CHECK
       type: test_run
-      ref: npm.cmd run check; npm.cmd test; npm.cmd run pack:dry
+      requirement_refs:
+        - REQ-1
+        - REQ-3
+        - REQ-4
+        - REQ-5
+      ref: npm.cmd run check
       status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-4
-      type: github_actions
-      ref: https://github.com/sawadari/KC/actions/runs/25710523925
+    - evidence_id: VE-KC-NRVV-FOLLOWUPS-TEST
+      type: test_run
+      requirement_refs:
+        - REQ-1
+        - REQ-3
+        - REQ-4
+        - REQ-5
+      ref: npm.cmd test
       status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-5
-      type: npm_package
-      ref: npm.cmd view @sawadari/kc version -> 0.6.0
-      status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-6
-      type: git_tag
-      ref: v0.6.0 and v0 -> a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879
-      status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-7
-      type: github_release
-      ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
-      status: passed
-    - evidence_id: VE-KC-RELEASE-0.6.0-8
-      type: kc_finalize
-      ref: .kc/archive/AEB-KC-RELEASE-0.6.0.final.yaml
+    - evidence_id: VE-KC-NRVV-FOLLOWUPS-DIFF
+      type: diff_inspection
+      requirement_refs:
+        - REQ-2
+      ref: README, templates, and AGENTS NRVV guidance updated
       status: passed
   validation_status: passed
   validation_evidence:
-    - evidence_id: VA-KC-RELEASE-0.6.0-1
+    - evidence_id: VA-KC-NRVV-FOLLOWUPS-001
       type: validation_report
-      ref: reports/validation/VAL-KC-RELEASE-0.6.0.md
+      ref: reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
       status: passed
   findings: []
   decision:
     branch: execute
-    primary_reason: work_completed
-    required_actions: []
-    status: completed
-  completed_actions:
-    - Merged PR #62 into main at ab74a2235c7e82bfd38b964ec79414e2162f04fe.
-    - Confirmed main CI passed for run https://github.com/sawadari/KC/actions/runs/25710523925.
-    - Published @sawadari/kc@0.6.0 to npm.
-    - Created v0.6.0 and moved v0 to a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879.
-    - Created GitHub Release v0.6.0.
-    - Closed Issue #61 and finalized KC release evidence.
-  post_merge_evidence:
-    - type: github_actions
-      ref: https://github.com/sawadari/KC/actions/runs/25710523925
-      status: passed
-    - type: github_pr
-      ref: https://github.com/sawadari/KC/pull/62
-      status: passed
-      expected_status: merged
-      detail: '{"mergeCommit":{"oid":"ab74a2235c7e82bfd38b964ec79414e2162f04fe"},"state":"MERGED","url":"https://github.com/sawadari/KC/pull/62"}'
-      verification_mode: public
-    - type: github_release
-      ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
-      status: passed
-      expected_status: published
-      detail: '{"isDraft":false,"tagName":"v0.6.0","url":"https://github.com/sawadari/KC/releases/tag/v0.6.0"}'
-      verification_mode: public
-    - type: npm_package
-      ref: "@sawadari/kc@0.6.0"
-      status: passed
-      expected_version: 0.6.0
-      detail: npm latest resolved to 0.6.0
-      verification_mode: public
-    - type: git_tag
-      ref: v0.6.0
-      status: passed
-      expected_target: a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879
-      detail: v0.6.0 -> a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879
-      verification_mode: public
-    - type: git_tag
-      ref: v0
-      status: passed
-      expected_target: a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879
-      detail: v0 -> a3c8da4ee25ac4e1bbf7e1c00b3c6500e041d879
-      verification_mode: public
-    - type: github_issue
-      ref: https://github.com/sawadari/KC/issues/61
-      status: passed
-      expected_status: closed
-      detail: '{"state":"CLOSED","url":"https://github.com/sawadari/KC/issues/61"}'
-      verification_mode: public
-  lifecycle_state: finalized
-  release_ref: https://github.com/sawadari/KC/releases/tag/v0.6.0
-  npm_ref: "@sawadari/kc@0.6.0"
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/AEB-KC-RELEASE-0.6.0.final.yaml
+    primary_reason: local_verification_passed
+    required_actions:
+      - Open PR and verify GitHub Actions.
+      - Close Issues #65 through #69 after merge.
+    status: approved

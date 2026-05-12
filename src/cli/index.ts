@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import YAML from "yaml";
 import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brief.js";
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { recordChangeRequest } from "../core/change-request.js";
@@ -82,6 +83,7 @@ async function main(): Promise<void> {
 
   if (args.command === "issue-record") {
     const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const nrvvFile = value(args, "nrvv-file");
     const issuePath = recordIssue({
       workspace,
       issueRef: requiredValue(args, "issue-ref"),
@@ -92,6 +94,7 @@ async function main(): Promise<void> {
       riskTier: value(args, "risk-tier") || "medium",
       validationScenario: value(args, "validation-scenario"),
       validationStatus: value(args, "validation-status"),
+      nrvv: nrvvFile ? readNrvvFile(workspace, nrvvFile) : undefined,
       force: args.values.has("force")
     });
     console.log(`KC issue recorded: ${issuePath}`);
@@ -277,6 +280,18 @@ function verifyExternalMode(raw: string | undefined): "public" | "authenticated"
   throw new Error(`Unsupported --verify-external mode: ${raw}. Expected public or authenticated.`);
 }
 
+function readNrvvFile(workspace: string, requestedPath: string): Record<string, unknown> {
+  const absolutePath = path.isAbsolute(requestedPath) ? requestedPath : path.join(path.resolve(workspace), requestedPath);
+  const parsed = YAML.parse(fs.readFileSync(absolutePath, "utf8"));
+  const nrvv = parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.nrvv && typeof parsed.nrvv === "object" && !Array.isArray(parsed.nrvv)
+    ? parsed.nrvv
+    : parsed;
+  if (!nrvv || typeof nrvv !== "object" || Array.isArray(nrvv)) {
+    throw new Error("--nrvv-file must contain a YAML object.");
+  }
+  return nrvv as Record<string, unknown>;
+}
+
 async function readChangedFiles(args: ParsedArgs): Promise<string[] | undefined> {
   const inline = args.values.get("changed-file") ?? [];
   const filePath = value(args, "changed-files");
@@ -356,7 +371,7 @@ Usage:
   kc bundle [--workspace .] [--changed-files files.txt] [--output file]
   kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
   kc issue-brief [--input file] [--output file]
-  kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text]
+  kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text] [--nrvv-file file]
   kc issue-sync --issue-ref URL [--workspace .] [--force]
   kc issue-check [--workspace .]
   kc approval-brief [--workspace .]

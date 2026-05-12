@@ -32,4 +32,7 @@ ruleset:
     - KC-NRVV-006
     - KC-NRVV-007
     - KC-NRVV-008
+    - KC-NRVV-009
+    - KC-NRVV-010
+  nrvv_profile: optional
   severity_overrides: {}
