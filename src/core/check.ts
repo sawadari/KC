@@ -21,7 +21,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
     reason,
     prRef: options.prRef
   });
-  const evidenceBundlePath = path.join(workspace, ".kc", "evidence_bundle.generated.yaml");
+  const evidenceBundlePath = outputPath(workspace, options.evidenceBundlePath);
   writeYamlFile(evidenceBundlePath, { approval_evidence_bundle: evidenceBundle });
 
   return {
@@ -33,6 +33,13 @@ export async function runCheck(options: CheckOptions): Promise<CheckResult> {
     evidenceBundlePath,
     evidenceBundle
   };
+}
+
+function outputPath(workspace: string, requestedPath: string | undefined): string {
+  if (!requestedPath) {
+    return path.join(workspace, ".kc", "evidence_bundle.generated.yaml");
+  }
+  return path.isAbsolute(requestedPath) ? requestedPath : path.join(workspace, requestedPath);
 }
 
 interface BundleInput {

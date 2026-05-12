@@ -1,16 +1,22 @@
 agent_plan:
-  plan_id: PLAN-KC-RELEASE-0.5.0
-  issue_ref: github:sawadari/KC/issues/40
+  plan_id: PLAN-KC-FOLLOWUP-HARDENING-001
+  issue_ref: github:sawadari/KC/issues/44
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: "Prepare and validate the KC v0.5.0 release with the Action runtime fix."
+  interpreted_requirement: Implement KC follow-up hardening for finalized artifact reuse, Action artifact naming, generated output handling, current-mode CI, and evidence verification semantics.
   scope:
     allowed_files:
       - .kc/**
-      - package.json
-      - package-lock.json
+      - .github/workflows/**
+      - action.yml
+      - dist/action/index.js
+      - src/**
+      - tests/**
+      - templates/**
+      - README.md
+      - README.ja.md
       - reports/validation/**
     prohibited_files:
       - .env
@@ -22,46 +28,107 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - "Do not change source behavior in the release PR."
-    - "Do not commit local editor configuration."
+    - Do not publish or tag a new release in this PR.
+    - Do not commit local editor configuration.
+    - Do not add AI authority or AI approval behavior.
   plan_items:
     - id: P1
-      action: "Bump package metadata for v0.5.0."
+      action: Add stale finalized artifact protection in PR mode.
       expected_files:
-        - package.json
-        - package-lock.json
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/**
       actual_files:
-        - package.json
-        - package-lock.json
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/core.test.mjs
       status: implemented
     - id: P2
-      action: "Record release validation evidence."
+      action: Make generated evidence output explicit and Action artifact names unique.
       expected_files:
-        - reports/validation/**
+        - src/core/check.ts
+        - src/core/types.ts
+        - src/action/index.ts
+        - src/cli/index.ts
+        - action.yml
+        - dist/action/index.js
+        - tests/**
       actual_files:
-        - reports/validation/VAL-KC-RELEASE-0.5.0.md
+        - src/core/check.ts
+        - src/core/types.ts
+        - src/action/index.ts
+        - src/cli/index.ts
+        - action.yml
+        - dist/action/index.js
+        - tests/core.test.mjs
       status: implemented
     - id: P3
-      action: "Update KC self-governance artifacts for the release PR."
+      action: Add current-mode CI and document operational semantics.
+      expected_files:
+        - .github/workflows/**
+        - templates/**
+        - README.md
+        - README.ja.md
+      actual_files:
+        - .github/workflows/ci.yml
+        - templates/.github/workflows/kc-guard.yml
+        - README.md
+        - README.ja.md
+      status: implemented
+    - id: P4
+      action: Clarify external verification and post-merge evidence statuses.
+      expected_files:
+        - src/core/lifecycle.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/core/lifecycle.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - id: P5
+      action: Add deterministic GitHub Issue sync for issue artifacts.
+      expected_files:
+        - src/core/issue.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/core/issue.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - id: P6
+      action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
+        - reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md
       status: implemented
   verification_plan:
-    - "Run npm.cmd run check."
-    - "Run npm.cmd test."
-    - "Run npm.cmd run pack:dry."
-    - "Run npm.cmd run build and verify dist/action artifacts have no diff."
-    - "Run KC self-check."
+    - Run npm.cmd run check.
+    - Run npm.cmd test.
+    - Run npm.cmd run pack:dry.
+    - Run npm.cmd run build and include the updated dist/action/index.js bundle.
+    - Run KC self-check.
   validation_evidence_plan:
-    - "Record reports/validation/VAL-KC-RELEASE-0.5.0.md."
-    - "Use GitHub Actions CI on the release PR."
-    - "After release, verify sample repository PR checks for KC@v0 and KC@main."
+    - Record reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md.
+    - Use GitHub Actions CI on the implementation PR.
   questions_for_human:
-    - "Do you approve PLAN-KC-RELEASE-0.5.0?"
+    - Do you approve PLAN-KC-FOLLOWUP-HARDENING-001?
   status: approved

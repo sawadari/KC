@@ -105,9 +105,13 @@ name: KC Guard
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   kc:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -125,9 +129,33 @@ jobs:
           ai-assist: false
           comment-on-pr: true
           comment-on-linked-issue: false
+
+  kc-current:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: sawadari/KC@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          mode: current
+          ai-assist: false
+          comment-on-pr: false
 ```
 
-On pull requests, the Action reads the KC artifacts, compares the PR changed files with the approved scope and prohibited paths, writes an Evidence Bundle, and posts a summary when configured.
+On pull requests, the Action reads the KC artifacts, compares the PR changed files with the approved scope and prohibited paths, writes an Evidence Bundle, and posts a summary when configured. On `main` pushes, current mode checks that the repository ledger is not stale after merge or release completion.
+
+Useful Action inputs:
+
+- `mode`: `pr` for merge readiness, or `current` for main-branch ledger checks.
+- `artifact-name`: optional evidence artifact name. By default KC generates a unique per-run name to avoid collisions in matrix or multi-job workflows.
+- `evidence-output`: optional path for the generated Evidence Bundle. In GitHub Actions the default is under runner temp.
 
 Action outputs:
 
@@ -162,15 +190,16 @@ This keeps "what we asked for", "what was approved", "what changed", and "what p
 
 ```bash
 kc init --workspace .
-kc check --workspace .
-kc bundle --workspace .
+kc check --workspace . --output .kc/evidence_bundle.generated.yaml
+kc bundle --workspace . --output .kc/evidence_bundle.generated.yaml
 kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
 kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text
+kc issue-sync --issue-ref URL --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
-kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version
+kc finalize --workspace . --issue-ref URL --pr-ref URL --release-ref URL --npm-ref @scope/name@version --verify-external=public
 kc close-work --workspace . --archive
 kc check --workspace . --mode current
 kc promote --workspace . --output-dir reports/promotion
@@ -179,15 +208,16 @@ kc promote --workspace . --output-dir reports/promotion
 Command summary:
 
 - `kc init`: install templates without overwriting existing files.
-- `kc check`: run deterministic rules and fail on `HOLD` or `FAIL`.
-- `kc bundle`: generate the Evidence Bundle without failing the process.
+- `kc check`: run deterministic rules and fail on `HOLD` or `FAIL`. Use `--output` to choose where the generated Evidence Bundle is written.
+- `kc bundle`: generate the Evidence Bundle without failing the process. Use `--output` to choose the generated bundle path.
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
 - `kc issue-brief`: turn an intake note into a human-fillable issue brief.
 - `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields.
+- `kc issue-sync`: draft `.kc/issue.yaml` from a GitHub Issue body using deterministic heading parsing.
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
 - `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.
-- `kc finalize`: turn PR-time evidence into finalized evidence after merge or release.
+- `kc finalize`: turn PR-time evidence into finalized evidence after merge or release. Use `--verify-external=public` for unauthenticated public checks, or `--verify-external=authenticated` when an authenticated `gh` session is intentionally available.
 - `kc close-work`: archive active `.kc` artifacts and mark current work inactive.
 - `kc check --mode current`: detect stale main-branch lifecycle state.
 - `kc promote`: generate candidate DecisionLedger and related promotion files for human review.
@@ -209,6 +239,8 @@ KC reads these files from the target repository:
 
 The examples created by `kc init` are intentionally explicit and pending. Active artifacts containing common example placeholders are blocked by KC.
 
+`kc check` writes generated evidence separately from the canonical `.kc/evidence_bundle.yaml`. The default local path is `.kc/evidence_bundle.generated.yaml`, which is ignored by the KC template. Use `--output` when you want a different path. The GitHub Action writes generated evidence under runner temp unless `evidence-output` is set.
+
 ## Artifact Lifecycle
 
 KC treats active PR artifacts and finalized evidence differently:
@@ -228,11 +260,20 @@ kc finalize --workspace . \
 
 This updates `.kc/evidence_bundle.yaml`, writes `.kc/current.yaml`, and archives the final bundle under `.kc/archive/`.
 
+Post-merge evidence status values distinguish captured references from verified facts:
+
+- `recorded`: KC captured the reference but did not independently verify it.
+- `passed`: KC or the release process verified the expected external state.
+- `unverified`: verification was attempted but could not confirm the expected state.
+- `failed`: verification contradicted the expected state.
+
 Use current-mode checks on `main` or release branches when you want to catch stale lifecycle state:
 
 ```bash
 kc check --workspace . --mode current
 ```
+
+In PR mode, KC also protects against reusing a previous finalized work item. If `.kc/current.yaml` says `active_work: false` or `lifecycle_state: finalized`, a new PR that changes non-`.kc` files must establish fresh `.kc/issue.yaml`, `.kc/plan.yaml`, and `.kc/approval.yaml` artifacts.
 
 Use `kc close-work --archive` when active artifacts should be copied into `.kc/archive/<work-id>/` and `.kc/current.yaml` should show `active_work: false`.
 
@@ -267,7 +308,7 @@ ruleset:
     KC-AE-007: warning
 ```
 
-The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, plan-item trace checks, and current-mode lifecycle stale-state checks.
+The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, plan-item trace checks, current-mode lifecycle stale-state checks, and stale finalized artifact reuse in PR mode.
 
 ## Optional Codex Hooks
 

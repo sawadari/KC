@@ -1,9 +1,16 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-RELEASE-0.5.0
-  issue_ref: github:sawadari/KC/issues/40
-  plan_ref: PLAN-KC-RELEASE-0.5.0
-  approval_ref: APR-KC-RELEASE-0.5.0
-  pr_ref: github:sawadari/KC/pull/41
+  bundle_id: AEB-KC-FOLLOWUP-HARDENING-001
+  issue_ref: github:sawadari/KC/issues/44
+  related_issue_refs:
+    - github:sawadari/KC/issues/42
+    - github:sawadari/KC/issues/45
+    - github:sawadari/KC/issues/46
+    - github:sawadari/KC/issues/47
+    - github:sawadari/KC/issues/48
+    - github:sawadari/KC/issues/50
+  plan_ref: PLAN-KC-FOLLOWUP-HARDENING-001
+  approval_ref: APR-KC-FOLLOWUP-HARDENING-001
+  pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
@@ -12,115 +19,140 @@ approval_evidence_bundle:
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - package-lock.json
-      - package.json
-      - reports/validation/VAL-KC-RELEASE-0.5.0.md
+      - .kc/ruleset.yaml
+      - .github/workflows/ci.yml
+      - action.yml
+      - dist/action/index.js
+      - src/action/index.ts
+      - src/cli/index.ts
+      - src/core/check.ts
+      - src/core/issue.ts
+      - src/core/lifecycle.ts
+      - src/core/rules.ts
+      - src/core/types.ts
+      - tests/core.test.mjs
+      - templates/.github/workflows/kc-guard.yml
+      - templates/.kc/ruleset.yaml
+      - README.md
+      - README.ja.md
+      - reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - package.json
-        - package-lock.json
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/**
       actual_files:
-        - package.json
-        - package-lock.json
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/core.test.mjs
       status: implemented
     - plan_item_id: P2
       expected_files:
-        - reports/validation/**
+        - src/core/check.ts
+        - src/core/types.ts
+        - src/action/index.ts
+        - src/cli/index.ts
+        - action.yml
+        - dist/action/index.js
+        - tests/**
       actual_files:
-        - reports/validation/VAL-KC-RELEASE-0.5.0.md
+        - src/core/check.ts
+        - src/core/types.ts
+        - src/action/index.ts
+        - src/cli/index.ts
+        - action.yml
+        - dist/action/index.js
+        - tests/core.test.mjs
       status: implemented
     - plan_item_id: P3
       expected_files:
+        - .github/workflows/**
+        - templates/**
+        - README.md
+        - README.ja.md
+      actual_files:
+        - .github/workflows/ci.yml
+        - templates/.github/workflows/kc-guard.yml
+        - README.md
+        - README.ja.md
+      status: implemented
+    - plan_item_id: P4
+      expected_files:
+        - src/core/lifecycle.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/core/lifecycle.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - plan_item_id: P5
+      expected_files:
+        - src/core/issue.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/**
+      actual_files:
+        - src/core/issue.ts
+        - src/cli/index.ts
+        - README.md
+        - README.ja.md
+        - tests/core.test.mjs
+      status: implemented
+    - plan_item_id: P6
+      expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
+        - reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md
       status: implemented
   verification_evidence:
-    - evidence_id: VE-RELEASE-0.5.0-1
-      type: deterministic_check
-      ref: No npm publish or Action tag movement is performed before this release PR
-        is merged.
-      status: passed
-    - evidence_id: VE-RELEASE-0.5.0-2
-      type: typecheck
+    - evidence_id: VE-FOLLOWUP-HARDENING-1
+      type: test_run
       ref: npm.cmd run check
       status: passed
-    - evidence_id: VE-RELEASE-0.5.0-3
+    - evidence_id: VE-FOLLOWUP-HARDENING-2
       type: unit_test
       ref: npm.cmd test
       status: passed
-    - evidence_id: VE-RELEASE-0.5.0-4
+    - evidence_id: VE-FOLLOWUP-HARDENING-3
       type: package_dry_run
       ref: npm.cmd run pack:dry
       status: passed
-    - evidence_id: VE-RELEASE-0.5.0-5
+    - evidence_id: VE-FOLLOWUP-HARDENING-4
       type: action_bundle_build
-      ref: npm.cmd run build; git diff --exit-code -- dist/action/index.js
-        dist/action/package.json
+      ref: npm.cmd run build
       status: passed
-    - evidence_id: VE-RELEASE-0.5.0-6
-      type: test_run
-      ref: npm.cmd run check; npm.cmd test; npm.cmd run pack:dry
+    - evidence_id: VE-FOLLOWUP-HARDENING-5
+      type: diff_check
+      ref: git diff --check
       status: passed
-    - evidence_id: VE-RELEASE-0.5.0-7
+    - evidence_id: VE-FOLLOWUP-HARDENING-6
       type: kc_self_check
       ref: node lib/cli/index.js check --workspace . --changed-file ...
       status: passed
   validation_status: passed
   validation_evidence:
-    - evidence_id: VA-RELEASE-0.5.0-1
+    - evidence_id: VA-FOLLOWUP-HARDENING-1
       type: validation_report
-      ref: reports/validation/VAL-KC-RELEASE-0.5.0.md
+      ref: reports/validation/VAL-KC-FOLLOWUP-HARDENING-001.md
       status: passed
   findings: []
   decision:
     branch: execute
-    primary_reason: work_completed
+    primary_reason: followup_hardening_approved
     required_actions: []
-    status: completed
-  lifecycle_state: finalized
-  release_ref: https://github.com/sawadari/KC/releases/tag/v0.5.0
-  npm_ref: "@sawadari/kc@0.5.0"
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/AEB-KC-RELEASE-0.5.0.final.yaml
-  completed_actions:
-    - Open and merge release PR.
-    - Publish npm and move tags.
-    - Re-run sample repository validation.
-  post_merge_evidence:
-    - type: github_pr
-      ref: github:sawadari/KC/pull/41
-      status: recorded
-    - type: github_issue
-      ref: github:sawadari/KC/issues/40
-      status: recorded
-    - type: github_release
-      ref: https://github.com/sawadari/KC/releases/tag/v0.5.0
-      status: recorded
-    - type: npm_package
-      ref: "@sawadari/kc@0.5.0"
-      status: recorded
-    - type: git_tag
-      ref: v0.5.0
-      status: recorded
-    - type: git_tag
-      ref: v0
-      status: recorded
-    - type: github_actions_job
-      ref: https://github.com/sawadari/kc-validation-sample/actions/runs/25703317728/job/75468016983
-      status: passed
-      note: "sawadari/KC@v0 passed in the sample repository after the v0.5.0 tag move."
-    - type: github_actions_job
-      ref: https://github.com/sawadari/kc-validation-sample/actions/runs/25703214371/job/75467705646
-      status: passed
-      note: "sawadari/KC@main passed in the comparison run."
-    - type: github_issue
-      ref: github:sawadari/KC/issues/42
-      status: open
-      note: "Follow-up for evidence artifact name conflicts when KC is invoked multiple times in one workflow run."

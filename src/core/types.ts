@@ -17,6 +17,7 @@ export interface CheckOptions {
   additionalFindings?: Finding[];
   prRef?: string;
   mode?: "pr" | "current";
+  evidenceBundlePath?: string;
 }
 
 export interface CheckResult {

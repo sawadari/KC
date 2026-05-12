@@ -9,7 +9,7 @@ import YAML from "yaml";
 import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-brief.js";
 import { runAssist, systemPrompt, validateStructuredOutput } from "../lib/core/assist.js";
 import { runCheck } from "../lib/core/check.js";
-import { recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
+import { issueFromMarkdown, recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
 import { closeWork, finalizeWork } from "../lib/core/lifecycle.js";
 import { shouldValidatePullRequestBody, validatePullRequestBody } from "../lib/core/pr-body.js";
 import { runPromote } from "../lib/core/promote.js";
@@ -266,6 +266,63 @@ describe("KC rule engine", () => {
     assert.equal(result.decision, "PASS");
     assert.deepEqual(result.findings.filter((finding) => finding.ruleId.startsWith("KC-AE-017") || finding.ruleId.startsWith("KC-AE-018")), []);
   });
+
+  it("holds PR mode when finalized inactive artifacts would be reused for a new change", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "current.yaml"), YAML.stringify({
+      kc_current: {
+        lifecycle_state: "finalized",
+        active_work: false,
+        work_id: "KC-FIXTURE-789",
+        final_status: "completed",
+        final_evidence_bundle_ref: ".kc/archive/KC-FIXTURE-789.final.yaml"
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-AE-021" && finding.reasonCode === "stale_active_artifact_for_pr"));
+  });
+
+  it("allows PR mode to proceed from finalized state when fresh KC artifacts are part of the PR", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "current.yaml"), YAML.stringify({
+      kc_current: {
+        lifecycle_state: "finalized",
+        active_work: false,
+        work_id: "KC-FIXTURE-789",
+        final_status: "completed",
+        final_evidence_bundle_ref: ".kc/archive/KC-FIXTURE-789.final.yaml"
+      }
+    }), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts", ".kc/issue.yaml", ".kc/plan.yaml", ".kc/approval.yaml"]
+    });
+
+    assert.equal(result.findings.some((finding) => finding.ruleId === "KC-AE-021"), false);
+  });
+
+  it("writes generated evidence bundles to an explicit output path", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const outputPath = path.join(workspace, "generated", "bundle.yaml");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"],
+      evidenceBundlePath: outputPath
+    });
+
+    assert.equal(result.evidenceBundlePath, outputPath);
+    assert.ok(fs.existsSync(outputPath));
+    const generated = YAML.parse(fs.readFileSync(outputPath, "utf8"));
+    assert.equal(generated.approval_evidence_bundle.decision.status, "PASS");
+  });
 });
 
 describe("KC CLI", () => {
@@ -341,6 +398,24 @@ describe("KC CLI", () => {
 
     assert.equal(close.status, 0, close.stderr);
     assert.match(close.stdout, /archived .kc\/archive\/KC-FIXTURE-789\/issue.yaml/);
+  });
+
+  it("supports explicit check output paths from the CLI", () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const outputPath = path.join(workspace, "out", "evidence.yaml");
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "check",
+      "--workspace",
+      workspace,
+      "--changed-file",
+      "src/report/upload.ts",
+      "--output",
+      outputPath
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(fs.existsSync(outputPath));
   });
 });
 
@@ -476,6 +551,40 @@ describe("KC issue intake", () => {
 
     assert.ok(fs.existsSync(issuePath));
     assert.deepEqual(validateIssueArtifact(workspace), []);
+  });
+
+  it("parses GitHub Issue markdown into deterministic issue fields", () => {
+    const issue = issueFromMarkdown({
+      issueRef: "https://github.com/sawadari/KC/issues/50",
+      title: "Add issue sync",
+      body: [
+        "## Problem",
+        "Issue artifact creation is manual.",
+        "",
+        "## Expected Outcome",
+        "Users can sync from GitHub Issues.",
+        "",
+        "## Acceptance Criteria",
+        "- Parse headings.",
+        "- Write issue.yaml.",
+        "",
+        "## Non-goals",
+        "- AI approval.",
+        "",
+        "## Risk Tier",
+        "medium",
+        "",
+        "## Validation Scenario",
+        "Run parser fixture tests."
+      ].join("\n")
+    });
+
+    assert.equal(issue.problem, "Issue artifact creation is manual.");
+    assert.equal(issue.expectedOutcome, "Users can sync from GitHub Issues.");
+    assert.deepEqual(issue.acceptanceCriteria, ["Parse headings.", "Write issue.yaml."]);
+    assert.deepEqual(issue.nonGoals, ["AI approval."]);
+    assert.equal(issue.riskTier, "medium");
+    assert.equal(issue.validationScenario, "Run parser fixture tests.");
   });
 });
 
