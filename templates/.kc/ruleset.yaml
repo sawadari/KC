@@ -34,9 +34,10 @@ ruleset:
     - KC-NRVV-008
     - KC-NRVV-009
     - KC-NRVV-010
+  # required: missing/incomplete NRVV emits blocking findings.
+  # warning: missing/incomplete NRVV emits warning findings during migration.
   # optional: NRVV absent is ignored; incomplete NRVV warns when present.
-  # warning: missing/incomplete NRVV emits warning findings.
-  # strict: missing/incomplete NRVV emits blocking findings.
-  nrvv_profile: optional
+  # strict: alias-compatible blocking mode; required is the recommended name.
+  nrvv_profile: required
   severity_overrides: {}
 

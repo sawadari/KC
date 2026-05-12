@@ -1,120 +1,137 @@
 issue_packet:
   artifact_role: normalized_snapshot
-  issue_ref: https://github.com/sawadari/KC/issues/71
+  issue_ref: https://github.com/sawadari/KC/issues/73
+  related_issue_refs:
+    - https://github.com/sawadari/KC/issues/74
   source:
     type: github_issue
-    ref: https://github.com/sawadari/KC/issues/71
-    synced_at: 2026-05-12T12:00:00Z
-    source_revision: https://github.com/sawadari/KC/issues/71
-  problem_statement: GitHub Issues and PRs overlap with .kc artifacts, but KC
-    has not clearly explained which records are human collaboration surfaces and
-    which artifacts are normalized snapshots for deterministic gating.
-  expected_outcome: KC documents the responsibility split, records source
-    metadata on Issue snapshots, reports drift between source Issues and
-    .kc/issue.yaml, and carries Issue snapshot metadata into generated Evidence
-    Bundles.
+    ref: https://github.com/sawadari/KC/issues/73
+    synced_at: 2026-05-12T13:00:00Z
+    source_revision: https://github.com/sawadari/KC/issues/73
+  problem_statement: KC adoption needs safer AGENTS.md handling for existing
+    repositories, and KC should treat NRVV as the standard expected Issue
+    structure while helping users draft missing fields safely.
+  expected_outcome: kc init clearly preserves existing AGENTS.md files by
+    default, provides merge guidance for KC agent instructions, uses required
+    NRVV as the recommended profile for new templates, and offers draft-only
+    NRVV candidates without changing deterministic decisions.
   nrvv:
     need:
       need_id: NEED-1
-      stakeholder: KC users, maintainers, reviewers, and AI coding agents
-      situation: A GitHub Issue is the human collaboration record while
-        .kc/issue.yaml is the structured gate input, and both may include
-        NRVV information.
-      pain_or_risk: Users may treat the overlap as accidental duplicate manual
-        entry, or may not know what to do when the Issue text and KC snapshot
-        drift.
-      desired_operational_outcome: Reviewers can distinguish human records from
-        machine-readable snapshots and can detect drift before planning or
-        review.
+      stakeholder: Existing repository maintainers, reviewers, and KC users
+      situation: Users may already have AGENTS.md and may also provide
+        incomplete Issues before Codex planning.
+      pain_or_risk: KC adoption may feel destructive if users fear losing
+        existing AGENTS.md, and strict NRVV may feel blocking if KC does not
+        help draft missing fields.
+      desired_operational_outcome: Users can safely initialize KC in existing
+        repositories and recover from missing NRVV through reviewable draft
+        candidates.
     requirements:
       - requirement_id: REQ-1
-        statement: Document the responsibility split between GitHub Issues,
-          GitHub PRs, .kc artifacts, validation reports, and archives.
+        statement: kc init must preserve existing AGENTS.md unless --force is
+          explicitly passed.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-2
-        statement: Define .kc/issue.yaml as a normalized snapshot used for KC
-          gating, not a replacement for GitHub Issues.
+        statement: CLI output and README files must explain skipped AGENTS.md
+          and safe manual merge guidance.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-3
-        statement: Add source and snapshot metadata to Issue artifacts.
+        statement: KC must provide a separate agent guidance snippet for users
+          who already have AGENTS.md.
         source_need_ref: NEED-1
-        risk_tier: medium
+        risk_tier: low
       - requirement_id: REQ-4
-        statement: Add issue-sync check behavior that reports drift between a
-          source Issue candidate and .kc/issue.yaml.
+        statement: New KC templates should make required NRVV the recommended
+          default while preserving migration profiles.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-5
-        statement: Explain drift resolution options in user-facing CLI output.
+        statement: Missing NRVV findings should clearly identify Need,
+          Requirement, Verification, and Validation groups.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-6
-        statement: Include Issue source snapshot metadata in generated Evidence
-          Bundles.
+        statement: KC should provide draft NRVV candidates with deterministic
+          no-API fallback and optional AI assist.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-7
+        statement: NRVV candidates must remain draft-only and must not claim
+          approval, validation passed, merge readiness, or execution authority.
         source_need_ref: NEED-1
         risk_tier: medium
     verification:
       - requirement_ref: REQ-1
-        method: doc_review
-        success_criteria: README files explain GitHub records and .kc snapshots.
-        evidence_expected: diff inspection
-      - requirement_ref: REQ-2
-        method: fixture_check
-        success_criteria: issue example marks the artifact as normalized_snapshot.
-        evidence_expected: template fixture inspection
-      - requirement_ref: REQ-3
         method: unit_test
-        success_criteria: source metadata is recorded and preserved.
+        success_criteria: Existing AGENTS.md remains unchanged without --force
+          and is overwritten only with --force.
+        evidence_expected: npm test
+      - requirement_ref: REQ-2
+        method: cli_integration_test
+        success_criteria: kc init reports skipped AGENTS.md and README files
+          explain safe behavior.
+        evidence_expected: npm test and diff inspection
+      - requirement_ref: REQ-3
+        method: fixture_check
+        success_criteria: docs/KC_AGENTS_GUIDANCE.md is installed by kc init.
         evidence_expected: npm test
       - requirement_ref: REQ-4
-        method: cli_integration_test
-        success_criteria: issue-sync --check reports drift against a local
-          Markdown sample.
-        evidence_expected: npm test and sample validation
-      - requirement_ref: REQ-5
-        method: cli_integration_test
-        success_criteria: drift output explains re-sync, explicit acceptance,
-          or Issue update options.
-        evidence_expected: npm test and sample validation
-      - requirement_ref: REQ-6
         method: unit_test
-        success_criteria: generated Evidence Bundle includes source_snapshots.issue.
+        success_criteria: required NRVV profile is accepted as a blocking mode
+          and templates use required.
+        evidence_expected: npm test and diff inspection
+      - requirement_ref: REQ-5
+        method: unit_test
+        success_criteria: missing NRVV messages include section prefixes.
+        evidence_expected: npm test
+      - requirement_ref: REQ-6
+        method: cli_integration_test
+        success_criteria: kc nrvv-candidate emits deterministic draft output
+          without OPENAI_API_KEY.
+        evidence_expected: npm test and sample validation
+      - requirement_ref: REQ-7
+        method: unit_test
+        success_criteria: NRVV candidate validation rejects authority claims.
         evidence_expected: npm test
     validation:
       validation_scenario_id: VAL-1
-      scenario: A user runs KC against a sample workspace and can see why the
-        GitHub Issue and .kc/issue.yaml both exist, then can detect drift before
-        review.
-      intended_environment: KC CLI, README, templates, and generated Evidence Bundle.
+      scenario: A user initializes KC in a repository with existing AGENTS.md,
+        sees that it was skipped, finds merge guidance, then generates a draft
+        NRVV candidate for an incomplete Issue without an API key.
+      intended_environment: KC CLI, templates, README, and GitHub Action bundle.
       success_criteria:
-        - User-facing docs identify GitHub Issue as the human collaboration record.
-        - User-facing docs identify .kc/issue.yaml as the normalized gate snapshot.
-        - issue-sync --check reports drift with actionable next steps.
-        - Generated Evidence Bundle records the Issue snapshot source metadata.
+        - Existing AGENTS.md content remains unchanged during default init.
+        - CLI output shows skipped AGENTS.md.
+        - KC guidance is available separately for manual merge.
+        - nrvv-candidate output is marked draft and validation_status pending.
+        - Deterministic kc check behavior is not changed by candidate generation.
       evidence_expected:
-        - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
+        - reports/validation/VAL-KC-INIT-NRVV-CANDIDATES-001.md
       validation_status: passed
     gaps:
       verification_to_validation_gap:
-        - Tests prove mechanics, while long-term usefulness depends on future
-          user dogfooding across real repositories.
+        - Tests and sample flows validate mechanics, while broader usefulness
+          should continue to be assessed as more users adopt KC.
   acceptance_criteria:
-    - README.md and README.ja.md explain GitHub records versus .kc snapshots.
-    - .kc/issue.example.yaml includes source metadata and artifact_role.
-    - Issue artifact parsing and writing preserve source metadata.
-    - kc issue-sync --check reports drift against a source Issue candidate.
-    - Drift output explains resolution options.
-    - Generated Evidence Bundle includes Issue source snapshot metadata.
-    - User-oriented sample validation demonstrates the behavior.
+    - Existing AGENTS.md is preserved by default and --force behavior is tested.
+    - CLI output reports skipped AGENTS.md.
+    - README files document safe AGENTS.md merge guidance.
+    - A separate KC agent guidance snippet is installed.
+    - required NRVV profile is accepted and templates use it.
+    - Missing NRVV messages are grouped by NRVV section.
+    - kc nrvv-candidate emits draft-only candidates without API credentials.
+    - Candidate validation rejects authority claims.
+    - User-facing sample validation is recorded.
   validation_scenario:
-    statement: Run tests and a sample workspace showing issue-sync drift
-      detection and source snapshot evidence.
+    statement: Run tests and a temporary sample workspace covering AGENTS.md
+      preservation and draft NRVV candidate generation.
   risk_tier: medium
   non_goals:
-    - Do not replace GitHub Issues with .kc artifacts.
-    - Do not require GitHub API access for normal deterministic kc check.
-    - Do not build a full ALM synchronization system.
+    - Do not automatically merge arbitrary existing AGENTS.md content.
+    - Do not silently modify .kc/issue.yaml when generating candidates.
+    - Do not let AI approve Issues, Plans, Validation, or merge readiness.
     - Do not publish npm or move release tags in this PR.
   issue_state: ready_for_plan

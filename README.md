@@ -99,7 +99,9 @@ Add KC templates to an existing repository:
 npx -y @sawadari/kc init --workspace .
 ```
 
-That installs `.kc` examples, GitHub templates, an `AGENTS.md` starter, and optional Codex hook templates. Existing files are not overwritten unless you pass `--force`.
+That installs `.kc` examples, GitHub templates, an `AGENTS.md` starter, a `docs/KC_AGENTS_GUIDANCE.md` merge snippet, and optional Codex hook templates. Existing files are not overwritten unless you pass `--force`.
+
+If your repository already has `AGENTS.md`, KC leaves it untouched and prints `skipped AGENTS.md`. Keep your existing file, then copy any useful KC-specific guidance from `docs/KC_AGENTS_GUIDANCE.md`. Use `--force` only when you intentionally want KC templates to replace existing files.
 
 For a real PR, copy the examples into active KC artifacts and fill in the details:
 
@@ -249,6 +251,7 @@ kc bundle --workspace . --output .kc/evidence_bundle.generated.yaml
 kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
 kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text --nrvv-file .kc/nrvv.yaml
+kc nrvv-candidate --workspace . --input issue.md
 kc issue-sync --issue-ref URL --workspace .
 kc issue-sync --issue-ref URL --check --issue-file issue.md --workspace .
 kc issue-check --workspace .
@@ -269,6 +272,7 @@ Command summary:
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
 - `kc issue-brief`: turn an intake note into a human-fillable issue brief.
 - `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields. Use `--nrvv-file` to load structured NRVV YAML into `issue_packet.nrvv`.
+- `kc nrvv-candidate`: draft missing NRVV fields. Without an API key it emits a deterministic draft template; with `OPENAI_API_KEY` it can use AI assist. The output is candidate-only and does not update `.kc/issue.yaml`.
 - `kc issue-sync`: draft `.kc/issue.yaml` from a GitHub Issue body using deterministic heading parsing. Use `--check` to report drift between the source Issue candidate and the current `.kc/issue.yaml`; add `--issue-file` for local Markdown samples.
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
@@ -301,7 +305,7 @@ The examples created by `kc init` are intentionally explicit and pending. Active
 
 ## NRVV in Issues
 
-KC Issues can optionally use an NRVV structure:
+KC treats NRVV as the expected Issue structure for agent-governed work:
 
 - Need: the stakeholder or operational problem
 - Requirement: what the system or software must satisfy
@@ -316,7 +320,17 @@ When NRVV fields are present, KC can trace:
 Need -> Requirement -> Verification evidence -> Validation evidence
 ```
 
-This is useful when Codex or another coding agent produces a PR quickly, but reviewers still need to know whether the change addresses the original need and not only whether it passes tests. NRVV is optional by default; when an Issue includes `nrvv` or sets `nrvv_required: true`, KC emits warning-level `KC-NRVV-*` findings for missing trace information.
+This is useful when Codex or another coding agent produces a PR quickly, but reviewers still need to know whether the change addresses the original need and not only whether it passes tests.
+
+New KC templates set `nrvv_profile: required`, which makes missing or incomplete NRVV blocking. Existing repositories can migrate gradually with `warning` or `optional`, but the recommended default for new KC-managed work is `required`.
+
+If an Issue is incomplete, generate a draft candidate instead of guessing final truth:
+
+```bash
+kc nrvv-candidate --workspace . --input issue.md
+```
+
+Without an API key, this prints a deterministic template. With `OPENAI_API_KEY`, it can draft a richer candidate through AI assist. In both cases, the output is marked `candidate_status: draft`; it does not approve the Issue, does not mark Validation passed, and does not change the deterministic `kc check` decision.
 
 For parser-friendly Issues, write Requirements and Verification entries in this form:
 
@@ -430,10 +444,10 @@ NRVV enforcement can be raised as a group with `ruleset.nrvv_profile` or `.kc/co
 
 ```yaml
 ruleset:
-  nrvv_profile: optional # optional | warning | strict
+  nrvv_profile: required # required | warning | optional | strict
 ```
 
-`optional` preserves the default behavior. `warning` emits NRVV findings even when NRVV is missing. `strict` makes missing or incomplete NRVV blocking.
+`required` is the recommended profile and makes missing or incomplete NRVV blocking. `warning` emits findings without blocking while teams migrate. `optional` preserves legacy behavior. `strict` is accepted as an alias-compatible blocking mode.
 
 The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, plan-item trace checks, current-mode lifecycle stale-state checks, and stale finalized artifact reuse in PR mode.
 

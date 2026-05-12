@@ -101,6 +101,21 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (args.command === "nrvv-candidate") {
+    const workspace = value(args, "workspace") || value(args, "w") || ".";
+    const apiKey = value(args, "openai-api-key") || process.env.OPENAI_API_KEY;
+    const input = await readNrvvCandidateInput(args, workspace);
+    const result = await runAssist({
+      apiKey,
+      model: value(args, "model") || defaultModel,
+      kind: "nrvv-candidate",
+      input,
+      offlineTemplate: args.values.has("offline-template") || !apiKey
+    });
+    await writeOrPrint(args, `# KC NRVV Candidate${result.model ? ` (${result.model})` : " (deterministic template)"}\n\n${result.output}`);
+    return;
+  }
+
   if (args.command === "issue-sync") {
     const workspace = value(args, "workspace") || value(args, "w") || ".";
     if (args.values.has("check")) {
@@ -325,6 +340,18 @@ async function readAssistInput(args: ParsedArgs): Promise<string> {
   return await readStdin();
 }
 
+async function readNrvvCandidateInput(args: ParsedArgs, workspace: string): Promise<string> {
+  const explicitInput = await readAssistInput(args);
+  if (explicitInput.trim()) {
+    return explicitInput;
+  }
+  const issuePath = path.join(path.resolve(workspace), ".kc", "issue.yaml");
+  if (fs.existsSync(issuePath)) {
+    return fs.readFileSync(issuePath, "utf8");
+  }
+  return "No Issue input provided. Draft a minimal NRVV candidate with questions for the human.";
+}
+
 async function writeOrPrint(args: ParsedArgs, content: string): Promise<void> {
   const outputFile = value(args, "output");
   if (!outputFile) {
@@ -405,9 +432,10 @@ Usage:
   kc init [--workspace .] [--force]
   kc check [--workspace .] [--mode pr|current] [--changed-files files.txt] [--changed-file path] [--output file] [--json]
   kc bundle [--workspace .] [--changed-files files.txt] [--output file]
-  kc assist [--kind issue-packet|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
+  kc assist [--kind issue-packet|nrvv-candidate|plan|evidence-bundle|decision-ledger|pr-summary] [--input file] [--model gpt-5.5] [--offline-template] [--output file]
   kc issue-brief [--input file] [--output file]
   kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text] [--nrvv-file file]
+  kc nrvv-candidate [--workspace .] [--input issue.md] [--offline-template] [--output file]
   kc issue-sync --issue-ref URL [--workspace .] [--force]
   kc issue-sync --issue-ref URL --check [--issue-file issue.md] [--workspace .] [--json]
   kc issue-check [--workspace .]

@@ -4,6 +4,7 @@ export const defaultModel = "gpt-5.5";
 
 export type AssistKind =
   | "issue-packet"
+  | "nrvv-candidate"
   | "plan"
   | "evidence-bundle"
   | "decision-ledger"
@@ -28,6 +29,8 @@ export function normalizeAssistKind(kind: string): AssistKind {
   const aliases: Record<string, AssistKind> = {
     "issue-questions": "issue-packet",
     "issue-draft": "issue-packet",
+    "nrvv": "nrvv-candidate",
+    "nrvv-draft": "nrvv-candidate",
     "plan-draft": "plan",
     "bundle-draft": "evidence-bundle",
     "evidence": "evidence-bundle",
@@ -36,6 +39,7 @@ export function normalizeAssistKind(kind: string): AssistKind {
   const normalized = aliases[kind] ?? kind;
   if (
     normalized === "issue-packet" ||
+    normalized === "nrvv-candidate" ||
     normalized === "plan" ||
     normalized === "evidence-bundle" ||
     normalized === "decision-ledger" ||
@@ -114,6 +118,7 @@ export function systemPrompt(): string {
 function buildPrompt(kind: AssistKind, input: string): string {
   const header = {
     "issue-packet": "Draft a parseable .kc/issue.yaml candidate.",
+    "nrvv-candidate": "Draft a parseable NRVV candidate for missing or incomplete Issue fields.",
     plan: "Draft a parseable .kc/plan.yaml candidate with status pending_approval.",
     "evidence-bundle": "Draft a parseable .kc/evidence_bundle.yaml candidate with no passed validation unless evidence is explicit.",
     "decision-ledger": "Draft a DecisionLedger candidate in Markdown with source references.",
@@ -138,6 +143,62 @@ function structuredTemplate(kind: AssistKind, input: string): string {
         risk_tier: "medium",
         non_goals: ["TBD"],
         issue_state: "draft"
+      }
+    });
+  }
+  if (kind === "nrvv-candidate") {
+    return YAML.stringify({
+      nrvv_candidate: {
+        candidate_status: "draft",
+        source_summary: sourceSummary || "TBD",
+        proposed_nrvv: {
+          need: {
+            need_id: "NEED-1",
+            stakeholder: "TBD",
+            situation: sourceSummary || "TBD",
+            pain_or_risk: "TBD",
+            desired_operational_outcome: "TBD"
+          },
+          requirements: [
+            {
+              requirement_id: "REQ-1",
+              statement: "TBD",
+              source_need_ref: "NEED-1",
+              risk_tier: "medium"
+            }
+          ],
+          verification: [
+            {
+              requirement_ref: "REQ-1",
+              method: "TBD",
+              success_criteria: "TBD",
+              evidence_expected: "TBD"
+            }
+          ],
+          validation: {
+            validation_scenario_id: "VAL-1",
+            scenario: "TBD",
+            intended_environment: "TBD",
+            success_criteria: ["TBD"],
+            evidence_expected: ["validation report"],
+            validation_status: "pending"
+          },
+          gaps: {
+            verification_to_validation_gap: [
+              "Verification evidence does not automatically prove the original Need is satisfied."
+            ]
+          }
+        },
+        missing_field_questions: [
+          "Who has the Need?",
+          "What operational outcome should improve?",
+          "Which Requirements must be verified?",
+          "What Validation scenario proves the Need is satisfied?"
+        ],
+        safety: {
+          human_review_required: true,
+          deterministic_decision_unchanged: true
+        }
       }
     });
   }

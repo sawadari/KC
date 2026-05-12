@@ -1,23 +1,25 @@
 agent_plan:
-  plan_id: PLAN-KC-ARTIFACT-RESPONSIBILITY-001
-  issue_ref: https://github.com/sawadari/KC/issues/71
+  plan_id: PLAN-KC-INIT-NRVV-CANDIDATES-001
+  issue_ref: https://github.com/sawadari/KC/issues/73
+  related_issue_refs:
+    - https://github.com/sawadari/KC/issues/74
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Clarify the boundary between human-facing GitHub
-    records and machine-readable KC snapshots, then add source metadata and
-    drift checking so users can manage intentional overlap.
+  interpreted_requirement: Strengthen KC onboarding safety for existing
+    AGENTS.md users and make NRVV the expected default with draft candidate
+    assistance for incomplete Issues.
   scope:
     allowed_files:
       - .kc/**
       - README.md
       - README.ja.md
-      - src/core/issue.ts
-      - src/core/check.ts
       - src/cli/index.ts
+      - src/core/assist.ts
+      - src/core/rules.ts
+      - templates/**
       - tests/core.test.mjs
-      - templates/.kc/issue.example.yaml
       - dist/action/index.js
       - reports/validation/**
     prohibited_files:
@@ -33,66 +35,65 @@ agent_plan:
       - "**/*token*"
   non_goals:
     - Do not publish npm or move GitHub tags.
-    - Do not make kc check depend on GitHub API.
-    - Do not remove .kc/issue.yaml snapshots.
-    - Do not implement a full ALM synchronization system.
+    - Do not automatically merge arbitrary user AGENTS.md files.
+    - Do not make AI-generated candidates authoritative.
+    - Do not require OpenAI API credentials for deterministic checks.
   plan_items:
     - id: P1
       requirement_refs:
         - REQ-1
         - REQ-2
-      action: Document the responsibility split between GitHub records and KC
-        snapshots.
+        - REQ-3
+      action: Add tests and documentation for AGENTS.md preservation and safe
+        KC guidance merging.
       expected_files:
         - README.md
         - README.ja.md
+        - templates/**
+        - tests/core.test.mjs
       actual_files:
         - README.md
         - README.ja.md
+        - templates/AGENTS.md
+        - templates/docs/KC_AGENTS_GUIDANCE.md
+        - tests/core.test.mjs
       status: completed
     - id: P2
       requirement_refs:
-        - REQ-2
-        - REQ-3
-      action: Add source metadata to issue artifacts and examples.
+        - REQ-4
+        - REQ-5
+      action: Add required NRVV profile support and clearer grouped findings.
       expected_files:
-        - src/core/issue.ts
-        - templates/.kc/issue.example.yaml
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - templates/.kc/config.example.yaml
+        - .kc/ruleset.yaml
         - tests/core.test.mjs
       actual_files:
-        - src/core/issue.ts
-        - templates/.kc/issue.example.yaml
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - templates/.kc/config.example.yaml
+        - .kc/ruleset.yaml
         - tests/core.test.mjs
       status: completed
     - id: P3
       requirement_refs:
-        - REQ-4
-        - REQ-5
-      action: Add issue-sync --check drift reporting and user-facing resolution
-        guidance.
+        - REQ-6
+        - REQ-7
+      action: Add draft-only NRVV candidate generation with no-API fallback and
+        AI assist compatibility.
       expected_files:
-        - src/core/issue.ts
+        - src/core/assist.ts
         - src/cli/index.ts
         - tests/core.test.mjs
+        - dist/action/index.js
       actual_files:
-        - src/core/issue.ts
+        - src/core/assist.ts
         - src/cli/index.ts
         - tests/core.test.mjs
+        - dist/action/index.js
       status: completed
     - id: P4
-      requirement_refs:
-        - REQ-6
-      action: Include Issue source snapshot metadata in generated Evidence Bundles.
-      expected_files:
-        - src/core/check.ts
-        - tests/core.test.mjs
-        - dist/action/index.js
-      actual_files:
-        - src/core/check.ts
-        - tests/core.test.mjs
-        - dist/action/index.js
-      status: completed
-    - id: P5
       requirement_refs:
         - REQ-1
         - REQ-2
@@ -100,6 +101,7 @@ agent_plan:
         - REQ-4
         - REQ-5
         - REQ-6
+        - REQ-7
       action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
@@ -110,18 +112,19 @@ agent_plan:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
+        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-INIT-NRVV-CANDIDATES-001.md
       status: completed
   verification_plan:
     - npm.cmd run check
     - npm.cmd test
     - npm.cmd run pack:dry
-    - Sample workspace issue-sync --check drift validation
+    - Temporary sample workspace for AGENTS.md preservation and nrvv-candidate
     - KC PR-mode self-check
     - git diff --check
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md.
+    - Record reports/validation/VAL-KC-INIT-NRVV-CANDIDATES-001.md.
     - Use sample workspace output as user-oriented validation evidence.
   questions_for_human:
-    - Do you approve PLAN-KC-ARTIFACT-RESPONSIBILITY-001?
+    - Do you approve PLAN-KC-INIT-NRVV-CANDIDATES-001?
   status: approved
