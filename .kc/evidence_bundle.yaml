@@ -1,9 +1,9 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-KC-RELATIONSHIP-001
-  issue_ref: github:sawadari/KC/issues/55
-  plan_ref: PLAN-KC-KC-RELATIONSHIP-001
-  approval_ref: APR-KC-KC-RELATIONSHIP-001
-  pr_ref: https://github.com/sawadari/KC/pull/59
+  bundle_id: AEB-KC-RELEASE-0.6.0
+  issue_ref: github:sawadari/KC/issues/61
+  plan_ref: PLAN-KC-RELEASE-0.6.0
+  approval_ref: APR-KC-RELEASE-0.6.0
+  pr_ref: pending
   agent_ref: codex
   diff_summary:
     changed_files:
@@ -12,34 +12,36 @@ approval_evidence_bundle:
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - README.md
-      - README.ja.md
-      - reports/validation/VAL-KC-KC-RELATIONSHIP-001.md
+      - package.json
+      - package-lock.json
+      - reports/validation/VAL-KC-RELEASE-0.6.0.md
     out_of_scope_files: []
   plan_diff_trace:
     - plan_item_id: P1
       expected_files:
-        - README.md
+        - package.json
+        - package-lock.json
       actual_files:
-        - README.md
+        - package.json
+        - package-lock.json
       status: completed
     - plan_item_id: P2
       expected_files:
-        - README.ja.md
+        - dist/action/index.js
+        - dist/action/package.json
+        - reports/validation/**
       actual_files:
-        - README.ja.md
+        - reports/validation/VAL-KC-RELEASE-0.6.0.md
       status: completed
     - plan_item_id: P3
       expected_files:
         - .kc/**
-        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-KC-RELATIONSHIP-001.md
       status: completed
   nrvv_trace:
     needs:
@@ -48,65 +50,67 @@ approval_evidence_bundle:
         evidence_refs: []
     requirements:
       - requirement_id: REQ-1
-        status: planned
-        verification_evidence_refs: []
+        status: verified
+        verification_evidence_refs:
+          - VE-KC-RELEASE-0.6.0-1
       - requirement_id: REQ-2
-        status: planned
-        verification_evidence_refs: []
+        status: verified
+        verification_evidence_refs:
+          - VE-KC-RELEASE-0.6.0-2
       - requirement_id: REQ-3
-        status: planned
+        status: verified
+        verification_evidence_refs:
+          - VE-KC-RELEASE-0.6.0-3
+      - requirement_id: REQ-4
+        status: pending_post_merge
+        verification_evidence_refs: []
+      - requirement_id: REQ-5
+        status: pending_post_merge
+        verification_evidence_refs: []
+      - requirement_id: REQ-6
+        status: pending_post_merge
         verification_evidence_refs: []
     verification_summary:
-      status: pending
-      evidence_refs: []
+      status: passed
+      evidence_refs:
+        - VE-KC-RELEASE-0.6.0-1
+        - VE-KC-RELEASE-0.6.0-2
+        - VE-KC-RELEASE-0.6.0-3
     validation_summary:
       status: pending
       evidence_refs: []
-      gap: Text review supports clarity, but reader comprehension still depends on
-        future feedback.
+      gap: Consumer-level validation requires post-merge npm, tag, and GitHub
+        Release checks.
     unresolved_gaps:
       - type: verification_to_validation_gap
-        statement: Reader comprehension is validated over time through feedback.
+        statement: Local checks do not prove npm latest, GitHub tags, and release
+          pages until post-merge release actions complete.
   verification_evidence:
-    - evidence_id: VE-KC-REL-1
+    - evidence_id: VE-KC-RELEASE-0.6.0-1
+      type: diff_inspection
+      ref: package.json and package-lock.json version 0.6.0
+      status: passed
+    - evidence_id: VE-KC-RELEASE-0.6.0-2
+      type: build
+      ref: npm.cmd test generated dist/action/index.js successfully
+      status: passed
+    - evidence_id: VE-KC-RELEASE-0.6.0-3
       type: test_run
-      ref: git diff --check; KC self-check PASS
+      ref: npm.cmd run check; npm.cmd test; npm.cmd run pack:dry
       status: passed
-  validation_status: passed
+  validation_status: pending
   validation_evidence:
-    - evidence_id: VA-KC-REL-1
+    - evidence_id: VA-KC-RELEASE-0.6.0-1
       type: validation_report
-      ref: reports/validation/VAL-KC-KC-RELATIONSHIP-001.md
-      status: passed
+      ref: reports/validation/VAL-KC-RELEASE-0.6.0.md
+      status: pending
   findings: []
   decision:
     branch: execute
-    primary_reason: work_completed
-    required_actions: []
-    status: completed
-  lifecycle_state: finalized
-  final_status: completed
-  final_evidence_bundle_ref: .kc/archive/AEB-KC-KC-RELATIONSHIP-001.final.yaml
-  completed_actions:
-    - Opened PR #59 for the KC README relationship clarification.
-    - Confirmed GitHub Actions CI passed for PR #59 and main commit 32943e9defe89da1e914ec9ed50b4ef825f3bf07.
-    - Merged PR #59 and closed Issue #55.
-  post_merge_evidence:
-    - type: github_pr
-      ref: https://github.com/sawadari/KC/pull/59
-      status: recorded
-    - type: github_issue
-      ref: https://github.com/sawadari/KC/issues/55
-      status: recorded
-    - type: github_issue
-      ref: https://github.com/sawadari/KC/issues/55
-      status: passed
-      expected_status: closed
-      detail: '{"state":"CLOSED","url":"https://github.com/sawadari/KC/issues/55"}'
-      verification_mode: public
-    - type: github_pr
-      ref: https://github.com/sawadari/KC/pull/59
-      status: passed
-      expected_status: merged
-      detail: '{"mergeCommit":{"oid":"32943e9defe89da1e914ec9ed50b4ef825f3bf07"},"state":"MERGED","url":"https://github.com/sawadari/KC/pull/59"}'
-      verification_mode: public
+    primary_reason: release_preparation_in_progress
+    required_actions:
+      - Merge the release PR after CI passes.
+      - Publish @sawadari/kc@0.6.0 to npm.
+      - Create v0.6.0, move v0, and create GitHub Release v0.6.0.
+      - Finalize KC release evidence after post-merge checks.
+    status: approved

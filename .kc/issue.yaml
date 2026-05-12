@@ -1,86 +1,112 @@
 issue_packet:
-  issue_ref: https://github.com/sawadari/KC/issues/55
-  problem_statement: KC and knowledge-convergence are related, but the KC README
-    does not explain that KC is a focused GitHub/Codex implementation experiment
-    rather than the full Knowledge Convergence specification.
-  expected_outcome: KC README.md and README.ja.md explain the relationship to
-    Knowledge Convergence clearly, without implying that KC is the official or
-    complete implementation of the broader framework.
+  issue_ref: https://github.com/sawadari/KC/issues/61
+  problem_statement: KC main contains unreleased improvements after v0.5.0,
+    including README relationship documentation, NRVV issue discipline, plan
+    change request handling, and lifecycle evidence updates.
+  expected_outcome: KC v0.6.0 is publicly available through npm and GitHub
+    Actions, with finalized KC evidence on main.
   nrvv:
     need:
       need_id: NEED-1
-      stakeholder: KC users and Knowledge Convergence readers
-      situation: Readers may encounter KC without understanding its narrower
-        relationship to the knowledge-convergence repository.
-      pain_or_risk: KC could be mistaken for the normative Knowledge Convergence
-        specification or for a replacement for requirements, PLM, ALM, or
-        Systems Engineering tools.
-      desired_operational_outcome: Readers understand that knowledge-convergence is
-        the broader theory/specification repository and KC is a practical
-        GitHub/Codex guard implementation of selected concepts.
+      stakeholder: KC users and maintainers
+      situation: The repository has merged post-v0.5.0 changes, but npm latest
+        and the major Action tag still point to v0.5.0.
+      pain_or_risk: README behavior, templates, CLI behavior, and published
+        distribution can drift out of sync if the release is not cut.
+      desired_operational_outcome: "@sawadari/kc@0.6.0, v0.6.0, v0, and the
+        GitHub Release all point to the same validated release commit."
     requirements:
       - requirement_id: REQ-1
-        statement: Add a concise Relationship to Knowledge Convergence section to
-          README.md.
+        statement: Bump package metadata from 0.5.0 to 0.6.0.
         source_need_ref: NEED-1
-        risk_tier: low
+        risk_tier: medium
       - requirement_id: REQ-2
-        statement: Add a concise Knowledge Convergenceとの関係 section to README.ja.md.
+        statement: Build and verify the GitHub Action bundle for the release commit.
         source_need_ref: NEED-1
-        risk_tier: low
+        risk_tier: medium
       - requirement_id: REQ-3
-        statement: Make clear that KC is not the full or normative Knowledge Convergence
-          specification.
+        statement: Run TypeScript, unit, KC PR-mode, KC current-mode, and npm
+          pack dry-run checks.
         source_need_ref: NEED-1
-        risk_tier: low
+        risk_tier: medium
+      - requirement_id: REQ-4
+        statement: Publish @sawadari/kc@0.6.0 with public access after merge.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-5
+        statement: Create v0.6.0, move v0, and create a GitHub Release after merge.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-6
+        statement: Finalize KC release evidence after post-merge release tasks complete.
+        source_need_ref: NEED-1
+        risk_tier: medium
     verification:
       - requirement_ref: REQ-1
         method: diff_inspection
-        success_criteria: README.md contains relationship text after Why KC and before
-          Where Humans Decide.
+        success_criteria: package.json and package-lock.json show version 0.6.0.
         evidence_expected: diff inspection
       - requirement_ref: REQ-2
-        method: diff_inspection
-        success_criteria: README.ja.md contains relationship text after KC が解く問題 and
-          before 人間が判断する場所.
-        evidence_expected: diff inspection
+        method: build
+        success_criteria: npm.cmd run build succeeds and generated Action bundle
+          is consistent.
+        evidence_expected: build log
       - requirement_ref: REQ-3
-        method: text_review
-        success_criteria: The text explicitly says KC is not the full Knowledge
-          Convergence specification.
+        method: test_run
+        success_criteria: npm.cmd run check, npm.cmd test, npm.cmd run pack:dry,
+          KC PR-mode, and KC current-mode checks pass.
         evidence_expected: validation report
+      - requirement_ref: REQ-4
+        method: external_check
+        success_criteria: npm view @sawadari/kc version returns 0.6.0 after publish.
+        evidence_expected: post-merge evidence
+      - requirement_ref: REQ-5
+        method: external_check
+        success_criteria: v0.6.0 and v0 tags resolve to the release commit and
+          GitHub Release v0.6.0 exists.
+        evidence_expected: post-merge evidence
+      - requirement_ref: REQ-6
+        method: kc_current_check
+        success_criteria: kc finalize creates archive evidence and kc check
+          --mode current passes.
+        evidence_expected: finalized evidence bundle
     validation:
       validation_scenario_id: VAL-1
-      scenario: A reader can distinguish knowledge-convergence as the broader
-        theory/specification repository and KC as a focused GitHub/Codex guard
-        implementation.
-      intended_environment: KC README readers
+      scenario: A fresh consumer can install @sawadari/kc@0.6.0 or use
+        sawadari/KC@v0, and the published tool/action corresponds to the
+        validated release commit.
+      intended_environment: Public GitHub repository sawadari/KC, npm package
+        @sawadari/kc, and GitHub Actions Node runtime.
       success_criteria:
-        - Relationship is described in both English and Japanese.
-        - KC is not presented as a PLM, ALM, requirements, SE platform, or full
-          KC specification replacement.
+        - npm latest resolves to 0.6.0.
+        - v0 resolves to the same release commit as v0.6.0.
+        - GitHub Release v0.6.0 exists.
+        - KC current ledger is finalized and not stale.
       evidence_expected:
         - validation report
+        - post-merge evidence
       validation_status: pending
     gaps:
       verification_to_validation_gap:
-        - Text review supports clarity, but reader comprehension still depends
-          on future feedback.
+        - Local tests prove build behavior, while consumer-level validation
+          requires post-merge npm, tag, and release resolution.
   acceptance_criteria:
-    - Add Relationship to Knowledge Convergence section to README.md.
-    - Add Knowledge Convergence との関係 section to README.ja.md.
-    - Avoid making KC look like the official or complete implementation of
-      Knowledge Convergence.
-    - Cross-reference the knowledge-convergence issue.
+    - package.json and package-lock.json show version 0.6.0.
+    - npm.cmd run check passes.
+    - npm.cmd test passes.
+    - npm.cmd run pack:dry passes.
+    - KC PR-mode check passes for the release PR changes.
+    - KC current-mode check passes after finalization.
+    - npm latest is 0.6.0 after publish.
+    - v0.6.0 and v0 tags point to the release commit.
+    - GitHub Release v0.6.0 exists.
   validation_scenario:
-    statement: Review README wording and run KC self-check for the documentation update.
-  risk_tier: low
+    statement: A fresh consumer can install @sawadari/kc@0.6.0 or use
+      sawadari/KC@v0, and the published tool/action corresponds to the validated
+      release commit.
+  risk_tier: medium
   non_goals:
-    - Do not move Knowledge Convergence specifications into KC.
-    - Do not present KC as a PLM, ALM, requirements, or Systems Engineering
-      replacement.
-    - Do not add runtime behavior changes.
-    - Do not publish a new npm release in this PR.
-  issue_state: closed
-  final_status: completed
-  final_pr_ref: https://github.com/sawadari/KC/pull/59
+    - Do not add new KC feature behavior beyond release metadata and evidence.
+    - Do not publish a major v1 Action tag.
+    - Do not change package scope or repository ownership.
+  issue_state: ready_for_plan

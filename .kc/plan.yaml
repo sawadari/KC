@@ -1,16 +1,19 @@
 agent_plan:
-  plan_id: PLAN-KC-KC-RELATIONSHIP-001
-  issue_ref: github:sawadari/KC/issues/55
+  plan_id: PLAN-KC-RELEASE-0.6.0
+  issue_ref: github:sawadari/KC/issues/61
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Clarify in KC README files that KC is a focused GitHub/Codex implementation experiment inspired by Knowledge Convergence, not the broader framework itself.
+  interpreted_requirement: Release KC v0.6.0 so npm, GitHub tags, GitHub
+    Release, and KC evidence reflect the merged post-v0.5.0 improvements.
   scope:
     allowed_files:
       - .kc/**
-      - README.md
-      - README.ja.md
+      - package.json
+      - package-lock.json
+      - dist/action/index.js
+      - dist/action/package.json
       - reports/validation/**
     prohibited_files:
       - .env
@@ -20,54 +23,60 @@ agent_plan:
       - coverage/**
       - .vscode/**
       - src/**
-      - dist/**
+      - README.md
+      - README.ja.md
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - Do not change runtime behavior.
-    - Do not publish or tag a new release in this PR.
-    - Do not edit Knowledge Convergence specs in the KC repo.
+    - Do not change runtime source behavior.
+    - Do not modify README wording in this release PR.
+    - Do not edit Knowledge Convergence repository content.
   plan_items:
     - id: P1
       requirement_refs:
         - REQ-1
-        - REQ-3
-      action: Add English relationship section in README.md.
+      action: Bump release metadata to 0.6.0.
       expected_files:
-        - README.md
+        - package.json
+        - package-lock.json
       actual_files:
-        - README.md
+        - package.json
+        - package-lock.json
       status: completed
     - id: P2
       requirement_refs:
         - REQ-2
         - REQ-3
-      action: Add Japanese relationship section in README.ja.md.
+      action: Run release verification and record validation report.
       expected_files:
-        - README.ja.md
+        - dist/action/index.js
+        - dist/action/package.json
+        - reports/validation/**
       actual_files:
-        - README.ja.md
+        - reports/validation/VAL-KC-RELEASE-0.6.0.md
       status: completed
     - id: P3
-      action: Update KC self-governance artifacts and validation report.
+      requirement_refs:
+        - REQ-6
+      action: Update KC self-governance artifacts for the release PR.
       expected_files:
         - .kc/**
-        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - reports/validation/VAL-KC-KC-RELATIONSHIP-001.md
       status: completed
   verification_plan:
-    - Review README wording.
-    - Run git diff --check.
-    - Run KC self-check.
+    - npm.cmd run check
+    - npm.cmd test
+    - npm.cmd run pack:dry
+    - KC PR-mode release check
+    - KC current-mode check after finalization
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-KC-RELATIONSHIP-001.md.
-    - Use GitHub Actions CI on the implementation PR.
+    - Record reports/validation/VAL-KC-RELEASE-0.6.0.md.
+    - Verify npm latest, v0.6.0 tag, v0 tag, and GitHub Release after merge.
   questions_for_human:
-    - Do you approve PLAN-KC-KC-RELATIONSHIP-001?
+    - Do you approve PLAN-KC-RELEASE-0.6.0?
   status: approved
