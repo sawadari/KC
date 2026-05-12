@@ -26,6 +26,8 @@ Validate the follow-up hardening batch for Issues #42, #44, #45, #46, #47, #48, 
 - `npm.cmd run build`: passed and updated `dist/action/index.js` for the Action distribution.
 - `git diff --check`: passed.
 - `node lib/cli/index.js check --workspace . --changed-file ... --json`: passed, decision `PASS`, findings `[]`.
+- PR #51 CI: passed.
+- Main push CI after merge: passed, including `kc-current`.
 
 ## Residual Scope
 
