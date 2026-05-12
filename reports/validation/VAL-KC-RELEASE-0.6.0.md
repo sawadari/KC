@@ -17,7 +17,18 @@ Release `@sawadari/kc@0.6.0` so npm, GitHub Action tags, GitHub Release, and KC 
 
 ## Post-Merge Validation
 
-Pending until the release PR is merged.
+- PR #62 merged into main at `ab74a2235c7e82bfd38b964ec79414e2162f04fe`.
+- main CI passed: https://github.com/sawadari/KC/actions/runs/25710523925
+- `npm.cmd whoami`: blocked with `E401 Unauthorized` in the local environment.
+
+Pending until npm authentication is restored:
+
+- `npm.cmd publish --access public`
+- `npm.cmd view @sawadari/kc version`
+- `v0.6.0` tag creation
+- `v0` tag move
+- GitHub Release `v0.6.0`
+- KC finalize
 
 ## Notes
 
