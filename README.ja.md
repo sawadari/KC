@@ -20,6 +20,22 @@ KC は PR ごとに、次の問いを見える化します。
 
 KC は人間の代わりに承認しません。承認前に足りない文脈を見つけます。
 
+## Knowledge Convergence との関係
+
+KC は、[Knowledge Convergence / 知識収束学](https://github.com/sawadari/knowledge-convergence) の考え方を、AI支援開発と GitHub Pull Request の文脈に絞って実装した実験的なツールです。
+
+Knowledge Convergence は、AI出力、人間の主張、根拠、判断、運用フィードバックを、組織が判断可能な知識状態へ変換するための、より広い理論・仕様・語彙・適合検査の枠組みです。KC はその全体を実装するものではなく、AIコーディングエージェントが作る GitHub PR に対して、選択された一部の考え方を実用上の gate として適用します。
+
+このリポジトリでは、次のように対応づけています。
+
+- GitHub Issue は、元の問題、意図、受け入れ条件、妥当性確認文脈を表す
+- `.kc/plan.yaml` は、実装計画と承認済み scope を表す
+- `.kc/approval.yaml` は、人間の承認証跡を表す
+- `.kc/evidence_bundle.yaml` は、Issue、Plan、承認、PR差分、verification evidence、validation evidence、ライフサイクル状態を接続する
+- `kc check` は、文脈・承認・証跡の不足を、決定的な `PASS` / `WARN` / `HOLD` / `FAIL` に変換する
+
+KC は、知識収束学全体の標準的・完全な実装ではありません。また、要求管理ツール、PLM、ALM、システムズエンジニアリング基盤を置き換えるものでもありません。KC は、Codex などのAIコーディングエージェントが GitHub Pull Request を作る具体的な開発フローに対する、軽量なガードレイヤーです。
+
 ## 人間が判断する場所
 
 KC は、人間の判断と機械的な検査を分けます。

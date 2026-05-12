@@ -1,20 +1,16 @@
 agent_plan:
-  plan_id: PLAN-KC-NRVV-ISSUE-001
-  issue_ref: github:sawadari/KC/issues/56
+  plan_id: PLAN-KC-KC-RELATIONSHIP-001
+  issue_ref: github:sawadari/KC/issues/55
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Add optional NRVV structure to KC Issues, deterministic parsing, warning-level rule checks, generated evidence trace, docs, templates, and tests.
+  interpreted_requirement: Clarify in KC README files that KC is a focused GitHub/Codex implementation experiment inspired by Knowledge Convergence, not the broader framework itself.
   scope:
     allowed_files:
       - .kc/**
-      - src/**
-      - tests/**
-      - templates/**
       - README.md
       - README.ja.md
-      - dist/action/index.js
       - reports/validation/**
     prohibited_files:
       - .env
@@ -23,75 +19,39 @@ agent_plan:
       - lib/**
       - coverage/**
       - .vscode/**
+      - src/**
+      - dist/**
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - Do not create a full requirements management or MBSE subsystem.
-    - Do not remove legacy Issue fields.
-    - Do not add AI authority to mark validation passed.
+    - Do not change runtime behavior.
     - Do not publish or tag a new release in this PR.
+    - Do not edit Knowledge Convergence specs in the KC repo.
   plan_items:
     - id: P1
       requirement_refs:
         - REQ-1
-      action: Add NRVV fields to Issue templates, issue example, AGENTS guidance, and README docs.
+        - REQ-3
+      action: Add English relationship section in README.md.
       expected_files:
-        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
-        - templates/.kc/issue.example.yaml
-        - templates/AGENTS.md
         - README.md
-        - README.ja.md
-        - tests/**
       actual_files:
-        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
-        - templates/.kc/issue.example.yaml
-        - templates/AGENTS.md
         - README.md
-        - README.ja.md
-        - tests/core.test.mjs
       status: completed
     - id: P2
       requirement_refs:
         - REQ-2
-      action: Extend deterministic issue markdown parsing to produce optional nrvv issue fields.
+        - REQ-3
+      action: Add Japanese relationship section in README.ja.md.
       expected_files:
-        - src/core/issue.ts
-        - tests/**
+        - README.ja.md
       actual_files:
-        - src/core/issue.ts
-        - tests/core.test.mjs
+        - README.ja.md
       status: completed
     - id: P3
-      requirement_refs:
-        - REQ-3
-      action: Add warning-level KC-NRVV rules and enable them in rulesets.
-      expected_files:
-        - src/core/rules.ts
-        - .kc/ruleset.yaml
-        - templates/.kc/ruleset.yaml
-        - tests/**
-      actual_files:
-        - src/core/rules.ts
-        - .kc/ruleset.yaml
-        - templates/.kc/ruleset.yaml
-        - tests/core.test.mjs
-      status: completed
-    - id: P4
-      requirement_refs:
-        - REQ-4
-      action: Generate Evidence Bundle nrvv_trace from Issue NRVV and evidence state.
-      expected_files:
-        - src/core/check.ts
-        - tests/**
-      actual_files:
-        - src/core/check.ts
-        - tests/core.test.mjs
-      status: completed
-    - id: P5
-      action: Update KC self-governance artifacts, Action bundle, and validation report.
+      action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
-        - dist/action/index.js
         - reports/validation/**
       actual_files:
         - .kc/approval.yaml
@@ -99,20 +59,15 @@ agent_plan:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
-        - dist/action/index.js
-        - reports/validation/VAL-KC-NRVV-ISSUE-001.md
+        - reports/validation/VAL-KC-KC-RELATIONSHIP-001.md
       status: completed
   verification_plan:
-    - Run npm.cmd run check.
-    - Run npm.cmd test.
-    - Run npm.cmd run pack:dry.
-    - Run npm.cmd run build.
+    - Review README wording.
     - Run git diff --check.
     - Run KC self-check.
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-NRVV-ISSUE-001.md.
+    - Record reports/validation/VAL-KC-KC-RELATIONSHIP-001.md.
     - Use GitHub Actions CI on the implementation PR.
   questions_for_human:
-    - Do you approve PLAN-KC-NRVV-ISSUE-001?
+    - Do you approve PLAN-KC-KC-RELATIONSHIP-001?
   status: approved

@@ -1,28 +1,24 @@
 plan_approval:
-  approval_id: APR-KC-NRVV-ISSUE-001
-  target_plan_id: PLAN-KC-NRVV-ISSUE-001
+  approval_id: APR-KC-KC-RELATIONSHIP-001
+  target_plan_id: PLAN-KC-KC-RELATIONSHIP-001
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T09:30:00+09:00
+  timestamp: 2026-05-12T10:45:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/56#issuecomment-4426422765
-    summary: Approved NRVV Issue structure implementation from Codex thread proceed request.
+    ref: https://github.com/sawadari/KC/issues/55#issuecomment-4426897645
+    summary: Approved KC README relationship clarification from Codex thread proceed request.
     choice: "1"
   approved_scope:
     - .kc/**
-    - src/**
-    - tests/**
-    - templates/**
     - README.md
     - README.ja.md
-    - dist/action/index.js
     - reports/validation/**
   conditions:
-    - id: COND-NRVV-1
-      statement: Tests, build, package dry-run, git diff check, and KC self-check must pass.
-      evidence_required: test_run
-    - id: COND-NRVV-2
-      statement: Validation report must describe remaining limits and confirm Verification is not treated as Validation.
+    - id: COND-KC-REL-1
+      statement: README wording must not present KC as the full or normative Knowledge Convergence specification.
       evidence_required: validation_report
+    - id: COND-KC-REL-2
+      statement: KC self-check and git diff check must pass.
+      evidence_required: test_run
