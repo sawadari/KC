@@ -1,14 +1,14 @@
 kc_current:
   lifecycle_state: approved
   active_work: true
-  work_id: KC-NRVV-FOLLOWUPS-001
-  issue_ref: https://github.com/sawadari/KC/issues/65
-  plan_ref: PLAN-KC-NRVV-FOLLOWUPS-001
-  approval_ref: APR-KC-NRVV-FOLLOWUPS-001
+  work_id: KC-ARTIFACT-RESPONSIBILITY-001
+  issue_ref: https://github.com/sawadari/KC/issues/71
+  plan_ref: PLAN-KC-ARTIFACT-RESPONSIBILITY-001
+  approval_ref: APR-KC-ARTIFACT-RESPONSIBILITY-001
   pr_ref: pending
   release_ref: ""
   npm_ref: ""
   final_status: pending
   final_evidence_bundle_ref: ""
   next_action: open_pr
-  updated_at: 2026-05-12T11:16:59Z
+  updated_at: 2026-05-12T12:00:00Z

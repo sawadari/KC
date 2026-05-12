@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { loadArtifacts, writeYamlFile } from "./artifacts.js";
 import type { Finding } from "./types.js";
 
@@ -15,6 +16,7 @@ export interface IssueRecordOptions {
   validationScenario?: string;
   validationStatus?: string;
   nrvv?: Record<string, unknown>;
+  source?: Record<string, unknown>;
   force?: boolean;
 }
 
@@ -24,10 +26,31 @@ export interface IssueSyncOptions {
   force?: boolean;
 }
 
+export interface IssueSyncCheckOptions {
+  workspace: string;
+  issueRef: string;
+  issueFile?: string;
+}
+
 export interface IssueSyncSource {
   issueRef: string;
+  sourceType?: string;
   title?: string;
   body: string;
+}
+
+export interface IssueDrift {
+  field: string;
+  current: unknown;
+  candidate: unknown;
+  message: string;
+}
+
+export interface IssueSyncCheckResult {
+  status: "PASS" | "WARN";
+  drift: IssueDrift[];
+  candidate: Omit<IssueRecordOptions, "workspace" | "force">;
+  currentIssue?: Record<string, unknown>;
 }
 
 export function renderIssueBrief(input: string): string {
@@ -78,7 +101,9 @@ export function recordIssue(options: IssueRecordOptions): string {
   }
 
   const issuePacket: Record<string, unknown> = {
+    artifact_role: "normalized_snapshot",
     issue_ref: options.issueRef,
+    source: normalizeSourceMetadata(options.issueRef, options.source),
     problem_statement: options.problem,
     expected_outcome: options.expectedOutcome,
     acceptance_criteria: options.acceptanceCriteria,
@@ -122,8 +147,24 @@ export function syncIssueFromGitHub(options: IssueSyncOptions): string {
     validationScenario: issue.validationScenario,
     validationStatus: issue.validationScenario ? undefined : "pending",
     nrvv: issue.nrvv,
+    source: issue.source,
     force: options.force
   });
+}
+
+export function checkIssueSync(options: IssueSyncCheckOptions): IssueSyncCheckResult {
+  const currentIssue = loadArtifacts(path.resolve(options.workspace)).issue;
+  const source = options.issueFile
+    ? issueSourceFromFile(options.workspace, options.issueRef, options.issueFile)
+    : issueSourceFromGitHub(options.workspace, options.issueRef);
+  const candidate = issueFromMarkdown(source);
+  const drift = compareIssueDrift(currentIssue, candidate);
+  return {
+    status: drift.length > 0 ? "WARN" : "PASS",
+    drift,
+    candidate,
+    currentIssue
+  };
 }
 
 export function issueFromMarkdown(source: IssueSyncSource): Omit<IssueRecordOptions, "workspace" | "force"> {
@@ -143,8 +184,52 @@ export function issueFromMarkdown(source: IssueSyncSource): Omit<IssueRecordOpti
     nonGoals: nonGoals.length > 0 ? nonGoals : ["Review the synced GitHub Issue and define non-goals."],
     riskTier,
     validationScenario,
-    nrvv
+    nrvv,
+    source: {
+      type: source.sourceType || "github_issue",
+      ref: source.issueRef,
+      source_hash: sourceHash(source),
+      title: source.title
+    }
   };
+}
+
+export function compareIssueDrift(currentIssue: Record<string, unknown> | undefined, candidate: Omit<IssueRecordOptions, "workspace" | "force">): IssueDrift[] {
+  if (!currentIssue) {
+    return [{
+      field: "issue_packet",
+      current: undefined,
+      candidate: candidate.issueRef,
+      message: ".kc/issue.yaml is missing; run kc issue-sync or kc issue-record first."
+    }];
+  }
+
+  const candidatePacket = issuePacketFromOptions(candidate);
+  const comparisons: Array<[string, unknown, unknown]> = [
+    ["issue_ref", currentIssue.issue_ref, candidatePacket.issue_ref],
+    ["problem_statement", currentIssue.problem_statement, candidatePacket.problem_statement],
+    ["expected_outcome", currentIssue.expected_outcome, candidatePacket.expected_outcome],
+    ["acceptance_criteria", currentIssue.acceptance_criteria, candidatePacket.acceptance_criteria],
+    ["risk_tier", currentIssue.risk_tier, candidatePacket.risk_tier],
+    ["non_goals", currentIssue.non_goals, candidatePacket.non_goals],
+    ["validation_scenario", normalizeValidationScenario(currentIssue.validation_scenario), normalizeValidationScenario(candidatePacket.validation_scenario)],
+    ["nrvv.requirements", requirementMap(readPath(currentIssue, ["nrvv", "requirements"])), requirementMap(readPath(candidatePacket, ["nrvv", "requirements"]))],
+    ["nrvv.verification", verificationMap(readPath(currentIssue, ["nrvv", "verification"])), verificationMap(readPath(candidatePacket, ["nrvv", "verification"]))],
+    ["nrvv.validation", readPath(currentIssue, ["nrvv", "validation"]), readPath(candidatePacket, ["nrvv", "validation"])]
+  ];
+
+  const drift: IssueDrift[] = [];
+  for (const [field, current, next] of comparisons) {
+    if (!sameNormalized(current, next)) {
+      drift.push({
+        field,
+        current,
+        candidate: next,
+        message: `${field} differs between .kc/issue.yaml and the source Issue candidate. Re-sync, explicitly accept the drift, or keep the current snapshot as the PR gate baseline.`
+      });
+    }
+  }
+  return drift;
 }
 
 export function validateIssueArtifact(workspace: string): Finding[] {
@@ -177,6 +262,125 @@ function requireArray(findings: Finding[], issue: Record<string, unknown>, key: 
   }
 }
 
+function issueSourceFromGitHub(workspace: string, issueRef: string): IssueSyncSource {
+  const raw = execFileSync("gh", ["issue", "view", issueRef, "--json", "body,title,url"], {
+    cwd: path.resolve(workspace),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  const parsed = JSON.parse(raw) as { body?: string; title?: string; url?: string };
+  return {
+    issueRef: parsed.url || issueRef,
+    title: parsed.title,
+    body: parsed.body ?? ""
+  };
+}
+
+function issueSourceFromFile(workspace: string, issueRef: string, issueFile: string): IssueSyncSource {
+  const absolutePath = path.isAbsolute(issueFile) ? issueFile : path.join(path.resolve(workspace), issueFile);
+  return {
+    issueRef,
+    sourceType: "issue_markdown_file",
+    title: path.basename(issueFile),
+    body: fs.readFileSync(absolutePath, "utf8")
+  };
+}
+
+function issuePacketFromOptions(options: Omit<IssueRecordOptions, "workspace" | "force">): Record<string, unknown> {
+  const packet: Record<string, unknown> = {
+    issue_ref: options.issueRef,
+    problem_statement: options.problem,
+    expected_outcome: options.expectedOutcome,
+    acceptance_criteria: options.acceptanceCriteria,
+    risk_tier: options.riskTier,
+    non_goals: options.nonGoals
+  };
+  if (options.validationScenario) {
+    packet.validation_scenario = { statement: options.validationScenario };
+  } else {
+    packet.validation_status = options.validationStatus || "pending";
+  }
+  if (options.nrvv && hasValue(options.nrvv)) {
+    packet.nrvv = options.nrvv;
+  }
+  return packet;
+}
+
+function normalizeSourceMetadata(issueRef: string, source: Record<string, unknown> | undefined): Record<string, unknown> {
+  const now = new Date().toISOString();
+  const base: Record<string, unknown> = {
+    type: "manual_input",
+    ref: issueRef,
+    synced_at: now
+  };
+  if (!source) {
+    return base;
+  }
+  return compactRecord({
+    ...base,
+    ...source,
+    ref: stringValue(source.ref) || issueRef,
+    synced_at: stringValue(source.synced_at) || now
+  });
+}
+
+function sourceHash(source: IssueSyncSource): string {
+  return createHash("sha256")
+    .update(JSON.stringify({ issueRef: source.issueRef, title: source.title ?? "", body: source.body }))
+    .digest("hex");
+}
+
+function normalizeValidationScenario(value: unknown): unknown {
+  const record = recordValue(value);
+  return record ? record.statement ?? record : value;
+}
+
+function requirementMap(value: unknown): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const item of arrayRecords(value)) {
+    const id = stringValue(item.requirement_id);
+    if (id) {
+      output[id] = item;
+    }
+  }
+  return output;
+}
+
+function verificationMap(value: unknown): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const item of arrayRecords(value)) {
+    const id = stringValue(item.requirement_ref);
+    if (id) {
+      output[id] = item;
+    }
+  }
+  return output;
+}
+
+function sameNormalized(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeForCompare(left)) === JSON.stringify(normalizeForCompare(right));
+}
+
+function normalizeForCompare(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeForCompare(item));
+  }
+  if (value && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      const normalized = normalizeForCompare((value as Record<string, unknown>)[key]);
+      if (hasValue(normalized)) {
+        output[key] = normalized;
+      }
+    }
+    return output;
+  }
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  return value;
+}
+
 function error(ruleId: string, reasonCode: string, message: string): Finding {
   return { ruleId, severity: "error", reasonCode, message };
 }
@@ -199,6 +403,31 @@ function hasValue(value: unknown): boolean {
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function arrayRecords(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && !Array.isArray(item));
+}
+
+function recordValue(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function readPath(source: unknown, pathParts: string[]): unknown {
+  let cursor = source;
+  for (const part of pathParts) {
+    if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[part];
+  }
+  return cursor;
 }
 
 function markdownSections(markdown: string): Map<string, string> {
@@ -251,14 +480,14 @@ function pickList(sections: Map<string, string>, keys: string[]): string[] {
 }
 
 function parseNrvv(sections: Map<string, string>): Record<string, unknown> | undefined {
-  const need = compactRecord({
-    need_id: "NEED-1",
+  const needContent = compactRecord({
     statement: pickText(sections, ["need"]),
     stakeholder: pickText(sections, ["stakeholder / user", "stakeholder", "user"]),
     situation: pickText(sections, ["situation"]),
     pain_or_risk: pickText(sections, ["pain / risk", "pain", "risk"]),
     desired_operational_outcome: pickText(sections, ["desired operational outcome", "desired outcome"])
   });
+  const need = hasValue(needContent) ? { need_id: "NEED-1", ...needContent } : {};
   const requirements = parseRequirements(pickList(sections, ["requirement", "requirements"]));
   const verification = parseVerification(pickList(sections, ["verification"]));
   const validation = compactRecord({
@@ -270,12 +499,13 @@ function parseNrvv(sections: Map<string, string>): Record<string, unknown> | und
     validation_status: pickText(sections, ["validation status"])
   });
   const gaps = parseGaps(pickList(sections, ["nrvv notes", "gaps"]));
+  const nrvvSignal = hasValue(need) || requirements.length > 0 || verification.length > 0 || hasValue(gaps);
 
   const nrvv = compactRecord({
     need: hasValue(need) ? need : undefined,
     requirements: requirements.length > 0 ? requirements : undefined,
     verification: verification.length > 0 ? verification : undefined,
-    validation: hasValue(validation) ? validation : undefined,
+    validation: nrvvSignal && hasValue(validation) ? validation : undefined,
     gaps: hasValue(gaps) ? gaps : undefined
   });
   return hasValue(nrvv) ? nrvv : undefined;

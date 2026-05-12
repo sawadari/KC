@@ -36,6 +36,44 @@ In this repository:
 
 KC is not the full Knowledge Convergence specification, and it is not a replacement for a requirements tool, PLM, ALM, or Systems Engineering platform. It is a practical guard layer for one concrete workflow: Codex or other coding agents producing GitHub pull requests.
 
+## GitHub Records and `.kc` Snapshots
+
+KC intentionally keeps both human-facing GitHub records and machine-readable `.kc` artifacts. They are related, but they are not identical sources of truth.
+
+- GitHub Issues are the human collaboration record: problem framing, discussion, approval comments, exception decisions, and issue closure.
+- GitHub Pull Requests are the change and review record: commits, diffs, review comments, CI, and merge.
+- `.kc/*.yaml` files are repository-local Knowledge Convergence artifacts: normalized snapshots that KC and coding agents can read deterministically.
+- `reports/validation/` holds detailed verification and validation records.
+- `.kc/archive/` holds finalized Evidence Bundles after merge or release.
+
+The intended flow is:
+
+```text
+GitHub Issue
+  -> kc issue-sync / human confirmation
+  -> .kc/issue.yaml
+  -> .kc/plan.yaml
+  -> .kc/approval.yaml
+  -> Pull Request
+  -> .kc/evidence_bundle.yaml
+  -> kc finalize
+  -> .kc/archive/
+```
+
+In this model, `GitHub Issue` is the human collaboration record, while `.kc/issue.yaml` is the normalized snapshot used for KC gating. The snapshot records `artifact_role: normalized_snapshot` and `source` metadata so reviewers can see where it came from.
+
+If the GitHub Issue text and `.kc/issue.yaml` drift, `.kc/issue.yaml` remains the PR gate snapshot until a human re-syncs it or explicitly accepts the drift. You can check for drift before planning or before review:
+
+```bash
+kc issue-sync --issue-ref https://github.com/OWNER/REPO/issues/123 --check --workspace .
+```
+
+For local samples or offline review, compare against a Markdown file:
+
+```bash
+kc issue-sync --issue-ref https://github.com/OWNER/REPO/issues/123 --check --issue-file issue.md --workspace .
+```
+
 ## Where Humans Decide
 
 KC separates human judgment from deterministic checking:
@@ -212,6 +250,7 @@ kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
 kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text --nrvv-file .kc/nrvv.yaml
 kc issue-sync --issue-ref URL --workspace .
+kc issue-sync --issue-ref URL --check --issue-file issue.md --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
 kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL
@@ -230,7 +269,7 @@ Command summary:
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
 - `kc issue-brief`: turn an intake note into a human-fillable issue brief.
 - `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields. Use `--nrvv-file` to load structured NRVV YAML into `issue_packet.nrvv`.
-- `kc issue-sync`: draft `.kc/issue.yaml` from a GitHub Issue body using deterministic heading parsing.
+- `kc issue-sync`: draft `.kc/issue.yaml` from a GitHub Issue body using deterministic heading parsing. Use `--check` to report drift between the source Issue candidate and the current `.kc/issue.yaml`; add `--issue-file` for local Markdown samples.
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
 - `kc approval-record`: record a numbered human decision into `.kc/approval.yaml`.

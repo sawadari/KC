@@ -1,26 +1,23 @@
 agent_plan:
-  plan_id: PLAN-KC-NRVV-FOLLOWUPS-001
-  issue_ref: github:sawadari/KC/issues/65
-  related_issue_refs:
-    - github:sawadari/KC/issues/66
-    - github:sawadari/KC/issues/67
-    - github:sawadari/KC/issues/68
-    - github:sawadari/KC/issues/69
+  plan_id: PLAN-KC-ARTIFACT-RESPONSIBILITY-001
+  issue_ref: https://github.com/sawadari/KC/issues/71
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Implement the NRVV follow-up issues covering trace
-    consistency, parser-friendly examples, profile-based enforcement,
-    file-based NRVV intake, and explicit Requirement traceability.
+  interpreted_requirement: Clarify the boundary between human-facing GitHub
+    records and machine-readable KC snapshots, then add source metadata and
+    drift checking so users can manage intentional overlap.
   scope:
     allowed_files:
       - .kc/**
       - README.md
       - README.ja.md
-      - src/**
-      - tests/**
-      - templates/**
+      - src/core/issue.ts
+      - src/core/check.ts
+      - src/cli/index.ts
+      - tests/core.test.mjs
+      - templates/.kc/issue.example.yaml
       - dist/action/index.js
       - reports/validation/**
     prohibited_files:
@@ -35,73 +32,65 @@ agent_plan:
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - Do not change package version.
     - Do not publish npm or move GitHub tags.
-    - Do not make strict NRVV the default.
-    - Do not add PLM or ALM integrations.
+    - Do not make kc check depend on GitHub API.
+    - Do not remove .kc/issue.yaml snapshots.
+    - Do not implement a full ALM synchronization system.
   plan_items:
     - id: P1
       requirement_refs:
         - REQ-1
-        - REQ-5
-      action: Update generated NRVV trace behavior for Need status,
-        plan_items[].requirement_refs, and verification_evidence[].requirement_refs.
+        - REQ-2
+      action: Document the responsibility split between GitHub records and KC
+        snapshots.
       expected_files:
-        - src/core/check.ts
-        - dist/action/index.js
-        - tests/**
+        - README.md
+        - README.ja.md
       actual_files:
-        - src/core/check.ts
-        - dist/action/index.js
-        - tests/core.test.mjs
+        - README.md
+        - README.ja.md
       status: completed
     - id: P2
       requirement_refs:
+        - REQ-2
         - REQ-3
-        - REQ-5
-      action: Add NRVV profile policy and strict traceability findings.
+      action: Add source metadata to issue artifacts and examples.
       expected_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
-        - tests/**
+        - src/core/issue.ts
+        - templates/.kc/issue.example.yaml
+        - tests/core.test.mjs
       actual_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
+        - src/core/issue.ts
+        - templates/.kc/issue.example.yaml
         - tests/core.test.mjs
       status: completed
     - id: P3
       requirement_refs:
         - REQ-4
-      action: Add issue-record --nrvv-file.
+        - REQ-5
+      action: Add issue-sync --check drift reporting and user-facing resolution
+        guidance.
       expected_files:
-        - src/cli/index.ts
         - src/core/issue.ts
-        - tests/**
+        - src/cli/index.ts
+        - tests/core.test.mjs
       actual_files:
-        - src/cli/index.ts
         - src/core/issue.ts
+        - src/cli/index.ts
         - tests/core.test.mjs
       status: completed
     - id: P4
       requirement_refs:
-        - REQ-2
-        - REQ-5
-      action: Update README files, templates, and AGENTS guidance.
+        - REQ-6
+      action: Include Issue source snapshot metadata in generated Evidence Bundles.
       expected_files:
-        - README.md
-        - README.ja.md
-        - templates/**
+        - src/core/check.ts
+        - tests/core.test.mjs
+        - dist/action/index.js
       actual_files:
-        - README.md
-        - README.ja.md
-        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
-        - templates/.kc/config.example.yaml
-        - templates/.kc/evidence_bundle.example.yaml
-        - templates/.kc/plan.example.yaml
-        - templates/.kc/ruleset.yaml
-        - templates/AGENTS.md
+        - src/core/check.ts
+        - tests/core.test.mjs
+        - dist/action/index.js
       status: completed
     - id: P5
       requirement_refs:
@@ -110,6 +99,7 @@ agent_plan:
         - REQ-3
         - REQ-4
         - REQ-5
+        - REQ-6
       action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
@@ -120,18 +110,18 @@ agent_plan:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
-        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+        - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
       status: completed
   verification_plan:
     - npm.cmd run check
     - npm.cmd test
     - npm.cmd run pack:dry
+    - Sample workspace issue-sync --check drift validation
     - KC PR-mode self-check
     - git diff --check
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md.
-    - Use PR CI as independent verification.
+    - Record reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md.
+    - Use sample workspace output as user-oriented validation evidence.
   questions_for_human:
-    - Do you approve PLAN-KC-NRVV-FOLLOWUPS-001?
+    - Do you approve PLAN-KC-ARTIFACT-RESPONSIBILITY-001?
   status: approved

@@ -104376,6 +104376,7 @@ function buildEvidenceBundle(input) {
     plan_diff_trace: buildPlanDiffTrace(plan, input.changedFiles),
     verification_evidence: evidence.verification_evidence ?? [],
     validation_evidence: evidence.validation_evidence ?? [],
+    source_snapshots: buildSourceSnapshots(input.artifacts.issue, evidence),
     findings: input.findings.map((finding) => ({
       rule_id: finding.ruleId,
       severity: finding.severity,
@@ -104395,6 +104396,32 @@ function buildEvidenceBundle(input) {
     bundle.nrvv_trace = nrvvTrace;
   }
   return bundle;
+}
+function buildSourceSnapshots(issue2, evidence) {
+  const existing = recordValue2(evidence.source_snapshots);
+  const issueSnapshot = buildIssueSourceSnapshot(issue2);
+  if (!existing && !issueSnapshot) {
+    return void 0;
+  }
+  return {
+    ...existing ?? {},
+    ...issueSnapshot ? { issue: issueSnapshot } : {}
+  };
+}
+function buildIssueSourceSnapshot(issue2) {
+  if (!issue2) {
+    return void 0;
+  }
+  const source = recordValue2(issue2.source);
+  const snapshot2 = {
+    artifact_role: stringValue2(issue2.artifact_role) || "normalized_snapshot",
+    issue_ref: stringValue2(issue2.issue_ref),
+    source
+  };
+  if (!snapshot2.issue_ref && !source) {
+    return void 0;
+  }
+  return snapshot2;
 }
 function buildPlanDiffTrace(plan, changedFiles) {
   const planItems = arrayRecords2(plan?.plan_items).map((item) => ({

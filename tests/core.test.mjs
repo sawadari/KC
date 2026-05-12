@@ -10,7 +10,7 @@ import { renderApprovalBrief, recordApprovalChoice } from "../lib/core/approval-
 import { runAssist, systemPrompt, validateStructuredOutput } from "../lib/core/assist.js";
 import { recordChangeRequest } from "../lib/core/change-request.js";
 import { runCheck } from "../lib/core/check.js";
-import { issueFromMarkdown, recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
+import { checkIssueSync, issueFromMarkdown, recordIssue, renderIssueBrief, validateIssueArtifact } from "../lib/core/issue.js";
 import { closeWork, finalizeWork } from "../lib/core/lifecycle.js";
 import { shouldValidatePullRequestBody, validatePullRequestBody } from "../lib/core/pr-body.js";
 import { runPromote } from "../lib/core/promote.js";
@@ -323,6 +323,29 @@ describe("KC rule engine", () => {
     assert.ok(fs.existsSync(outputPath));
     const generated = YAML.parse(fs.readFileSync(outputPath, "utf8"));
     assert.equal(generated.approval_evidence_bundle.decision.status, "PASS");
+  });
+
+  it("includes Issue source snapshot metadata in generated evidence bundles", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.artifact_role = "normalized_snapshot";
+    issue.issue_packet.source = {
+      type: "github_issue",
+      ref: "https://github.com/sawadari/KC-fixture/issues/789",
+      synced_at: "2026-05-12T00:00:00.000Z",
+      source_hash: "abc123"
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.evidenceBundle.source_snapshots.issue.artifact_role, "normalized_snapshot");
+    assert.equal(result.evidenceBundle.source_snapshots.issue.source.ref, "https://github.com/sawadari/KC-fixture/issues/789");
+    assert.equal(result.evidenceBundle.source_snapshots.issue.source.source_hash, "abc123");
   });
 
   it("emits warning-level NRVV findings for incomplete NRVV issue structure", async () => {
@@ -809,6 +832,58 @@ describe("KC CLI", () => {
     assert.equal(issue.issue_packet.nrvv.requirements[0].requirement_id, "REQ-1");
   });
 
+  it("reports user-facing drift for issue-sync --check against a local Markdown sample", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-sync-check-cli-"));
+    fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
+    recordIssue({
+      workspace,
+      issueRef: "https://github.com/sawadari/KC/issues/71",
+      problem: "Old problem framing.",
+      expectedOutcome: "Users understand snapshots.",
+      acceptanceCriteria: ["Document snapshot boundary."],
+      nonGoals: ["Replace GitHub Issues."],
+      riskTier: "medium",
+      validationScenario: "A reviewer understands the boundary.",
+      force: true
+    });
+    fs.writeFileSync(path.join(workspace, "issue.md"), [
+      "## Problem",
+      "Updated problem framing.",
+      "",
+      "## Expected Outcome",
+      "Users understand snapshots.",
+      "",
+      "## Acceptance Criteria",
+      "- Document snapshot boundary.",
+      "",
+      "## Non-goals",
+      "- Replace GitHub Issues.",
+      "",
+      "## Risk Tier",
+      "medium",
+      "",
+      "## Validation Scenario",
+      "A reviewer understands the boundary."
+    ].join("\n"), "utf8");
+
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "issue-sync",
+      "--workspace",
+      workspace,
+      "--issue-ref",
+      "https://github.com/sawadari/KC/issues/71",
+      "--check",
+      "--issue-file",
+      "issue.md"
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /KC issue-sync check: WARN/);
+    assert.match(result.stdout, /problem_statement/);
+    assert.match(result.stdout, /Resolution options/);
+  });
+
   it("rejects non-object NRVV YAML files", () => {
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-record-nrvv-invalid-"));
     fs.writeFileSync(path.join(workspace, "nrvv.yaml"), "- not\n- an object\n", "utf8");
@@ -969,6 +1044,36 @@ describe("KC issue intake", () => {
 
     assert.ok(fs.existsSync(issuePath));
     assert.deepEqual(validateIssueArtifact(workspace), []);
+    const recorded = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    assert.equal(recorded.issue_packet.artifact_role, "normalized_snapshot");
+    assert.equal(recorded.issue_packet.source.type, "manual_input");
+    assert.equal(recorded.issue_packet.source.ref, "github:sawadari/KC/issues/24");
+  });
+
+  it("preserves source metadata when recording a synced Issue snapshot", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-source-"));
+    const issuePath = recordIssue({
+      workspace,
+      issueRef: "https://github.com/sawadari/KC/issues/71",
+      problem: "GitHub and KC artifacts look duplicated.",
+      expectedOutcome: "The snapshot role is explicit.",
+      acceptanceCriteria: ["Source metadata is recorded."],
+      nonGoals: ["Replace GitHub Issues."],
+      riskTier: "medium",
+      validationScenario: "Reviewer understands the boundary.",
+      source: {
+        type: "github_issue",
+        ref: "https://github.com/sawadari/KC/issues/71",
+        synced_at: "2026-05-12T00:00:00.000Z",
+        source_hash: "abc123"
+      }
+    });
+
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    assert.equal(issue.issue_packet.artifact_role, "normalized_snapshot");
+    assert.equal(issue.issue_packet.source.type, "github_issue");
+    assert.equal(issue.issue_packet.source.synced_at, "2026-05-12T00:00:00.000Z");
+    assert.equal(issue.issue_packet.source.source_hash, "abc123");
   });
 
   it("parses GitHub Issue markdown into deterministic issue fields", () => {
@@ -1069,6 +1174,54 @@ describe("KC issue intake", () => {
     assert.equal(issue.nrvv.validation.scenario, "A synced issue preserves NRVV fields.");
     assert.deepEqual(issue.nrvv.validation.success_criteria, ["nrvv.need exists.", "nrvv.requirements includes REQ-1."]);
     assert.equal(issue.nrvv.gaps.verification_to_validation_gap[0], "Unit tests do not prove future workflow adoption.");
+    assert.equal(issue.source.type, "github_issue");
+    assert.equal(issue.source.ref, "https://github.com/sawadari/KC/issues/56");
+    assert.match(issue.source.source_hash, /^[a-f0-9]{64}$/);
+  });
+
+  it("checks drift between the current Issue snapshot and a source Issue candidate", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-sync-check-"));
+    recordIssue({
+      workspace,
+      issueRef: "https://github.com/sawadari/KC/issues/71",
+      problem: "GitHub and KC artifacts look duplicated.",
+      expectedOutcome: "The snapshot role is explicit.",
+      acceptanceCriteria: ["Document the boundary."],
+      nonGoals: ["Replace GitHub Issues."],
+      riskTier: "medium",
+      validationScenario: "Reviewer understands the boundary.",
+      force: true
+    });
+    fs.writeFileSync(path.join(workspace, "issue.md"), [
+      "## Problem",
+      "GitHub and KC artifacts look duplicated.",
+      "",
+      "## Expected Outcome",
+      "The snapshot role is explicit.",
+      "",
+      "## Acceptance Criteria",
+      "- Document the boundary.",
+      "- Detect drift.",
+      "",
+      "## Non-goals",
+      "- Replace GitHub Issues.",
+      "",
+      "## Risk Tier",
+      "medium",
+      "",
+      "## Validation Scenario",
+      "Reviewer understands the boundary."
+    ].join("\n"), "utf8");
+
+    const result = checkIssueSync({
+      workspace,
+      issueRef: "https://github.com/sawadari/KC/issues/71",
+      issueFile: "issue.md"
+    });
+
+    assert.equal(result.status, "WARN");
+    assert.ok(result.drift.some((item) => item.field === "acceptance_criteria"));
+    assert.match(result.drift[0].message, /Re-sync/);
   });
 });
 

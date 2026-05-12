@@ -1,13 +1,8 @@
 approval_evidence_bundle:
-  bundle_id: AEB-KC-NRVV-FOLLOWUPS-001
-  issue_ref: github:sawadari/KC/issues/65
-  related_issue_refs:
-    - github:sawadari/KC/issues/66
-    - github:sawadari/KC/issues/67
-    - github:sawadari/KC/issues/68
-    - github:sawadari/KC/issues/69
-  plan_ref: PLAN-KC-NRVV-FOLLOWUPS-001
-  approval_ref: APR-KC-NRVV-FOLLOWUPS-001
+  bundle_id: AEB-KC-ARTIFACT-RESPONSIBILITY-001
+  issue_ref: https://github.com/sawadari/KC/issues/71
+  plan_ref: PLAN-KC-ARTIFACT-RESPONSIBILITY-001
+  approval_ref: APR-KC-ARTIFACT-RESPONSIBILITY-001
   pr_ref: pending
   agent_ref: codex
   diff_summary:
@@ -17,81 +12,74 @@ approval_evidence_bundle:
       - .kc/evidence_bundle.yaml
       - .kc/issue.yaml
       - .kc/plan.yaml
-      - .kc/ruleset.yaml
       - README.md
       - README.ja.md
       - src/cli/index.ts
-      - src/core/issue.ts
       - src/core/check.ts
-      - src/core/rules.ts
-      - templates/.github/ISSUE_TEMPLATE/kc_issue.md
-      - templates/.kc/config.example.yaml
-      - templates/.kc/evidence_bundle.example.yaml
-      - templates/.kc/plan.example.yaml
-      - templates/.kc/ruleset.yaml
-      - templates/AGENTS.md
+      - src/core/issue.ts
+      - templates/.kc/issue.example.yaml
       - tests/core.test.mjs
       - dist/action/index.js
-      - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+      - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
     out_of_scope_files: []
+  source_snapshots:
+    issue:
+      artifact_role: normalized_snapshot
+      issue_ref: https://github.com/sawadari/KC/issues/71
+      source:
+        type: github_issue
+        ref: https://github.com/sawadari/KC/issues/71
+        synced_at: 2026-05-12T12:00:00Z
+        source_revision: https://github.com/sawadari/KC/issues/71
   plan_diff_trace:
     - plan_item_id: P1
       requirement_refs:
         - REQ-1
-        - REQ-5
+        - REQ-2
       expected_files:
-        - src/core/check.ts
-        - dist/action/index.js
-        - tests/**
+        - README.md
+        - README.ja.md
       actual_files:
-        - src/core/check.ts
-        - dist/action/index.js
-        - tests/core.test.mjs
+        - README.md
+        - README.ja.md
       status: completed
     - plan_item_id: P2
       requirement_refs:
+        - REQ-2
         - REQ-3
-        - REQ-5
       expected_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
-        - tests/**
+        - src/core/issue.ts
+        - templates/.kc/issue.example.yaml
+        - tests/core.test.mjs
       actual_files:
-        - src/core/rules.ts
-        - templates/.kc/ruleset.yaml
-        - .kc/ruleset.yaml
+        - src/core/issue.ts
+        - templates/.kc/issue.example.yaml
         - tests/core.test.mjs
       status: completed
     - plan_item_id: P3
       requirement_refs:
         - REQ-4
+        - REQ-5
       expected_files:
-        - src/cli/index.ts
         - src/core/issue.ts
-        - tests/**
+        - src/cli/index.ts
+        - tests/core.test.mjs
       actual_files:
-        - src/cli/index.ts
         - src/core/issue.ts
+        - src/cli/index.ts
         - tests/core.test.mjs
       status: completed
     - plan_item_id: P4
       requirement_refs:
-        - REQ-2
-        - REQ-5
+        - REQ-6
       expected_files:
-        - README.md
-        - README.ja.md
-        - templates/**
+        - src/core/check.ts
+        - tests/core.test.mjs
+        - dist/action/index.js
       actual_files:
-        - README.md
-        - README.ja.md
-        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
-        - templates/.kc/config.example.yaml
-        - templates/.kc/evidence_bundle.example.yaml
-        - templates/.kc/plan.example.yaml
-        - templates/.kc/ruleset.yaml
-        - templates/AGENTS.md
+        - src/core/check.ts
+        - tests/core.test.mjs
+        - dist/action/index.js
       status: completed
     - plan_item_id: P5
       requirement_refs:
@@ -100,6 +88,7 @@ approval_evidence_bundle:
         - REQ-3
         - REQ-4
         - REQ-5
+        - REQ-6
       expected_files:
         - .kc/**
         - reports/validation/**
@@ -109,81 +98,98 @@ approval_evidence_bundle:
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
-        - .kc/ruleset.yaml
-        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+        - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
       status: completed
   nrvv_trace:
     needs:
       - need_id: NEED-1
         status: addressed
         evidence_refs:
-          - VA-KC-NRVV-FOLLOWUPS-001
+          - VA-KC-ARTIFACT-RESPONSIBILITY-001
     requirements:
       - requirement_id: REQ-1
         status: verified
         verification_evidence_refs:
-          - VE-KC-NRVV-FOLLOWUPS-TEST
+          - VE-KC-ARTIFACT-DOCS
       - requirement_id: REQ-2
         status: verified
         verification_evidence_refs:
-          - VE-KC-NRVV-FOLLOWUPS-DIFF
+          - VE-KC-ARTIFACT-DOCS
+          - VE-KC-ARTIFACT-TEST
       - requirement_id: REQ-3
         status: verified
         verification_evidence_refs:
-          - VE-KC-NRVV-FOLLOWUPS-TEST
+          - VE-KC-ARTIFACT-TEST
       - requirement_id: REQ-4
         status: verified
         verification_evidence_refs:
-          - VE-KC-NRVV-FOLLOWUPS-TEST
+          - VE-KC-ARTIFACT-TEST
+          - VE-KC-ARTIFACT-SAMPLE
       - requirement_id: REQ-5
         status: verified
         verification_evidence_refs:
-          - VE-KC-NRVV-FOLLOWUPS-TEST
+          - VE-KC-ARTIFACT-TEST
+          - VE-KC-ARTIFACT-SAMPLE
+      - requirement_id: REQ-6
+        status: verified
+        verification_evidence_refs:
+          - VE-KC-ARTIFACT-TEST
     verification_summary:
       status: passed
       evidence_refs:
-        - VE-KC-NRVV-FOLLOWUPS-CHECK
-        - VE-KC-NRVV-FOLLOWUPS-TEST
-        - VE-KC-NRVV-FOLLOWUPS-DIFF
+        - VE-KC-ARTIFACT-CHECK
+        - VE-KC-ARTIFACT-TEST
+        - VE-KC-ARTIFACT-DOCS
+        - VE-KC-ARTIFACT-SAMPLE
     validation_summary:
       status: passed
       evidence_refs:
-        - VA-KC-NRVV-FOLLOWUPS-001
-      gap: Unit and CLI tests verify behavior, while reviewer usefulness should
-        continue to be evaluated through dogfooding.
+        - VA-KC-ARTIFACT-RESPONSIBILITY-001
+      gap: Tests prove mechanics, while long-term usefulness depends on future
+        user dogfooding across real repositories.
     unresolved_gaps:
       - type: verification_to_validation_gap
-        statement: Reviewer ergonomics should continue to be assessed after this PR.
+        statement: Continue evaluating whether users understand the snapshot
+          boundary in future KC dogfooding.
   verification_evidence:
-    - evidence_id: VE-KC-NRVV-FOLLOWUPS-CHECK
+    - evidence_id: VE-KC-ARTIFACT-CHECK
       type: test_run
       requirement_refs:
-        - REQ-1
         - REQ-3
         - REQ-4
         - REQ-5
+        - REQ-6
       ref: npm.cmd run check
       status: passed
-    - evidence_id: VE-KC-NRVV-FOLLOWUPS-TEST
+    - evidence_id: VE-KC-ARTIFACT-TEST
       type: test_run
       requirement_refs:
-        - REQ-1
+        - REQ-2
         - REQ-3
         - REQ-4
         - REQ-5
+        - REQ-6
       ref: npm.cmd test
       status: passed
-    - evidence_id: VE-KC-NRVV-FOLLOWUPS-DIFF
+    - evidence_id: VE-KC-ARTIFACT-DOCS
       type: diff_inspection
       requirement_refs:
+        - REQ-1
         - REQ-2
-      ref: README, templates, and AGENTS NRVV guidance updated
+      ref: README and README.ja updated with GitHub records versus .kc snapshots.
+      status: passed
+    - evidence_id: VE-KC-ARTIFACT-SAMPLE
+      type: cli_integration_test
+      requirement_refs:
+        - REQ-4
+        - REQ-5
+      ref: Sample workspace issue-sync --check drift run
       status: passed
   validation_status: passed
   validation_evidence:
-    - evidence_id: VA-KC-NRVV-FOLLOWUPS-001
+    - evidence_id: VA-KC-ARTIFACT-RESPONSIBILITY-001
       type: validation_report
-      ref: reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+      ref: reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
       status: passed
   findings: []
   decision:
@@ -191,5 +197,5 @@ approval_evidence_bundle:
     primary_reason: local_verification_passed
     required_actions:
       - Open PR and verify GitHub Actions.
-      - Close Issues #65 through #69 after merge.
+      - Merge PR and close Issue #71 after review.
     status: approved
