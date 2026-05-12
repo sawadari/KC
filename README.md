@@ -210,7 +210,7 @@ kc check --workspace . --output .kc/evidence_bundle.generated.yaml
 kc bundle --workspace . --output .kc/evidence_bundle.generated.yaml
 kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
-kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text
+kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text --nrvv-file .kc/nrvv.yaml
 kc issue-sync --issue-ref URL --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
@@ -229,7 +229,7 @@ Command summary:
 - `kc bundle`: generate the Evidence Bundle without failing the process. Use `--output` to choose the generated bundle path.
 - `kc assist`: draft candidate artifacts; AI output never changes the deterministic decision.
 - `kc issue-brief`: turn an intake note into a human-fillable issue brief.
-- `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields.
+- `kc issue-record`: write `.kc/issue.yaml` from explicit issue fields. Use `--nrvv-file` to load structured NRVV YAML into `issue_packet.nrvv`.
 - `kc issue-sync`: draft `.kc/issue.yaml` from a GitHub Issue body using deterministic heading parsing.
 - `kc issue-check`: validate the issue artifact before planning.
 - `kc approval-brief`: print the Issue, Plan, scope, risk, and numbered human decision choices.
@@ -278,6 +278,34 @@ Need -> Requirement -> Verification evidence -> Validation evidence
 ```
 
 This is useful when Codex or another coding agent produces a PR quickly, but reviewers still need to know whether the change addresses the original need and not only whether it passes tests. NRVV is optional by default; when an Issue includes `nrvv` or sets `nrvv_required: true`, KC emits warning-level `KC-NRVV-*` findings for missing trace information.
+
+For parser-friendly Issues, write Requirements and Verification entries in this form:
+
+```md
+## Requirement
+
+- REQ-1: The upload flow shall retry transient HTTP 503 failures up to three times.
+
+## Verification
+
+- REQ-1: unit_test | HTTP 503 is retried up to three times | CI test report
+```
+
+When more traceability is needed, connect Plan items and evidence back to Requirements:
+
+```yaml
+plan_items:
+  - id: P1
+    requirement_refs: [REQ-1]
+    expected_files: [src/report/upload.ts]
+
+verification_evidence:
+  - evidence_id: VE-1
+    type: unit_test
+    requirement_refs: [REQ-1]
+    ref: npm test
+    status: passed
+```
 
 ## Artifact Lifecycle
 
@@ -358,6 +386,15 @@ ruleset:
   severity_overrides:
     KC-AE-007: warning
 ```
+
+NRVV enforcement can be raised as a group with `ruleset.nrvv_profile` or `.kc/config.yaml` `kc.nrvv.mode`:
+
+```yaml
+ruleset:
+  nrvv_profile: optional # optional | warning | strict
+```
+
+`optional` preserves the default behavior. `warning` emits NRVV findings even when NRVV is missing. `strict` makes missing or incomplete NRVV blocking.
 
 The current rules cover required issue fields, validation scenarios, plan approval, approved scope, prohibited files, verification evidence, verification/validation separation, approval-condition evidence, agent audit references, high-risk rollback paths, merge readiness, explicit human approval evidence, placeholder detection, risk-aware validation pending, plan-item trace checks, current-mode lifecycle stale-state checks, and stale finalized artifact reuse in PR mode.
 

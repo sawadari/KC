@@ -210,7 +210,7 @@ kc check --workspace . --output .kc/evidence_bundle.generated.yaml
 kc bundle --workspace . --output .kc/evidence_bundle.generated.yaml
 kc assist --kind issue-packet --input issue.md --offline-template
 kc issue-brief --input issue.md
-kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text
+kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text --nrvv-file .kc/nrvv.yaml
 kc issue-sync --issue-ref URL --workspace .
 kc issue-check --workspace .
 kc approval-brief --workspace .
@@ -229,7 +229,7 @@ kc promote --workspace . --output-dir reports/promotion
 - `kc bundle`: プロセスを失敗させずに Evidence Bundle を生成する。`--output` で出力先を選べる
 - `kc assist`: candidate artifact を下書きする。AI 出力は最終判定を変えない
 - `kc issue-brief`: issue の元メモを人間が埋める brief にする
-- `kc issue-record`: 明示された issue 項目から `.kc/issue.yaml` を作る
+- `kc issue-record`: 明示された issue 項目から `.kc/issue.yaml` を作る。`--nrvv-file` を使うと、構造化されたNRVV YAMLを `issue_packet.nrvv` に読み込める
 - `kc issue-sync`: GitHub Issue body の見出しを決定的に解析し、`.kc/issue.yaml` の下書きを作る
 - `kc issue-check`: planning 前に issue artifact を検査する
 - `kc approval-brief`: Issue、Plan、scope、risk、番号式の人間判断選択肢を表示する
@@ -278,6 +278,34 @@ Need -> Requirement -> Verification evidence -> Validation evidence
 ```
 
 これは、CodexなどのAIコーディングエージェントが素早くPRを作る場合に、変更が単にテストを通るだけでなく、元のNeedを満たしているかをレビューするために使います。NRVVはデフォルトでは任意です。Issueに`nrvv`がある場合、または`nrvv_required: true`を設定した場合、KCは不足しているtrace情報をwarning levelの`KC-NRVV-*` findingとして出します。
+
+parserが読みやすいIssueにする場合は、RequirementとVerificationを次の形で書きます。
+
+```md
+## Requirement
+
+- REQ-1: The upload flow shall retry transient HTTP 503 failures up to three times.
+
+## Verification
+
+- REQ-1: unit_test | HTTP 503 is retried up to three times | CI test report
+```
+
+より強いtraceabilityが必要な場合は、Plan itemとevidenceをRequirementへ明示的につなぎます。
+
+```yaml
+plan_items:
+  - id: P1
+    requirement_refs: [REQ-1]
+    expected_files: [src/report/upload.ts]
+
+verification_evidence:
+  - evidence_id: VE-1
+    type: unit_test
+    requirement_refs: [REQ-1]
+    ref: npm test
+    status: passed
+```
 
 ## Artifact Lifecycle
 
@@ -358,6 +386,15 @@ ruleset:
   severity_overrides:
     KC-AE-007: warning
 ```
+
+NRVV enforcementは、`ruleset.nrvv_profile` または `.kc/config.yaml` の `kc.nrvv.mode` でまとめて強められます。
+
+```yaml
+ruleset:
+  nrvv_profile: optional # optional | warning | strict
+```
+
+`optional` は既定互換です。`warning` はNRVVがない場合もwarning findingを出します。`strict` は不足または不完全なNRVVをblocking findingにします。
 
 現在の rules は、Issue 必須項目、validation scenario、Plan 承認、承認済み scope、prohibited files、verification evidence、verification / validation の分離、承認条件 evidence、agent audit refs、高リスク変更の rollback path、merge readiness、明示的な human approval evidence、placeholder 検出、risk-aware validation pending、plan item trace、current mode の lifecycle stale-state 検出、PR mode での過去 finalized artifact 誤用防止を扱います。
 

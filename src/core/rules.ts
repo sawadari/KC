@@ -34,13 +34,15 @@ const knownRuleIds = [
   "KC-NRVV-005",
   "KC-NRVV-006",
   "KC-NRVV-007",
-  "KC-NRVV-008"
+  "KC-NRVV-008",
+  "KC-NRVV-009",
+  "KC-NRVV-010"
 ] as const;
 const knownRuleIdSet = new Set<string>(knownRuleIds);
 const placeholderValues = new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
 
 export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[], options: { mode?: "pr" | "current" } = {}): Finding[] {
-  const policy = resolveRulePolicy(artifacts.ruleset);
+  const policy = resolveRulePolicy(artifacts.ruleset, artifacts.config);
   const findings: Finding[] = [...artifacts.loadFindings, ...policy.findings];
   const add = (finding: Finding): void => {
     findings.push(applySeverityOverride(finding, policy));
@@ -85,23 +87,23 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
   }
 
   const nrvv = recordValue(issue?.nrvv);
-  const nrvvActive = Boolean(issue && (hasValue(nrvv) || booleanValue(issue.nrvv_required)));
+  const nrvvActive = Boolean(issue && (hasValue(nrvv) || booleanValue(issue.nrvv_required) || policy.nrvvProfile !== "optional"));
   const nrvvRequirements = arrayRecords(nrvv?.requirements);
   const nrvvVerification = arrayRecords(nrvv?.verification);
   const nrvvValidation = recordValue(nrvv?.validation);
   const nrvvGaps = recordValue(nrvv?.gaps);
   if (nrvvActive) {
-    if (isRuleEnabled(policy, "KC-NRVV-001") && riskyTiers.has(riskTier) && !hasValue(nrvv?.need)) {
-      add(warn("KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled medium/high/critical issues should include nrvv.need."));
+    if (isRuleEnabled(policy, "KC-NRVV-001") && (riskyTiers.has(riskTier) || policy.nrvvProfile !== "optional") && !hasValue(nrvv?.need)) {
+      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled issues should include nrvv.need."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
-      add(warn("KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-003")) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id) || "requirement";
         if (!hasValue(requirement.source_need_ref)) {
-          add(warn("KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
         }
       }
     }
@@ -110,21 +112,21 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id);
         if (requirementId && !verifiedRefs.has(requirementId)) {
-          add(warn("KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
         }
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-005")) {
       const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
       if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
-        add(warn("KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
-      add(warn("KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
-      add(warn("KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
+      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
     }
   }
 
@@ -203,7 +205,7 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
     ...stringArray(readPath(envelope, ["authority_envelope", "prohibited_paths"]))
   ];
   if (nrvvActive && isRuleEnabled(policy, "KC-NRVV-008") && stringArray(issue?.non_goals).length > 0 && prohibitedFiles.length === 0) {
-    add(warn("KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
+    add(nrvvFinding(policy, "KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
   }
   if (isRuleEnabled(policy, "KC-AE-006")) {
     for (const file of changedFiles) {
@@ -230,6 +232,31 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
         add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
+      }
+    }
+  }
+
+  if (nrvvActive && policy.nrvvProfile !== "optional" && nrvvRequirements.length > 0) {
+    if (isRuleEnabled(policy, "KC-NRVV-009")) {
+      const planRequirementRefs = new Set(arrayRecords(plan?.plan_items).flatMap((item) => stringArray(item.requirement_refs)));
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id);
+        if (requirementId && !planRequirementRefs.has(requirementId)) {
+          add(nrvvFinding(policy, "KC-NRVV-009", "missing_requirement_plan_trace", `${requirementId} should be referenced by at least one plan_items[].requirement_refs entry.`));
+        }
+      }
+    }
+
+    if (isRuleEnabled(policy, "KC-NRVV-010")) {
+      const verificationEvidence = arrayRecords(evidence?.verification_evidence);
+      const evidenceRequirementRefs = new Set(verificationEvidence.flatMap((item) => stringArray(item.requirement_refs)));
+      if (verificationEvidence.length > 0) {
+        for (const requirement of nrvvRequirements) {
+          const requirementId = stringValue(requirement.requirement_id);
+          if (requirementId && !evidenceRequirementRefs.has(requirementId)) {
+            add(nrvvFinding(policy, "KC-NRVV-010", "missing_requirement_evidence_trace", `${requirementId} should be referenced by at least one verification_evidence[].requirement_refs entry.`));
+          }
+        }
       }
     }
   }
@@ -332,10 +359,11 @@ export function evaluateRules(artifacts: LoadedArtifacts, changedFiles: string[]
 interface RulePolicy {
   enabledRules: Set<string>;
   severityOverrides: Map<string, FindingSeverity>;
+  nrvvProfile: "optional" | "warning" | "strict";
   findings: Finding[];
 }
 
-function resolveRulePolicy(ruleset: Record<string, unknown> | undefined): RulePolicy {
+function resolveRulePolicy(ruleset: Record<string, unknown> | undefined, config: Record<string, unknown> | undefined): RulePolicy {
   const findings: Finding[] = [];
   const root = unwrapRuleset(ruleset);
   const configuredRules = stringArray(root?.rules);
@@ -365,7 +393,23 @@ function resolveRulePolicy(ruleset: Record<string, unknown> | undefined): RulePo
     }
   }
 
-  return { enabledRules, severityOverrides, findings };
+  const nrvvProfile = resolveNrvvProfile(root, config, findings);
+  return { enabledRules, severityOverrides, nrvvProfile, findings };
+}
+
+function resolveNrvvProfile(ruleset: Record<string, unknown> | undefined, config: Record<string, unknown> | undefined, findings: Finding[]): "optional" | "warning" | "strict" {
+  const raw = stringValue(ruleset?.nrvv_profile)
+    || stringValue(readPath(ruleset, ["nrvv", "mode"]))
+    || stringValue(readPath(ruleset, ["nrvv", "profile"]))
+    || stringValue(readPath(config, ["kc", "nrvv", "mode"]))
+    || stringValue(readPath(config, ["kc", "nrvv", "profile"]))
+    || stringValue(readPath(config, ["nrvv", "mode"]))
+    || "optional";
+  if (raw === "optional" || raw === "warning" || raw === "strict") {
+    return raw;
+  }
+  findings.push(error("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, or strict.`));
+  return "optional";
 }
 
 function unwrapRuleset(ruleset: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
@@ -501,6 +545,10 @@ function error(ruleId: string, reasonCode: string, message: string, filePath?: s
 
 function warn(ruleId: string, reasonCode: string, message: string): Finding {
   return { ruleId, severity: "warning", reasonCode, message };
+}
+
+function nrvvFinding(policy: RulePolicy, ruleId: string, reasonCode: string, message: string): Finding {
+  return { ruleId, severity: policy.nrvvProfile === "strict" ? "error" : "warning", reasonCode, message };
 }
 
 function hasValue(value: unknown): boolean {

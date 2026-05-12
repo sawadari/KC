@@ -341,6 +341,10 @@ describe("KC rule engine", () => {
       }
     };
     fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.validation_evidence = [];
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
 
     const result = await runCheck({
       workspace,
@@ -391,6 +395,12 @@ describe("KC rule engine", () => {
       }
     };
     fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    {
+      const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+      const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+      evidence.approval_evidence_bundle.validation_evidence = [];
+      fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+    }
 
     const result = await runCheck({
       workspace,
@@ -399,10 +409,170 @@ describe("KC rule engine", () => {
 
     assert.equal(result.decision, "PASS");
     assert.equal(result.evidenceBundle.nrvv_trace.needs[0].need_id, "NEED-1");
+    assert.equal(result.evidenceBundle.nrvv_trace.needs[0].status, "validation_pending");
     assert.equal(result.evidenceBundle.nrvv_trace.requirements[0].requirement_id, "REQ-1");
     assert.equal(result.evidenceBundle.nrvv_trace.requirements[0].status, "verified");
     assert.equal(result.evidenceBundle.nrvv_trace.validation_summary.status, "pending");
     assert.equal(result.evidenceBundle.nrvv_trace.unresolved_gaps[0].type, "verification_to_validation_gap");
+  });
+
+  it("marks NRVV Need addressed when validation passed evidence is present", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.nrvv = {
+      need: {
+        need_id: "NEED-1",
+        stakeholder: "Operations user",
+        situation: "Transient uploads fail.",
+        pain_or_risk: "Manual reruns are required.",
+        desired_operational_outcome: "Uploads recover without manual reruns."
+      },
+      requirements: [
+        {
+          requirement_id: "REQ-1",
+          statement: "Upload flow retries transient failures.",
+          source_need_ref: "NEED-1"
+        }
+      ],
+      verification: [
+        {
+          requirement_ref: "REQ-1",
+          method: "unit_test",
+          success_criteria: "Retries are tested."
+        }
+      ],
+      validation: {
+        validation_scenario_id: "VAL-1",
+        scenario: "Transient upload failure recovers.",
+        intended_environment: "production-like export job",
+        validation_status: "passed"
+      },
+      gaps: {
+        verification_to_validation_gap: ["Accepted as closed by validation report."]
+      }
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.validation_evidence[0].evidence_id = "VA-1";
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.evidenceBundle.nrvv_trace.needs[0].status, "addressed");
+    assert.deepEqual(result.evidenceBundle.nrvv_trace.needs[0].evidence_refs, ["VA-1"]);
+    assert.equal(result.evidenceBundle.nrvv_trace.validation_summary.status, "passed");
+  });
+
+  it("prefers explicit verification evidence requirement refs in NRVV trace", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.nrvv = {
+      need: { need_id: "NEED-1", stakeholder: "Operations user" },
+      requirements: [
+        { requirement_id: "REQ-1", statement: "Retry transient failures.", source_need_ref: "NEED-1" },
+        { requirement_id: "REQ-2", statement: "Do not retry permanent failures.", source_need_ref: "NEED-1" }
+      ],
+      verification: [
+        { requirement_ref: "REQ-1", method: "unit_test" },
+        { requirement_ref: "REQ-2", method: "unit_test" }
+      ],
+      validation: { scenario: "Upload behavior is correct.", validation_status: "pending" },
+      gaps: { verification_to_validation_gap: ["Unit tests do not prove operational recovery."] }
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.verification_evidence = [
+      { evidence_id: "VE-REQ-1", type: "unit_test", ref: "npm test", status: "passed", requirement_refs: ["REQ-1"] }
+    ];
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      changedFiles: ["src/report/upload.ts"]
+    });
+    const requirements = result.evidenceBundle.nrvv_trace.requirements;
+
+    assert.equal(requirements.find((item) => item.requirement_id === "REQ-1").status, "verified");
+    assert.deepEqual(requirements.find((item) => item.requirement_id === "REQ-1").verification_evidence_refs, ["VE-REQ-1"]);
+    assert.equal(requirements.find((item) => item.requirement_id === "REQ-2").status, "verification_planned");
+    assert.deepEqual(requirements.find((item) => item.requirement_id === "REQ-2").verification_evidence_refs, []);
+  });
+
+  it("supports NRVV warning and strict profiles", async () => {
+    const warningWorkspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(warningWorkspace, ".kc", "ruleset.yaml"), YAML.stringify({
+      ruleset: {
+        nrvv_profile: "warning"
+      }
+    }), "utf8");
+    const warning = await runCheck({
+      workspace: warningWorkspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(warning.decision, "WARN");
+    assert.ok(warning.findings.some((finding) => finding.ruleId === "KC-NRVV-001" && finding.severity === "warning"));
+
+    const strictWorkspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(strictWorkspace, ".kc", "ruleset.yaml"), YAML.stringify({
+      ruleset: {
+        nrvv_profile: "strict"
+      }
+    }), "utf8");
+    const strict = await runCheck({
+      workspace: strictWorkspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(strict.decision, "HOLD");
+    assert.ok(strict.findings.some((finding) => finding.ruleId === "KC-NRVV-001" && finding.severity === "error"));
+    assert.ok(strict.findings.some((finding) => finding.ruleId === "KC-NRVV-002" && finding.severity === "error"));
+  });
+
+  it("flags missing Requirement-to-plan and Requirement-to-evidence mappings when NRVV profile requires traceability", async () => {
+    const workspace = createHumanApprovalWorkspace({ withHumanApproval: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "ruleset.yaml"), YAML.stringify({
+      ruleset: {
+        nrvv_profile: "strict"
+      }
+    }), "utf8");
+    const issuePath = path.join(workspace, ".kc", "issue.yaml");
+    const issue = YAML.parse(fs.readFileSync(issuePath, "utf8"));
+    issue.issue_packet.nrvv = {
+      need: { need_id: "NEED-1", stakeholder: "Operations user" },
+      requirements: [
+        { requirement_id: "REQ-1", statement: "Retry transient failures.", source_need_ref: "NEED-1" }
+      ],
+      verification: [
+        { requirement_ref: "REQ-1", method: "unit_test" }
+      ],
+      validation: { scenario: "Upload behavior is correct.", validation_status: "pending", intended_environment: "staging" },
+      gaps: { verification_to_validation_gap: ["Unit tests do not prove operational recovery."] }
+    };
+    fs.writeFileSync(issuePath, YAML.stringify(issue), "utf8");
+    const evidencePath = path.join(workspace, ".kc", "evidence_bundle.yaml");
+    const evidence = YAML.parse(fs.readFileSync(evidencePath, "utf8"));
+    evidence.approval_evidence_bundle.validation_evidence = [];
+    fs.writeFileSync(evidencePath, YAML.stringify(evidence), "utf8");
+
+    const result = await runCheck({
+      workspace,
+      rulesetPath: ".kc/ruleset.yaml",
+      changedFiles: ["src/report/upload.ts"]
+    });
+
+    assert.equal(result.decision, "HOLD");
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-009" && finding.severity === "error"));
+    assert.ok(result.findings.some((finding) => finding.ruleId === "KC-NRVV-010" && finding.severity === "error"));
   });
 
   it("holds changed files that rely on a pending plan change request", async () => {
@@ -589,6 +759,81 @@ describe("KC CLI", () => {
     const request = YAML.parse(fs.readFileSync(path.join(workspace, ".kc", "change_request.yaml"), "utf8"));
     assert.equal(request.plan_change_request.change_request_id, "PCR-KC-FIXTURE-CLI");
     assert.deepEqual(request.plan_change_request.requested_scope_addition, ["src/report/new.ts"]);
+  });
+
+  it("records issue artifacts with NRVV loaded from a YAML file", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-record-nrvv-"));
+    fs.mkdirSync(path.join(workspace, ".kc"), { recursive: true });
+    fs.writeFileSync(path.join(workspace, ".kc", "nrvv.yaml"), YAML.stringify({
+      need: {
+        need_id: "NEED-1",
+        stakeholder: "Operations user"
+      },
+      requirements: [
+        {
+          requirement_id: "REQ-1",
+          statement: "Retry transient failures.",
+          source_need_ref: "NEED-1"
+        }
+      ],
+      verification: [
+        {
+          requirement_ref: "REQ-1",
+          method: "unit_test"
+        }
+      ]
+    }), "utf8");
+
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "issue-record",
+      "--workspace",
+      workspace,
+      "--issue-ref",
+      "https://github.com/sawadari/KC/issues/68",
+      "--problem",
+      "NRVV manual entry is error-prone.",
+      "--expected-outcome",
+      "NRVV can be loaded from YAML.",
+      "--acceptance-criterion",
+      "issue_packet.nrvv is written.",
+      "--non-goal",
+      "Add many NRVV flags.",
+      "--nrvv-file",
+      ".kc/nrvv.yaml"
+    ], { encoding: "utf8" });
+
+    assert.equal(result.status, 0, result.stderr);
+    const issue = YAML.parse(fs.readFileSync(path.join(workspace, ".kc", "issue.yaml"), "utf8"));
+    assert.equal(issue.issue_packet.nrvv.need.stakeholder, "Operations user");
+    assert.equal(issue.issue_packet.nrvv.requirements[0].requirement_id, "REQ-1");
+  });
+
+  it("rejects non-object NRVV YAML files", () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "kc-issue-record-nrvv-invalid-"));
+    fs.writeFileSync(path.join(workspace, "nrvv.yaml"), "- not\n- an object\n", "utf8");
+
+    const result = spawnSync(process.execPath, [
+      path.join(root, "lib", "cli", "index.js"),
+      "issue-record",
+      "--workspace",
+      workspace,
+      "--issue-ref",
+      "https://github.com/sawadari/KC/issues/68",
+      "--problem",
+      "NRVV invalid input.",
+      "--expected-outcome",
+      "Clear error.",
+      "--acceptance-criterion",
+      "Fails clearly.",
+      "--non-goal",
+      "Silent ignore.",
+      "--nrvv-file",
+      "nrvv.yaml"
+    ], { encoding: "utf8" });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /--nrvv-file must contain a YAML object/);
   });
 });
 

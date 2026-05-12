@@ -95,7 +95,8 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
 function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFiles: string[]): Record<string, unknown>[] {
   const planItems = arrayRecords(plan?.plan_items).map((item) => ({
     id: stringValue(item.id) || "plan_item",
-    expectedFiles: stringArray(item.expected_files)
+    expectedFiles: stringArray(item.expected_files),
+    requirementRefs: stringArray(item.requirement_refs)
   })).filter((item) => item.expectedFiles.length > 0);
   if (planItems.length === 0) {
     return [];
@@ -109,6 +110,7 @@ function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFi
     }
     return {
       plan_item_id: item.id,
+      requirement_refs: item.requirementRefs,
       expected_files: item.expectedFiles,
       actual_files: actualFiles,
       status: actualFiles.length > 0 ? "implemented" : "not_touched"
@@ -118,6 +120,7 @@ function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFi
   for (const file of changedFiles.filter((changedFile) => !mapped.has(changedFile))) {
     trace.push({
       plan_item_id: "unmapped",
+      requirement_refs: [],
       expected_files: [],
       actual_files: [file],
       status: "unmapped_change"
@@ -143,19 +146,24 @@ function buildNrvvTrace(issue: Record<string, unknown> | undefined, evidence: Re
   const validationRefs = evidenceRefs(validationEvidence);
   const verificationEntries = arrayRecords(nrvv.verification);
   const verificationByRequirement = new Set(verificationEntries.map((item) => stringValue(item.requirement_ref)).filter(Boolean));
+  const explicitEvidenceMapping = verificationEvidence.some((item) => stringArray(item.requirement_refs).length > 0);
   const gaps = recordValue(nrvv.gaps);
   const validation = recordValue(nrvv.validation);
-  const validationStatus = stringValue(evidence.validation_status) || stringValue(validation?.validation_status) || "pending";
+  const validationEvidencePassed = validationEvidence.some((item) => stringValue(item.status).toLowerCase() === "passed");
+  const validationStatus = stringValue(evidence.validation_status) || (validationEvidencePassed ? "passed" : "") || stringValue(validation?.validation_status) || "pending";
+  const validationPassed = validationStatus.toLowerCase() === "passed" && validationRefs.length > 0;
 
   const trace: Record<string, unknown> = {
-    needs: buildNeedTrace(nrvv, validationRefs),
+    needs: buildNeedTrace(nrvv, validationPassed ? validationRefs : []),
     requirements: arrayRecords(nrvv.requirements).map((requirement) => {
       const requirementId = stringValue(requirement.requirement_id) || "requirement";
       const hasVerification = verificationByRequirement.has(requirementId);
+      const mappedEvidenceRefs = evidenceRefs(verificationEvidence.filter((item) => stringArray(item.requirement_refs).includes(requirementId)));
+      const effectiveEvidenceRefs = explicitEvidenceMapping ? mappedEvidenceRefs : hasVerification ? verificationRefs : [];
       return {
         requirement_id: requirementId,
-        status: verificationRefs.length > 0 && hasVerification ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
-        verification_evidence_refs: hasVerification ? verificationRefs : []
+        status: effectiveEvidenceRefs.length > 0 ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
+        verification_evidence_refs: effectiveEvidenceRefs
       };
     }),
     verification_summary: {

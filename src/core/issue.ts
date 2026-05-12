@@ -65,7 +65,7 @@ export function renderIssueBrief(input: string): string {
     "## Record Command",
     "",
     "```sh",
-    "kc issue-record --issue-ref <github issue url> --problem <text> --expected-outcome <text> --acceptance-criterion <text> --non-goal <text> --risk-tier medium --validation-scenario <text>",
+    "kc issue-record --issue-ref <github issue url> --problem <text> --expected-outcome <text> --acceptance-criterion <text> --non-goal <text> --risk-tier medium --validation-scenario <text> --nrvv-file .kc/nrvv.yaml",
     "```"
   ].join("\n");
 }

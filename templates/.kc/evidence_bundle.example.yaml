@@ -13,6 +13,9 @@ approval_evidence_bundle:
   verification_evidence:
     - evidence_id: VE-1
       type: github_actions
+      requirement_refs:
+        - REQ-1
+        - REQ-2
       ref: github:org/repo/actions/runs/789
       status: passed
   validation_evidence:

@@ -1,19 +1,27 @@
 agent_plan:
-  plan_id: PLAN-KC-RELEASE-0.6.0
-  issue_ref: github:sawadari/KC/issues/61
+  plan_id: PLAN-KC-NRVV-FOLLOWUPS-001
+  issue_ref: github:sawadari/KC/issues/65
+  related_issue_refs:
+    - github:sawadari/KC/issues/66
+    - github:sawadari/KC/issues/67
+    - github:sawadari/KC/issues/68
+    - github:sawadari/KC/issues/69
   agent:
     agent_id: codex
     role_class: execution_agent
     owner_role: developer
-  interpreted_requirement: Release KC v0.6.0 so npm, GitHub tags, GitHub
-    Release, and KC evidence reflect the merged post-v0.5.0 improvements.
+  interpreted_requirement: Implement the NRVV follow-up issues covering trace
+    consistency, parser-friendly examples, profile-based enforcement,
+    file-based NRVV intake, and explicit Requirement traceability.
   scope:
     allowed_files:
       - .kc/**
-      - package.json
-      - package-lock.json
+      - README.md
+      - README.ja.md
+      - src/**
+      - tests/**
+      - templates/**
       - dist/action/index.js
-      - dist/action/package.json
       - reports/validation/**
     prohibited_files:
       - .env
@@ -22,61 +30,108 @@ agent_plan:
       - lib/**
       - coverage/**
       - .vscode/**
-      - src/**
-      - README.md
-      - README.ja.md
+      - package.json
+      - package-lock.json
       - "**/*secret*"
       - "**/*token*"
   non_goals:
-    - Do not change runtime source behavior.
-    - Do not modify README wording in this release PR.
-    - Do not edit Knowledge Convergence repository content.
+    - Do not change package version.
+    - Do not publish npm or move GitHub tags.
+    - Do not make strict NRVV the default.
+    - Do not add PLM or ALM integrations.
   plan_items:
     - id: P1
       requirement_refs:
         - REQ-1
-      action: Bump release metadata to 0.6.0.
+        - REQ-5
+      action: Update generated NRVV trace behavior for Need status,
+        plan_items[].requirement_refs, and verification_evidence[].requirement_refs.
       expected_files:
-        - package.json
-        - package-lock.json
+        - src/core/check.ts
+        - dist/action/index.js
+        - tests/**
       actual_files:
-        - package.json
-        - package-lock.json
+        - src/core/check.ts
+        - dist/action/index.js
+        - tests/core.test.mjs
       status: completed
     - id: P2
       requirement_refs:
-        - REQ-2
         - REQ-3
-      action: Run release verification and record validation report.
+        - REQ-5
+      action: Add NRVV profile policy and strict traceability findings.
       expected_files:
-        - dist/action/index.js
-        - dist/action/package.json
-        - reports/validation/**
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/**
       actual_files:
-        - reports/validation/VAL-KC-RELEASE-0.6.0.md
+        - src/core/rules.ts
+        - templates/.kc/ruleset.yaml
+        - .kc/ruleset.yaml
+        - tests/core.test.mjs
       status: completed
     - id: P3
       requirement_refs:
-        - REQ-6
-      action: Update KC self-governance artifacts for the release PR.
+        - REQ-4
+      action: Add issue-record --nrvv-file.
+      expected_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - tests/**
+      actual_files:
+        - src/cli/index.ts
+        - src/core/issue.ts
+        - tests/core.test.mjs
+      status: completed
+    - id: P4
+      requirement_refs:
+        - REQ-2
+        - REQ-5
+      action: Update README files, templates, and AGENTS guidance.
+      expected_files:
+        - README.md
+        - README.ja.md
+        - templates/**
+      actual_files:
+        - README.md
+        - README.ja.md
+        - templates/.github/ISSUE_TEMPLATE/kc_issue.md
+        - templates/.kc/config.example.yaml
+        - templates/.kc/evidence_bundle.example.yaml
+        - templates/.kc/plan.example.yaml
+        - templates/.kc/ruleset.yaml
+        - templates/AGENTS.md
+      status: completed
+    - id: P5
+      requirement_refs:
+        - REQ-1
+        - REQ-2
+        - REQ-3
+        - REQ-4
+        - REQ-5
+      action: Update KC self-governance artifacts and validation report.
       expected_files:
         - .kc/**
+        - reports/validation/**
       actual_files:
         - .kc/approval.yaml
         - .kc/current.yaml
         - .kc/evidence_bundle.yaml
         - .kc/issue.yaml
         - .kc/plan.yaml
+        - .kc/ruleset.yaml
+        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
       status: completed
   verification_plan:
     - npm.cmd run check
     - npm.cmd test
     - npm.cmd run pack:dry
-    - KC PR-mode release check
-    - KC current-mode check after finalization
+    - KC PR-mode self-check
+    - git diff --check
   validation_evidence_plan:
-    - Record reports/validation/VAL-KC-RELEASE-0.6.0.md.
-    - Verify npm latest, v0.6.0 tag, v0 tag, and GitHub Release after merge.
+    - Record reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md.
+    - Use PR CI as independent verification.
   questions_for_human:
-    - Do you approve PLAN-KC-RELEASE-0.6.0?
+    - Do you approve PLAN-KC-NRVV-FOLLOWUPS-001?
   status: approved

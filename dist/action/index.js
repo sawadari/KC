@@ -103832,12 +103832,14 @@ var knownRuleIds = [
   "KC-NRVV-005",
   "KC-NRVV-006",
   "KC-NRVV-007",
-  "KC-NRVV-008"
+  "KC-NRVV-008",
+  "KC-NRVV-009",
+  "KC-NRVV-010"
 ];
 var knownRuleIdSet = new Set(knownRuleIds);
 var placeholderValues = /* @__PURE__ */ new Set(["PLAN-123", "APR-123", "AEB-123", "github-user", "issuecomment-approval", "candidate:unlinked", "TBD", "example"]);
 function evaluateRules(artifacts, changedFiles, options = {}) {
-  const policy = resolveRulePolicy(artifacts.ruleset);
+  const policy = resolveRulePolicy(artifacts.ruleset, artifacts.config);
   const findings = [...artifacts.loadFindings, ...policy.findings];
   const add = (finding) => {
     findings.push(applySeverityOverride(finding, policy));
@@ -103877,23 +103879,23 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     }
   }
   const nrvv = recordValue(issue2?.nrvv);
-  const nrvvActive = Boolean(issue2 && (hasValue(nrvv) || booleanValue(issue2.nrvv_required)));
+  const nrvvActive = Boolean(issue2 && (hasValue(nrvv) || booleanValue(issue2.nrvv_required) || policy.nrvvProfile !== "optional"));
   const nrvvRequirements = arrayRecords(nrvv?.requirements);
   const nrvvVerification = arrayRecords(nrvv?.verification);
   const nrvvValidation = recordValue(nrvv?.validation);
   const nrvvGaps = recordValue(nrvv?.gaps);
   if (nrvvActive) {
-    if (isRuleEnabled(policy, "KC-NRVV-001") && riskyTiers.has(riskTier) && !hasValue(nrvv?.need)) {
-      add(warn("KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled medium/high/critical issues should include nrvv.need."));
+    if (isRuleEnabled(policy, "KC-NRVV-001") && (riskyTiers.has(riskTier) || policy.nrvvProfile !== "optional") && !hasValue(nrvv?.need)) {
+      add(nrvvFinding(policy, "KC-NRVV-001", "missing_nrvv_need", "NRVV-enabled issues should include nrvv.need."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-002") && nrvvRequirements.length === 0) {
-      add(warn("KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
+      add(nrvvFinding(policy, "KC-NRVV-002", "missing_nrvv_requirements", "NRVV-enabled issues should include at least one nrvv.requirements[] entry."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-003")) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id) || "requirement";
         if (!hasValue(requirement.source_need_ref)) {
-          add(warn("KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-003", "missing_requirement_need_trace", `${requirementId} should include source_need_ref.`));
         }
       }
     }
@@ -103902,21 +103904,21 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
       for (const requirement of nrvvRequirements) {
         const requirementId = stringValue(requirement.requirement_id);
         if (requirementId && !verifiedRefs.has(requirementId)) {
-          add(warn("KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
+          add(nrvvFinding(policy, "KC-NRVV-004", "missing_requirement_verification", `${requirementId} should have a matching nrvv.verification[].requirement_ref.`));
         }
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-005")) {
       const nrvvValidationStatus = stringValue(nrvvValidation?.validation_status).toLowerCase();
       if (nrvvValidationStatus === "passed" && arrayRecords(evidence?.validation_evidence).length === 0) {
-        add(warn("KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
+        add(nrvvFinding(policy, "KC-NRVV-005", "validation_without_validation_evidence", "NRVV validation_status=passed should be supported by validation evidence, not inferred from verification."));
       }
     }
     if (isRuleEnabled(policy, "KC-NRVV-006") && hasValue(nrvvValidation) && !hasValue(nrvvGaps?.verification_to_validation_gap)) {
-      add(warn("KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
+      add(nrvvFinding(policy, "KC-NRVV-006", "missing_verification_to_validation_gap", "NRVV-enabled issues should explicitly state the Verification-to-Validation gap, even if the gap is accepted as none."));
     }
     if (isRuleEnabled(policy, "KC-NRVV-007") && highRiskTiers.has(riskTier) && !hasValue(nrvvValidation?.intended_environment)) {
-      add(warn("KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
+      add(nrvvFinding(policy, "KC-NRVV-007", "missing_validation_intended_environment", "High/critical NRVV issues should include validation.intended_environment."));
     }
   }
   if (isRuleEnabled(policy, "KC-AE-003") && !plan) {
@@ -103983,7 +103985,7 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
     ...stringArray(readPath(envelope, ["authority_envelope", "prohibited_paths"]))
   ];
   if (nrvvActive && isRuleEnabled(policy, "KC-NRVV-008") && stringArray(issue2?.non_goals).length > 0 && prohibitedFiles.length === 0) {
-    add(warn("KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
+    add(nrvvFinding(policy, "KC-NRVV-008", "non_goals_not_reflected_as_constraints", "NRVV non-goals should be reflected in plan.prohibited_files, authority prohibited paths, or approval conditions."));
   }
   if (isRuleEnabled(policy, "KC-AE-006")) {
     for (const file of changedFiles) {
@@ -104009,6 +104011,29 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
       }
       if (!hasValue(evidence?.plan_diff_trace)) {
         add(warn("KC-AE-016", "plan_item_trace_missing", "Evidence bundle should include plan_diff_trace for plan item accountability."));
+      }
+    }
+  }
+  if (nrvvActive && policy.nrvvProfile !== "optional" && nrvvRequirements.length > 0) {
+    if (isRuleEnabled(policy, "KC-NRVV-009")) {
+      const planRequirementRefs = new Set(arrayRecords(plan?.plan_items).flatMap((item) => stringArray(item.requirement_refs)));
+      for (const requirement of nrvvRequirements) {
+        const requirementId = stringValue(requirement.requirement_id);
+        if (requirementId && !planRequirementRefs.has(requirementId)) {
+          add(nrvvFinding(policy, "KC-NRVV-009", "missing_requirement_plan_trace", `${requirementId} should be referenced by at least one plan_items[].requirement_refs entry.`));
+        }
+      }
+    }
+    if (isRuleEnabled(policy, "KC-NRVV-010")) {
+      const verificationEvidence = arrayRecords(evidence?.verification_evidence);
+      const evidenceRequirementRefs = new Set(verificationEvidence.flatMap((item) => stringArray(item.requirement_refs)));
+      if (verificationEvidence.length > 0) {
+        for (const requirement of nrvvRequirements) {
+          const requirementId = stringValue(requirement.requirement_id);
+          if (requirementId && !evidenceRequirementRefs.has(requirementId)) {
+            add(nrvvFinding(policy, "KC-NRVV-010", "missing_requirement_evidence_trace", `${requirementId} should be referenced by at least one verification_evidence[].requirement_refs entry.`));
+          }
+        }
       }
     }
   }
@@ -104091,7 +104116,7 @@ function evaluateRules(artifacts, changedFiles, options = {}) {
   }
   return findings;
 }
-function resolveRulePolicy(ruleset) {
+function resolveRulePolicy(ruleset, config) {
   const findings = [];
   const root = unwrapRuleset(ruleset);
   const configuredRules = stringArray(root?.rules);
@@ -104118,7 +104143,16 @@ function resolveRulePolicy(ruleset) {
       severityOverrides.set(ruleId, severity);
     }
   }
-  return { enabledRules, severityOverrides, findings };
+  const nrvvProfile = resolveNrvvProfile(root, config, findings);
+  return { enabledRules, severityOverrides, nrvvProfile, findings };
+}
+function resolveNrvvProfile(ruleset, config, findings) {
+  const raw = stringValue(ruleset?.nrvv_profile) || stringValue(readPath(ruleset, ["nrvv", "mode"])) || stringValue(readPath(ruleset, ["nrvv", "profile"])) || stringValue(readPath(config, ["kc", "nrvv", "mode"])) || stringValue(readPath(config, ["kc", "nrvv", "profile"])) || stringValue(readPath(config, ["nrvv", "mode"])) || "optional";
+  if (raw === "optional" || raw === "warning" || raw === "strict") {
+    return raw;
+  }
+  findings.push(error2("KC-AE-000", "invalid_nrvv_profile", `Invalid NRVV profile: ${raw}. Expected optional, warning, or strict.`));
+  return "optional";
 }
 function unwrapRuleset(ruleset) {
   if (!ruleset) {
@@ -104232,6 +104266,9 @@ function error2(ruleId, reasonCode, message, filePath) {
 }
 function warn(ruleId, reasonCode, message) {
   return { ruleId, severity: "warning", reasonCode, message };
+}
+function nrvvFinding(policy, ruleId, reasonCode, message) {
+  return { ruleId, severity: policy.nrvvProfile === "strict" ? "error" : "warning", reasonCode, message };
 }
 function hasValue(value) {
   if (value === void 0 || value === null) {
@@ -104362,7 +104399,8 @@ function buildEvidenceBundle(input) {
 function buildPlanDiffTrace(plan, changedFiles) {
   const planItems = arrayRecords2(plan?.plan_items).map((item) => ({
     id: stringValue2(item.id) || "plan_item",
-    expectedFiles: stringArray2(item.expected_files)
+    expectedFiles: stringArray2(item.expected_files),
+    requirementRefs: stringArray2(item.requirement_refs)
   })).filter((item) => item.expectedFiles.length > 0);
   if (planItems.length === 0) {
     return [];
@@ -104375,6 +104413,7 @@ function buildPlanDiffTrace(plan, changedFiles) {
     }
     return {
       plan_item_id: item.id,
+      requirement_refs: item.requirementRefs,
       expected_files: item.expectedFiles,
       actual_files: actualFiles,
       status: actualFiles.length > 0 ? "implemented" : "not_touched"
@@ -104383,6 +104422,7 @@ function buildPlanDiffTrace(plan, changedFiles) {
   for (const file of changedFiles.filter((changedFile) => !mapped.has(changedFile))) {
     trace.push({
       plan_item_id: "unmapped",
+      requirement_refs: [],
       expected_files: [],
       actual_files: [file],
       status: "unmapped_change"
@@ -104404,18 +104444,23 @@ function buildNrvvTrace(issue2, evidence) {
   const validationRefs = evidenceRefs(validationEvidence);
   const verificationEntries = arrayRecords2(nrvv.verification);
   const verificationByRequirement = new Set(verificationEntries.map((item) => stringValue2(item.requirement_ref)).filter(Boolean));
+  const explicitEvidenceMapping = verificationEvidence.some((item) => stringArray2(item.requirement_refs).length > 0);
   const gaps = recordValue2(nrvv.gaps);
   const validation = recordValue2(nrvv.validation);
-  const validationStatus = stringValue2(evidence.validation_status) || stringValue2(validation?.validation_status) || "pending";
+  const validationEvidencePassed = validationEvidence.some((item) => stringValue2(item.status).toLowerCase() === "passed");
+  const validationStatus = stringValue2(evidence.validation_status) || (validationEvidencePassed ? "passed" : "") || stringValue2(validation?.validation_status) || "pending";
+  const validationPassed = validationStatus.toLowerCase() === "passed" && validationRefs.length > 0;
   const trace = {
-    needs: buildNeedTrace(nrvv, validationRefs),
+    needs: buildNeedTrace(nrvv, validationPassed ? validationRefs : []),
     requirements: arrayRecords2(nrvv.requirements).map((requirement) => {
       const requirementId = stringValue2(requirement.requirement_id) || "requirement";
       const hasVerification = verificationByRequirement.has(requirementId);
+      const mappedEvidenceRefs = evidenceRefs(verificationEvidence.filter((item) => stringArray2(item.requirement_refs).includes(requirementId)));
+      const effectiveEvidenceRefs = explicitEvidenceMapping ? mappedEvidenceRefs : hasVerification ? verificationRefs : [];
       return {
         requirement_id: requirementId,
-        status: verificationRefs.length > 0 && hasVerification ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
-        verification_evidence_refs: hasVerification ? verificationRefs : []
+        status: effectiveEvidenceRefs.length > 0 ? "verified" : hasVerification ? "verification_planned" : "verification_missing",
+        verification_evidence_refs: effectiveEvidenceRefs
       };
     }),
     verification_summary: {
