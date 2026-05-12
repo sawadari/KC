@@ -1,31 +1,33 @@
 plan_approval:
-  approval_id: APR-KC-NRVV-FOLLOWUPS-001
-  target_plan_id: PLAN-KC-NRVV-FOLLOWUPS-001
+  approval_id: APR-KC-ARTIFACT-RESPONSIBILITY-001
+  target_plan_id: PLAN-KC-ARTIFACT-RESPONSIBILITY-001
   decision: approved
   approver_role: owner
-  timestamp: 2026-05-12T20:16:59+09:00
+  timestamp: 2026-05-12T21:00:00+09:00
   human_approval:
     actor: sawadari
     source: github_issue_comment
-    ref: https://github.com/sawadari/KC/issues/65#issuecomment-4429896286
-    summary: Approved combined implementation for NRVV follow-up issues #65 through #69.
+    ref: https://github.com/sawadari/KC/issues/71#issuecomment-4430128727
+    summary: Approved implementation for GitHub and .kc artifact responsibility and drift handling.
     choice: "1"
   approved_scope:
     - .kc/**
     - README.md
     - README.ja.md
-    - src/**
-    - tests/**
-    - templates/**
+    - src/core/issue.ts
+    - src/core/check.ts
+    - src/cli/index.ts
+    - tests/core.test.mjs
+    - templates/.kc/issue.example.yaml
     - dist/action/index.js
     - reports/validation/**
   conditions:
-    - id: COND-KC-NRVV-1
-      statement: Keep default NRVV behavior backward compatible.
+    - id: COND-KC-ARTIFACT-1
+      statement: Keep normal deterministic kc check usable without GitHub API access.
       evidence_required: test_run
-    - id: COND-KC-NRVV-2
-      statement: Do not make strict NRVV the default.
-      evidence_required: diff_inspection
-    - id: COND-KC-NRVV-3
-      statement: Do not add package release operations in this PR.
+    - id: COND-KC-ARTIFACT-2
+      statement: Include user-facing sample validation for issue-sync drift handling.
+      evidence_required: validation_report
+    - id: COND-KC-ARTIFACT-3
+      statement: Do not publish npm or move release tags in this PR.
       evidence_required: diff_scope_check

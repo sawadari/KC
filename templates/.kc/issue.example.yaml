@@ -1,5 +1,11 @@
 issue_packet:
+  artifact_role: normalized_snapshot
   issue_ref: github:org/repo/issues/123
+  source:
+    type: github_issue
+    ref: github:org/repo/issues/123
+    synced_at: "2026-01-01T00:00:00Z"
+    source_hash: replace-with-issue-body-hash
   problem_statement: "Nightly CSV export upload fails on transient HTTP 503."
   nrvv:
     need:

@@ -1,113 +1,120 @@
 issue_packet:
-  issue_ref: https://github.com/sawadari/KC/issues/65
-  related_issue_refs:
-    - https://github.com/sawadari/KC/issues/66
-    - https://github.com/sawadari/KC/issues/67
-    - https://github.com/sawadari/KC/issues/68
-    - https://github.com/sawadari/KC/issues/69
-  problem_statement: NRVV is now present across KC artifacts, but follow-up
-    issues identified gaps in Need trace consistency, profile-based
-    enforcement, structured CLI intake, parser-friendly examples, and explicit
-    Requirement-to-plan/evidence traceability.
-  expected_outcome: KC can keep NRVV trace status consistent, load structured
-    NRVV from a file, configure NRVV enforcement profiles, document
-    parser-friendly examples, and trace Requirements through plan items and
-    verification evidence.
+  artifact_role: normalized_snapshot
+  issue_ref: https://github.com/sawadari/KC/issues/71
+  source:
+    type: github_issue
+    ref: https://github.com/sawadari/KC/issues/71
+    synced_at: 2026-05-12T12:00:00Z
+    source_revision: https://github.com/sawadari/KC/issues/71
+  problem_statement: GitHub Issues and PRs overlap with .kc artifacts, but KC
+    has not clearly explained which records are human collaboration surfaces and
+    which artifacts are normalized snapshots for deterministic gating.
+  expected_outcome: KC documents the responsibility split, records source
+    metadata on Issue snapshots, reports drift between source Issues and
+    .kc/issue.yaml, and carries Issue snapshot metadata into generated Evidence
+    Bundles.
   nrvv:
     need:
       need_id: NEED-1
-      stakeholder: KC maintainers and reviewers
-      situation: Reviewers rely on KC Evidence Bundles and Issue artifacts to
-        understand whether AI-assisted PRs satisfy the original Need.
-      pain_or_risk: Inconsistent trace status, weak profile controls, and
-        missing explicit Requirement links make NRVV evidence harder to trust
-        and use.
-      desired_operational_outcome: Reviewers can follow Need, Requirement,
-        Verification, and Validation through KC artifacts with predictable
-        enforcement strength.
+      stakeholder: KC users, maintainers, reviewers, and AI coding agents
+      situation: A GitHub Issue is the human collaboration record while
+        .kc/issue.yaml is the structured gate input, and both may include
+        NRVV information.
+      pain_or_risk: Users may treat the overlap as accidental duplicate manual
+        entry, or may not know what to do when the Issue text and KC snapshot
+        drift.
+      desired_operational_outcome: Reviewers can distinguish human records from
+        machine-readable snapshots and can detect drift before planning or
+        review.
     requirements:
       - requirement_id: REQ-1
-        statement: Align Need trace status and evidence_refs with passed
-          validation evidence.
+        statement: Document the responsibility split between GitHub Issues,
+          GitHub PRs, .kc artifacts, validation reports, and archives.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-2
-        statement: Add parse-friendly NRVV examples to Issue template and README files.
+        statement: Define .kc/issue.yaml as a normalized snapshot used for KC
+          gating, not a replacement for GitHub Issues.
         source_need_ref: NEED-1
-        risk_tier: low
+        risk_tier: medium
       - requirement_id: REQ-3
-        statement: Add NRVV enforcement profiles while preserving default
-          compatibility.
+        statement: Add source and snapshot metadata to Issue artifacts.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-4
-        statement: Add issue-record --nrvv-file for structured NRVV YAML input.
+        statement: Add issue-sync check behavior that reports drift between a
+          source Issue candidate and .kc/issue.yaml.
         source_need_ref: NEED-1
         risk_tier: medium
       - requirement_id: REQ-5
-        statement: Trace Requirements through plan_items[].requirement_refs and
-          verification_evidence[].requirement_refs.
+        statement: Explain drift resolution options in user-facing CLI output.
+        source_need_ref: NEED-1
+        risk_tier: medium
+      - requirement_id: REQ-6
+        statement: Include Issue source snapshot metadata in generated Evidence
+          Bundles.
         source_need_ref: NEED-1
         risk_tier: medium
     verification:
       - requirement_ref: REQ-1
-        method: unit_test
-        success_criteria: Need status becomes addressed when validation passed
-          evidence is present.
-        evidence_expected: npm test
+        method: doc_review
+        success_criteria: README files explain GitHub records and .kc snapshots.
+        evidence_expected: diff inspection
       - requirement_ref: REQ-2
-        method: diff_inspection
-        success_criteria: Issue template and README files contain parse-friendly
-          NRVV examples.
-        evidence_expected: review diff
+        method: fixture_check
+        success_criteria: issue example marks the artifact as normalized_snapshot.
+        evidence_expected: template fixture inspection
       - requirement_ref: REQ-3
         method: unit_test
-        success_criteria: optional, warning, and strict NRVV profiles behave
-          deterministically.
+        success_criteria: source metadata is recorded and preserved.
         evidence_expected: npm test
       - requirement_ref: REQ-4
         method: cli_integration_test
-        success_criteria: issue-record accepts valid nrvv-file and rejects
-          non-object YAML.
-        evidence_expected: npm test
+        success_criteria: issue-sync --check reports drift against a local
+          Markdown sample.
+        evidence_expected: npm test and sample validation
       - requirement_ref: REQ-5
+        method: cli_integration_test
+        success_criteria: drift output explains re-sync, explicit acceptance,
+          or Issue update options.
+        evidence_expected: npm test and sample validation
+      - requirement_ref: REQ-6
         method: unit_test
-        success_criteria: explicit requirement_refs drive generated NRVV trace.
+        success_criteria: generated Evidence Bundle includes source_snapshots.issue.
         evidence_expected: npm test
     validation:
       validation_scenario_id: VAL-1
-      scenario: A reviewer checks the PR and can see consistent NRVV trace,
-        profile behavior, file-based NRVV intake, and Requirement evidence
-        mapping without treating KC as a full ALM tool.
-      intended_environment: KC CLI, GitHub Action, templates, and repository
-        evidence bundle.
+      scenario: A user runs KC against a sample workspace and can see why the
+        GitHub Issue and .kc/issue.yaml both exist, then can detect drift before
+        review.
+      intended_environment: KC CLI, README, templates, and generated Evidence Bundle.
       success_criteria:
-        - Need trace status is not contradictory with passed validation evidence.
-        - Default NRVV behavior remains backward compatible.
-        - Strict NRVV profile can make missing traceability blocking.
-        - Issue authors have a clear Requirement and Verification format.
+        - User-facing docs identify GitHub Issue as the human collaboration record.
+        - User-facing docs identify .kc/issue.yaml as the normalized gate snapshot.
+        - issue-sync --check reports drift with actionable next steps.
+        - Generated Evidence Bundle records the Issue snapshot source metadata.
       evidence_expected:
-        - reports/validation/VAL-KC-NRVV-FOLLOWUPS-001.md
+        - reports/validation/VAL-KC-ARTIFACT-RESPONSIBILITY-001.md
       validation_status: passed
     gaps:
       verification_to_validation_gap:
-        - Unit and CLI tests verify behavior, while real reviewer usefulness
-          should continue to be evaluated through future dogfooding.
+        - Tests prove mechanics, while long-term usefulness depends on future
+          user dogfooding across real repositories.
   acceptance_criteria:
-    - Need trace status aligns with validation evidence.
-    - NRVV profile optional, warning, and strict behavior is implemented and tested.
-    - kc issue-record supports --nrvv-file and rejects invalid NRVV YAML.
-    - Issue template and README files include parse-friendly NRVV examples.
-    - Plan items and verification evidence can reference Requirements.
-    - npm.cmd test passes.
-    - KC self-check passes.
+    - README.md and README.ja.md explain GitHub records versus .kc snapshots.
+    - .kc/issue.example.yaml includes source metadata and artifact_role.
+    - Issue artifact parsing and writing preserve source metadata.
+    - kc issue-sync --check reports drift against a source Issue candidate.
+    - Drift output explains resolution options.
+    - Generated Evidence Bundle includes Issue source snapshot metadata.
+    - User-oriented sample validation demonstrates the behavior.
   validation_scenario:
-    statement: Run tests and KC self-check, then inspect the generated NRVV trace
-      and documentation updates.
+    statement: Run tests and a sample workspace showing issue-sync drift
+      detection and source snapshot evidence.
   risk_tier: medium
   non_goals:
-    - Do not make strict NRVV the default.
-    - Do not introduce full requirement baseline or versioning.
-    - Do not add PLM or ALM integration.
-    - Do not publish a new npm release in this PR.
+    - Do not replace GitHub Issues with .kc artifacts.
+    - Do not require GitHub API access for normal deterministic kc check.
+    - Do not build a full ALM synchronization system.
+    - Do not publish npm or move release tags in this PR.
   issue_state: ready_for_plan

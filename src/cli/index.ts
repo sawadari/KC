@@ -6,7 +6,7 @@ import { renderApprovalBrief, recordApprovalChoice } from "../core/approval-brie
 import { normalizeAssistKind, runAssist, defaultModel } from "../core/assist.js";
 import { recordChangeRequest } from "../core/change-request.js";
 import { runCheck } from "../core/check.js";
-import { recordIssue, renderIssueBrief, syncIssueFromGitHub, validateIssueArtifact } from "../core/issue.js";
+import { checkIssueSync, recordIssue, renderIssueBrief, syncIssueFromGitHub, validateIssueArtifact } from "../core/issue.js";
 import { closeWork, finalizeWork } from "../core/lifecycle.js";
 import { runPromote } from "../core/promote.js";
 import { initWorkspace } from "../core/templates.js";
@@ -103,6 +103,18 @@ async function main(): Promise<void> {
 
   if (args.command === "issue-sync") {
     const workspace = value(args, "workspace") || value(args, "w") || ".";
+    if (args.values.has("check")) {
+      const result = checkIssueSync({
+        workspace,
+        issueRef: requiredValue(args, "issue-ref"),
+        issueFile: value(args, "issue-file")
+      });
+      printIssueSyncCheck(result, args.values.has("json"));
+      if (result.status === "WARN") {
+        process.exitCode = 1;
+      }
+      return;
+    }
     const issuePath = syncIssueFromGitHub({
       workspace,
       issueRef: requiredValue(args, "issue-ref"),
@@ -362,6 +374,30 @@ function printCheckResult(result: Awaited<ReturnType<typeof runCheck>>, asJson: 
   }
 }
 
+function printIssueSyncCheck(result: ReturnType<typeof checkIssueSync>, asJson: boolean): void {
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  console.log(`KC issue-sync check: ${result.status}`);
+  if (result.drift.length === 0) {
+    console.log("No drift detected between .kc/issue.yaml and the source Issue candidate.");
+    return;
+  }
+
+  console.log("");
+  console.log("Drift detected:");
+  for (const item of result.drift) {
+    console.log(`- ${item.field}: ${item.message}`);
+  }
+  console.log("");
+  console.log("Resolution options:");
+  console.log("1. Re-sync .kc/issue.yaml from the Issue source.");
+  console.log("2. Keep the current .kc/issue.yaml as the PR gate snapshot and document why.");
+  console.log("3. Update the GitHub Issue, then run this check again.");
+}
+
 function printHelp(): void {
   console.log(`kc - Knowledge Convergence guard for Codex + GitHub
 
@@ -373,6 +409,7 @@ Usage:
   kc issue-brief [--input file] [--output file]
   kc issue-record --issue-ref URL --problem text --expected-outcome text --acceptance-criterion text --non-goal text [--risk-tier medium] [--validation-scenario text] [--nrvv-file file]
   kc issue-sync --issue-ref URL [--workspace .] [--force]
+  kc issue-sync --issue-ref URL --check [--issue-file issue.md] [--workspace .] [--json]
   kc issue-check [--workspace .]
   kc approval-brief [--workspace .]
   kc approval-record --choice 1 --actor sawadari --source github_issue_comment --ref URL [--summary text]

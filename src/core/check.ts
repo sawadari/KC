@@ -71,6 +71,7 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
     plan_diff_trace: buildPlanDiffTrace(plan, input.changedFiles),
     verification_evidence: evidence.verification_evidence ?? [],
     validation_evidence: evidence.validation_evidence ?? [],
+    source_snapshots: buildSourceSnapshots(input.artifacts.issue, evidence),
     findings: input.findings.map((finding) => ({
       rule_id: finding.ruleId,
       severity: finding.severity,
@@ -90,6 +91,34 @@ function buildEvidenceBundle(input: BundleInput): Record<string, unknown> {
     bundle.nrvv_trace = nrvvTrace;
   }
   return bundle;
+}
+
+function buildSourceSnapshots(issue: Record<string, unknown> | undefined, evidence: Record<string, unknown>): Record<string, unknown> | undefined {
+  const existing = recordValue(evidence.source_snapshots);
+  const issueSnapshot = buildIssueSourceSnapshot(issue);
+  if (!existing && !issueSnapshot) {
+    return undefined;
+  }
+  return {
+    ...(existing ?? {}),
+    ...(issueSnapshot ? { issue: issueSnapshot } : {})
+  };
+}
+
+function buildIssueSourceSnapshot(issue: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!issue) {
+    return undefined;
+  }
+  const source = recordValue(issue.source);
+  const snapshot = {
+    artifact_role: stringValue(issue.artifact_role) || "normalized_snapshot",
+    issue_ref: stringValue(issue.issue_ref),
+    source
+  };
+  if (!snapshot.issue_ref && !source) {
+    return undefined;
+  }
+  return snapshot;
 }
 
 function buildPlanDiffTrace(plan: Record<string, unknown> | undefined, changedFiles: string[]): Record<string, unknown>[] {
