@@ -20,6 +20,22 @@ Use KC when you want every PR to answer these questions:
 
 KC does not approve work for you. It makes missing context visible before merge.
 
+## Relationship to Knowledge Convergence
+
+KC is a focused implementation experiment inspired by the [Knowledge Convergence](https://github.com/sawadari/knowledge-convergence) framework.
+
+Knowledge Convergence is the broader theory and specification for turning generated outputs, human claims, evidence, decisions, and operational feedback into decision-ready knowledge states. KC applies a narrow subset of that idea to AI-assisted GitHub development.
+
+In this repository:
+
+- a GitHub Issue represents the original problem, intent, acceptance criteria, and validation context;
+- `.kc/plan.yaml` represents the proposed implementation plan and approved scope;
+- `.kc/approval.yaml` records durable human approval evidence;
+- `.kc/evidence_bundle.yaml` connects the Issue, Plan, approval, PR diff, verification evidence, validation evidence, and lifecycle state;
+- `kc check` turns missing or inconsistent context into deterministic `PASS`, `WARN`, `HOLD`, or `FAIL` results.
+
+KC is not the full Knowledge Convergence specification, and it is not a replacement for a requirements tool, PLM, ALM, or Systems Engineering platform. It is a practical guard layer for one concrete workflow: Codex or other coding agents producing GitHub pull requests.
+
 ## Where Humans Decide
 
 KC separates human judgment from deterministic checking:
